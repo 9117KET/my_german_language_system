@@ -37,6 +37,7 @@ let aiAudio = null;
 let recognition = null;
 let isRecording = false;
 let lastAIResult = null;
+let countdownTimer = null;
 
 // ---- DOM refs (player) ----
 const tabEls = document.querySelectorAll(".tab");
@@ -378,8 +379,9 @@ function setupAIEvents() {
   });
 
   aiMicBtn.addEventListener("click", toggleRecording);
-  aiSendBtn.addEventListener("click", () => sendToAI(aiTextInput.value.trim()));
-  aiTextInput.addEventListener("keydown", e => { if (e.key === "Enter") sendToAI(aiTextInput.value.trim()); });
+  aiSendBtn.addEventListener("click", () => { cancelCountdown(); sendToAI(aiTextInput.value.trim()); });
+  aiTextInput.addEventListener("keydown", e => { if (e.key === "Enter") { cancelCountdown(); sendToAI(aiTextInput.value.trim()); } });
+  aiTextInput.addEventListener("input", () => { if (countdownTimer) { cancelCountdown(); aiMicStatus.textContent = "Tap Send or mic"; } });
   aiReplayBtn.addEventListener("click", () => { if (lastAIResult?.audio_base64) playBase64Audio(lastAIResult.audio_base64); });
   aiSaveBtn.addEventListener("click", saveCurrentPhrase);
   aiExportBtn.addEventListener("click", exportAIPhrases);
@@ -412,14 +414,32 @@ function setupSpeechRecognition() {
   recognition.onresult = (e) => {
     const text = e.results[0][0].transcript;
     aiTextInput.value = text;
-    aiMicStatus.textContent = `Heard: "${text}"`;
-    sendToAI(text);
+    startCountdown(text);
   };
   recognition.onerror = (e) => {
     aiMicStatus.textContent = `Could not hear you (${e.error}). Try typing instead.`;
     stopRecording();
   };
   recognition.onend = () => stopRecording();
+}
+
+function cancelCountdown() {
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+}
+
+function startCountdown(text) {
+  cancelCountdown();
+  let count = 3;
+  aiMicStatus.textContent = `Sending in ${count}… (tap Send to go now)`;
+  countdownTimer = setInterval(() => {
+    count--;
+    if (count > 0) {
+      aiMicStatus.textContent = `Sending in ${count}… (tap Send to go now)`;
+    } else {
+      cancelCountdown();
+      sendToAI(aiTextInput.value.trim() || text);
+    }
+  }, 1000);
 }
 
 function toggleRecording() {
@@ -439,6 +459,7 @@ function stopRecording() {
 
 async function sendToAI(text) {
   if (!text) return;
+  cancelCountdown();
   clearAIResult();
   aiResultCard.style.display = "flex";
   aiSpinner.style.display = "block";
