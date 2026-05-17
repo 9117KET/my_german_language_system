@@ -27,6 +27,8 @@ let sessionGot = 0;
 let sessionMissed = 0;
 let sessionTotal = 0;
 
+let loop = false;
+
 let missedWeights = JSON.parse(localStorage.getItem("missedWeights") || "{}");
 
 // AI state
@@ -41,6 +43,7 @@ const tabEls = document.querySelectorAll(".tab");
 const categorySelect = document.getElementById("category-select");
 const shuffleBtn = document.getElementById("shuffle-btn");
 const autoBtn = document.getElementById("auto-btn");
+const loopBtn = document.getElementById("loop-btn");
 const cardEl = document.getElementById("card");
 const categoryBadge = document.getElementById("category-badge");
 const germanEl = document.getElementById("german-text");
@@ -202,7 +205,12 @@ function scheduleAutoAdvance(delayMs) {
 // ---- Navigation ----
 function advance(delta) {
   clearAutoTimer();
-  queueIndex = Math.max(0, Math.min(queue.length - 1, queueIndex + delta));
+  const next = queueIndex + delta;
+  if (next >= queue.length) {
+    queueIndex = loop ? 0 : queue.length - 1;
+  } else {
+    queueIndex = Math.max(0, next);
+  }
   renderCard();
 }
 
@@ -263,6 +271,12 @@ function setupEvents() {
     autoBtn.classList.toggle("active", autoAdvance);
     autoBtn.textContent = autoAdvance ? "Auto: ON" : "Auto: OFF";
     if (!autoAdvance) clearAutoTimer();
+  });
+
+  loopBtn.addEventListener("click", () => {
+    loop = !loop;
+    loopBtn.classList.toggle("active", loop);
+    loopBtn.textContent = loop ? "Loop: ON" : "Loop";
   });
 
   playBtn.addEventListener("click", () => {
