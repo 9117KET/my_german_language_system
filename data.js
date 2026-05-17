@@ -67,7 +67,7 @@ const PHRASES = [
     "german": "Heute fühle ich mich ausgeruht und bereit für den Tag.",
     "english": "Today I feel rested and ready for the day.",
     "category": "morning_routine",
-    "audio": "audio/010_heute_fuehle_ich_mich_ausgeruht_und_bereit.mp3"
+    "audio": "audio/010_heute_fuehle_ich_mich_ausgeruht_und_bere.mp3"
   },
   {
     "id": 11,
@@ -81,14 +81,14 @@ const PHRASES = [
     "german": "Ich habe heute eine Bewerbung abgeschickt.",
     "english": "I sent out an application today.",
     "category": "job_search",
-    "audio": "audio/012_ich_habe_heute_eine_bewerbung_abgeschickt.mp3"
+    "audio": "audio/012_ich_habe_heute_eine_bewerbung_abgeschick.mp3"
   },
   {
     "id": 13,
     "german": "Ich warte noch auf eine Antwort von der Firma.",
     "english": "I'm still waiting for a response from the company.",
     "category": "job_search",
-    "audio": "audio/013_ich_warte_noch_auf_eine_antwort_von_der_fi.mp3"
+    "audio": "audio/013_ich_warte_noch_auf_eine_antwort_von_der.mp3"
   },
   {
     "id": 14,
@@ -109,7 +109,7 @@ const PHRASES = [
     "german": "Die Jobsuche ist manchmal wirklich frustrierend.",
     "english": "Job searching is really frustrating sometimes.",
     "category": "job_search",
-    "audio": "audio/016_die_jobsuche_ist_manchmal_wirklich_frustr.mp3"
+    "audio": "audio/016_die_jobsuche_ist_manchmal_wirklich_frust.mp3"
   },
   {
     "id": 17,
@@ -123,7 +123,7 @@ const PHRASES = [
     "german": "Ich bewerbe mich auf eine Stelle als Softwareentwickler.",
     "english": "I'm applying for a position as a software developer.",
     "category": "job_search",
-    "audio": "audio/018_ich_bewerbe_mich_auf_eine_stelle_als_softw.mp3"
+    "audio": "audio/018_ich_bewerbe_mich_auf_eine_stelle_als_sof.mp3"
   },
   {
     "id": 19,
@@ -207,14 +207,14 @@ const PHRASES = [
     "german": "Können Sie das bitte an die Tafel schreiben?",
     "english": "Could you please write that on the board?",
     "category": "german_class",
-    "audio": "audio/030_koennen_sie_das_bitte_an_die_tafel_schreib.mp3"
+    "audio": "audio/030_koennen_sie_das_bitte_an_die_tafel_schre.mp3"
   },
   {
     "id": 31,
     "german": "Ich gehe heute Nachmittag ins Sprachcafé.",
     "english": "I'm going to the language café this afternoon.",
     "category": "hirschsprach_cafe",
-    "audio": "audio/031_ich_gehe_heute_nachmittag_ins_sprachcafe.mp3"
+    "audio": "audio/031_ich_gehe_heute_nachmittag_ins_sprachcaf.mp3"
   },
   {
     "id": 32,
@@ -235,7 +235,7 @@ const PHRASES = [
     "german": "Ich habe heute jemanden Interessantes kennengelernt.",
     "english": "I met someone interesting today.",
     "category": "hirschsprach_cafe",
-    "audio": "audio/034_ich_habe_heute_jemanden_interessantes_kenne.mp3"
+    "audio": "audio/034_ich_habe_heute_jemanden_interessantes_ke.mp3"
   },
   {
     "id": 35,
@@ -277,7 +277,7 @@ const PHRASES = [
     "german": "Das heutige Gespräch war sehr hilfreich für mich.",
     "english": "Today's conversation was very helpful for me.",
     "category": "hirschsprach_cafe",
-    "audio": "audio/040_das_heutige_gespraech_war_sehr_hilfreich_f.mp3"
+    "audio": "audio/040_das_heutige_gespraech_war_sehr_hilfreich.mp3"
   },
   {
     "id": 41,
@@ -305,14 +305,14 @@ const PHRASES = [
     "german": "Ich sitze am Fenster und schaue auf die Straße.",
     "english": "I'm sitting by the window and looking at the street.",
     "category": "describe_surroundings",
-    "audio": "audio/044_ich_sitze_am_fenster_und_schaue_auf_die_str.mp3"
+    "audio": "audio/044_ich_sitze_am_fenster_und_schaue_auf_die.mp3"
   },
   {
     "id": 45,
     "german": "Da drüben steht ein großes rotes Gebäude.",
     "english": "Over there stands a large red building.",
     "category": "describe_surroundings",
-    "audio": "audio/045_da_drueben_steht_ein_grosses_rotes_gebaeude.mp3"
+    "audio": "audio/045_da_drueben_steht_ein_grosses_rotes_gebae.mp3"
   },
   {
     "id": 46,
@@ -326,7 +326,7 @@ const PHRASES = [
     "german": "Die Stadt sieht heute Morgen sehr ruhig aus.",
     "english": "The city looks very quiet this morning.",
     "category": "describe_surroundings",
-    "audio": "audio/047_die_stadt_sieht_heute_morgen_sehr_ruhig_aus.mp3"
+    "audio": "audio/047_die_stadt_sieht_heute_morgen_sehr_ruhig.mp3"
   },
   {
     "id": 48,
@@ -340,7 +340,7 @@ const PHRASES = [
     "german": "Der Tisch in der Mitte des Raumes ist aus Holz.",
     "english": "The table in the middle of the room is made of wood.",
     "category": "describe_surroundings",
-    "audio": "audio/049_der_tisch_in_der_mitte_des_raumes_ist_aus_h.mp3"
+    "audio": "audio/049_der_tisch_in_der_mitte_des_raumes_ist_au.mp3"
   },
   {
     "id": 50,
@@ -368,7 +368,7 @@ const PHRASES = [
     "german": "Ich möchte mehr Zeit für mich selbst haben.",
     "english": "I want to have more time for myself.",
     "category": "inner_thoughts",
-    "audio": "audio/053_ich_moechte_mehr_zeit_fuer_mich_selbst_habe.mp3"
+    "audio": "audio/053_ich_moechte_mehr_zeit_fuer_mich_selbst_h.mp3"
   },
   {
     "id": 54,
@@ -382,7 +382,7 @@ const PHRASES = [
     "german": "Ich bin wirklich stolz auf meinen Fortschritt.",
     "english": "I'm really proud of my progress.",
     "category": "inner_thoughts",
-    "audio": "audio/055_ich_bin_wirklich_stolz_auf_meinen_fortschri.mp3"
+    "audio": "audio/055_ich_bin_wirklich_stolz_auf_meinen_fortsc.mp3"
   },
   {
     "id": 56,
@@ -417,7 +417,7 @@ const PHRASES = [
     "german": "Ich fühle mich heute besonders motiviert.",
     "english": "I feel particularly motivated today.",
     "category": "inner_thoughts",
-    "audio": "audio/060_ich_fuehle_mich_heute_besonders_motiviert.mp3"
+    "audio": "audio/060_ich_fuehle_mich_heute_besonders_motivier.mp3"
   },
   {
     "id": 61,
