@@ -4,7 +4,7 @@
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const EL_KEY = process.env.ELEVENLABS_API_KEY;
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9";
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-1.5-flash";
 
 async function callGemini(prompt) {
   const res = await fetch(
