@@ -8,7 +8,7 @@ const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9";
 // llama-3.1-8b-instant: fast, free, 14,400 req/day, excellent for translation
 const GROQ_MODEL = "llama-3.1-8b-instant";
 
-async function callGroq(prompt) {
+async function callGroq(prompt, retried = false) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -18,10 +18,20 @@ async function callGroq(prompt) {
     body: JSON.stringify({
       model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 300,
+      max_tokens: 150,
       temperature: 0.3,
     }),
   });
+
+  if (res.status === 429 && !retried) {
+    const body = await res.json();
+    // Extract wait time from Groq's error message e.g. "try again in 1.21s"
+    const match = body?.error?.message?.match(/try again in ([\d.]+)s/i);
+    const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 200 : 2000;
+    await new Promise(r => setTimeout(r, waitMs));
+    return callGroq(prompt, true);
+  }
+
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Groq ${res.status}: ${err}`);
@@ -75,8 +85,7 @@ module.exports = async function handler(req, res) {
   try {
     if (mode === "translate") {
       const german = await callGroq(
-        `Translate the following English sentence into natural, conversational German. ` +
-        `Return ONLY the German translation with no explanation, no quotes, nothing else.\n\nEnglish: ${text}`
+        `Translate to natural conversational German. Return ONLY the German sentence, nothing else.\nEnglish: ${text}`
       );
       const audio_base64 = await callElevenLabs(german);
       return res.json({ german, english: text, audio_base64 });
@@ -84,9 +93,8 @@ module.exports = async function handler(req, res) {
 
     if (mode === "correct") {
       const raw = await callGroq(
-        `A German language learner said the following (possibly incorrect) German sentence: "${text}"\n\n` +
-        `Respond with ONLY a JSON object and nothing else (no markdown, no code block):\n` +
-        `{"corrected":"the corrected German sentence","is_correct":true,"explanation":"what was wrong in one sentence, or 'Perfect!' if already correct"}`
+        `Correct this German sentence from a learner: "${text}"\n` +
+        `Reply with ONLY this JSON (no markdown): {"corrected":"...","is_correct":true/false,"explanation":"one sentence or 'Perfect!'"}`
       );
       const result = JSON.parse(stripMarkdown(raw));
       const audio_base64 = await callElevenLabs(result.corrected);
