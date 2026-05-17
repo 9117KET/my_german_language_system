@@ -1,38 +1,33 @@
-// Vercel serverless function - proxies Gemini (AI) and ElevenLabs (TTS)
+// Vercel serverless function - proxies Groq (AI) and ElevenLabs (TTS)
 // No npm packages needed - uses Node 18+ native fetch
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
+const GROQ_KEY = process.env.GROQ_API_KEY;
 const EL_KEY = process.env.ELEVENLABS_API_KEY;
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9";
 
-// Tried in order until one works - visit /api/models to see what's available
-const GEMINI_MODELS = [
-  { model: "gemini-2.0-flash-lite", api: "v1beta" },
-  { model: "gemini-2.0-flash-exp",  api: "v1beta" },
-  { model: "gemini-2.0-flash",      api: "v1beta" },
-];
+// llama-3.1-8b-instant: fast, free, 14,400 req/day, excellent for translation
+const GROQ_MODEL = "llama-3.1-8b-instant";
 
-async function callGemini(prompt) {
-  let lastError;
-  for (const { model, api } of GEMINI_MODELS) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/${api}/models/${model}:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-      }
-    );
-    if (res.ok) {
-      const data = await res.json();
-      return data.candidates[0].content.parts[0].text.trim();
-    }
-    const body = await res.text();
-    lastError = `Gemini ${model} (${api}) ${res.status}: ${body}`;
-    // Only retry on 404 (model not found) - stop on auth/quota errors
-    if (res.status !== 404) break;
+async function callGroq(prompt) {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 300,
+      temperature: 0.3,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Groq ${res.status}: ${err}`);
   }
-  throw new Error(lastError);
+  const data = await res.json();
+  return data.choices[0].message.content.trim();
 }
 
 async function callElevenLabs(text) {
@@ -71,7 +66,7 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  if (!GEMINI_KEY) return res.status(500).json({ error: "GEMINI_API_KEY not configured in Vercel environment variables" });
+  if (!GROQ_KEY) return res.status(500).json({ error: "GROQ_API_KEY not configured in Vercel environment variables" });
   if (!EL_KEY) return res.status(500).json({ error: "ELEVENLABS_API_KEY not configured in Vercel environment variables" });
 
   const { mode, text } = req.body || {};
@@ -79,7 +74,7 @@ module.exports = async function handler(req, res) {
 
   try {
     if (mode === "translate") {
-      const german = await callGemini(
+      const german = await callGroq(
         `Translate the following English sentence into natural, conversational German. ` +
         `Return ONLY the German translation with no explanation, no quotes, nothing else.\n\nEnglish: ${text}`
       );
@@ -88,7 +83,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (mode === "correct") {
-      const raw = await callGemini(
+      const raw = await callGroq(
         `A German language learner said the following (possibly incorrect) German sentence: "${text}"\n\n` +
         `Respond with ONLY a JSON object and nothing else (no markdown, no code block):\n` +
         `{"corrected":"the corrected German sentence","is_correct":true,"explanation":"what was wrong in one sentence, or 'Perfect!' if already correct"}`
