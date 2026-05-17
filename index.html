@@ -25,6 +25,7 @@
   <div class="tab active" data-mode="listen">Listen</div>
   <div class="tab" data-mode="shadow">Shadow</div>
   <div class="tab" data-mode="recall">Recall</div>
+  <div class="tab" data-mode="ai">AI</div>
 </div>
 
 <div id="card-area">
@@ -68,6 +69,54 @@
   <div id="empty-state">
     <p>No phrases found.</p>
     <p style="margin-top:8px;font-size:0.85rem">Run <code>python scripts/generate_audio.py</code> first.</p>
+  </div>
+
+  <!-- AI Chat panel (shown when AI tab is active) -->
+  <div id="ai-panel" style="display:none">
+
+    <div id="ai-sub-tabs">
+      <button class="ai-sub-btn active" data-aimode="translate">How do I say...</button>
+      <button class="ai-sub-btn" data-aimode="correct">Correct my German</button>
+    </div>
+
+    <div id="ai-category-row">
+      <span class="ai-label">Save to island:</span>
+      <select id="ai-category-select"></select>
+    </div>
+
+    <div id="ai-mic-area">
+      <button id="ai-mic-btn" aria-label="Tap to speak">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+        </svg>
+      </button>
+      <div id="ai-lang-hint">Speak in English</div>
+      <div id="ai-mic-status">Tap mic to start</div>
+    </div>
+
+    <div id="ai-fallback-row">
+      <input id="ai-text-input" type="text" placeholder="Or type here and press Send">
+      <button id="ai-send-btn">Send</button>
+    </div>
+
+    <div id="ai-result-card" style="display:none">
+      <div id="ai-spinner" style="display:none">Thinking...</div>
+      <div id="ai-result-body"></div>
+      <div id="ai-result-actions">
+        <button id="ai-replay-btn">&#9654; Replay</button>
+        <button id="ai-save-btn">+ Save phrase</button>
+      </div>
+    </div>
+
+    <div id="ai-saved-section">
+      <div id="ai-saved-header">
+        <span id="ai-saved-count">Saved: 0</span>
+        <button id="ai-export-btn">Export JSON</button>
+        <button id="ai-clear-btn">Clear</button>
+      </div>
+      <div id="ai-saved-list"></div>
+    </div>
+
   </div>
 
 </div>

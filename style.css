@@ -227,3 +227,146 @@ select {
 .stat.green .val { color: var(--green); }
 .stat.red .val { color: var(--red); }
 .stat.yellow .val { color: var(--yellow); }
+
+/* ---- AI Chat panel ---- */
+#ai-panel { display: flex; flex-direction: column; gap: 14px; }
+
+#ai-sub-tabs {
+  display: flex;
+  gap: 8px;
+}
+.ai-sub-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ai-sub-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+#ai-category-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ai-label { font-size: 0.8rem; color: var(--text-dim); white-space: nowrap; }
+
+#ai-mic-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+}
+#ai-mic-btn {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s, transform 0.1s;
+}
+#ai-mic-btn.recording {
+  background: var(--red);
+  animation: pulse 1s infinite;
+}
+#ai-mic-btn:active { transform: scale(0.95); }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244,67,54,0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(244,67,54,0); }
+}
+#ai-lang-hint { font-size: 0.75rem; color: var(--text-dim); }
+#ai-mic-status { font-size: 0.9rem; color: var(--text); }
+
+#ai-fallback-row {
+  display: flex;
+  gap: 8px;
+}
+#ai-text-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+#ai-text-input:focus { outline: none; border-color: var(--accent); }
+#ai-send-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+#ai-result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#ai-spinner { color: var(--text-dim); font-size: 0.9rem; text-align: center; }
+#ai-result-body { font-size: 0.95rem; line-height: 1.6; }
+#ai-result-body .ai-german { font-size: 1.2rem; font-weight: 600; margin-bottom: 6px; }
+#ai-result-body .ai-english { color: var(--text-dim); }
+#ai-result-body .ai-original { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; }
+#ai-result-body .ai-corrected { font-size: 1.15rem; font-weight: 600; color: var(--green); margin-bottom: 6px; }
+#ai-result-body .ai-correct-badge { color: var(--green); font-weight: 600; }
+#ai-result-body .ai-explanation { font-size: 0.85rem; color: var(--text-dim); border-left: 2px solid var(--border); padding-left: 10px; }
+#ai-result-actions { display: flex; gap: 8px; }
+#ai-replay-btn, #ai-save-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+#ai-replay-btn { background: var(--surface2); color: var(--text); }
+#ai-save-btn { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+#ai-saved-section { display: flex; flex-direction: column; gap: 8px; }
+#ai-saved-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+#ai-saved-count { flex: 1; }
+#ai-export-btn, #ai-clear-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.ai-saved-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+}
+.ai-saved-item .saved-german { font-weight: 600; margin-bottom: 2px; }
+.ai-saved-item .saved-english { color: var(--text-dim); }
+.ai-saved-item .saved-category { font-size: 0.7rem; color: var(--accent); margin-top: 4px; }

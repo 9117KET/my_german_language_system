@@ -1,5 +1,5 @@
 // app.js - German Language Learning Player
-// Modes: listen (passive), shadow (listen + repeat), recall (active recall)
+// Modes: listen (passive), shadow (listen + repeat), recall (active recall), ai (AI Chat)
 
 const CATEGORIES = {
   all: "All Islands",
@@ -13,7 +13,7 @@ const CATEGORIES = {
 };
 
 // ---- State ----
-let mode = "listen";          // listen | shadow | recall
+let mode = "listen";
 let category = "all";
 let shuffle = false;
 let autoAdvance = true;
@@ -23,15 +23,20 @@ let revealed = false;
 let audio = new Audio();
 let autoTimer = null;
 
-// Recall session stats
 let sessionGot = 0;
 let sessionMissed = 0;
 let sessionTotal = 0;
 
-// Missed phrase weights: id -> count of misses
 let missedWeights = JSON.parse(localStorage.getItem("missedWeights") || "{}");
 
-// ---- DOM refs ----
+// AI state
+let aiMode = "translate";
+let aiAudio = null;
+let recognition = null;
+let isRecording = false;
+let lastAIResult = null;
+
+// ---- DOM refs (player) ----
 const tabEls = document.querySelectorAll(".tab");
 const categorySelect = document.getElementById("category-select");
 const shuffleBtn = document.getElementById("shuffle-btn");
@@ -57,6 +62,28 @@ const statGot = document.getElementById("stat-got");
 const statMissed = document.getElementById("stat-missed");
 const statTotal = document.getElementById("stat-total");
 
+// Player-only elements to hide when AI tab is active
+const playerEls = ["card", "audio-bar", "recall-buttons", "stats-bar", "nav-buttons", "empty-state"];
+
+// ---- DOM refs (AI panel) ----
+const aiPanel = document.getElementById("ai-panel");
+const aiSubBtns = document.querySelectorAll(".ai-sub-btn");
+const aiCategorySelect = document.getElementById("ai-category-select");
+const aiMicBtn = document.getElementById("ai-mic-btn");
+const aiLangHint = document.getElementById("ai-lang-hint");
+const aiMicStatus = document.getElementById("ai-mic-status");
+const aiTextInput = document.getElementById("ai-text-input");
+const aiSendBtn = document.getElementById("ai-send-btn");
+const aiResultCard = document.getElementById("ai-result-card");
+const aiSpinner = document.getElementById("ai-spinner");
+const aiResultBody = document.getElementById("ai-result-body");
+const aiReplayBtn = document.getElementById("ai-replay-btn");
+const aiSaveBtn = document.getElementById("ai-save-btn");
+const aiSavedCount = document.getElementById("ai-saved-count");
+const aiExportBtn = document.getElementById("ai-export-btn");
+const aiClearBtn = document.getElementById("ai-clear-btn");
+const aiSavedList = document.getElementById("ai-saved-list");
+
 // ---- Init ----
 function buildCategorySelect() {
   categorySelect.innerHTML = "";
@@ -72,7 +99,6 @@ function buildQueue() {
   let source = category === "all" ? PHRASES : PHRASES.filter(p => p.category === category);
 
   if (mode === "recall") {
-    // Weight missed phrases: appear (1 + missCount) times
     const weighted = [];
     for (const p of source) {
       const w = 1 + (missedWeights[p.id] || 0);
@@ -81,10 +107,7 @@ function buildQueue() {
     source = weighted;
   }
 
-  if (shuffle) {
-    source = [...source].sort(() => Math.random() - 0.5);
-  }
-
+  if (shuffle) source = [...source].sort(() => Math.random() - 0.5);
   queue = source;
   queueIndex = 0;
 }
@@ -92,16 +115,18 @@ function buildQueue() {
 function init() {
   if (typeof PHRASES === "undefined" || PHRASES.length === 0) {
     emptyState.style.display = "block";
-    return;
   }
   buildCategorySelect();
   buildQueue();
   renderCard();
   setupEvents();
+  initAI();
 }
 
-// ---- Render ----
+// ---- Render (player) ----
 function renderCard() {
+  if (mode === "ai") return;
+
   if (!queue.length) {
     emptyState.style.display = "block";
     cardEl.style.display = "none";
@@ -116,7 +141,6 @@ function renderCard() {
   phraseNum.textContent = `#${p.id} - ${CATEGORIES[p.category] || p.category}`;
   progressBar.style.width = `${((queueIndex + 1) / queue.length) * 100}%`;
 
-  // Reset state
   revealed = false;
   clearAutoTimer();
   audio.pause();
@@ -132,7 +156,7 @@ function renderCard() {
     loadAndPlay(p);
   } else if (mode === "shadow") {
     germanEl.classList.remove("hidden");
-    englishEl.classList.add("hidden");   // hide translation - listen first
+    englishEl.classList.add("hidden");
     revealHint.style.display = "block";
     revealHint.textContent = "Tap card to see translation";
     recallButtons.classList.remove("visible");
@@ -140,7 +164,7 @@ function renderCard() {
     statusText.textContent = "Listen and repeat aloud";
     loadAndPlay(p);
   } else if (mode === "recall") {
-    germanEl.classList.add("hidden");    // hide German - you produce it
+    germanEl.classList.add("hidden");
     englishEl.classList.remove("hidden");
     revealHint.style.display = "block";
     revealHint.textContent = "Say it in German, then tap to reveal";
@@ -162,9 +186,7 @@ function loadAndPlay(p) {
     return;
   }
   audio.src = p.audio;
-  audio.play().catch(() => {
-    statusText.textContent = "Tap play to start";
-  });
+  audio.play().catch(() => { statusText.textContent = "Tap play to start"; });
 }
 
 // ---- Auto-advance ----
@@ -184,28 +206,51 @@ function advance(delta) {
   renderCard();
 }
 
-// ---- Events ----
+// ---- Show/hide panels when switching tabs ----
+function showPlayerPanel() {
+  document.getElementById("controls-bar").style.display = "flex";
+  aiPanel.style.display = "none";
+  playerEls.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "";
+  });
+}
+
+function showAIPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+  aiPanel.style.display = "flex";
+  renderAISavedList();
+}
+
+// ---- Events (player) ----
 function setupEvents() {
-  // Mode tabs
   tabEls.forEach(tab => {
     tab.addEventListener("click", () => {
       mode = tab.dataset.mode;
       tabEls.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
-      if (mode === "recall") { sessionGot = 0; sessionMissed = 0; sessionTotal = 0; }
-      buildQueue();
-      renderCard();
+
+      if (mode === "ai") {
+        showAIPanel();
+      } else {
+        showPlayerPanel();
+        if (mode === "recall") { sessionGot = 0; sessionMissed = 0; sessionTotal = 0; }
+        buildQueue();
+        renderCard();
+      }
     });
   });
 
-  // Category filter
   categorySelect.addEventListener("change", () => {
     category = categorySelect.value;
     buildQueue();
     renderCard();
   });
 
-  // Shuffle
   shuffleBtn.addEventListener("click", () => {
     shuffle = !shuffle;
     shuffleBtn.classList.toggle("active", shuffle);
@@ -213,7 +258,6 @@ function setupEvents() {
     renderCard();
   });
 
-  // Auto-advance toggle
   autoBtn.addEventListener("click", () => {
     autoAdvance = !autoAdvance;
     autoBtn.classList.toggle("active", autoAdvance);
@@ -221,38 +265,27 @@ function setupEvents() {
     if (!autoAdvance) clearAutoTimer();
   });
 
-  // Play/pause button
   playBtn.addEventListener("click", () => {
     const p = queue[queueIndex];
     if (!p) return;
     if (audio.paused) {
-      if (!audio.src || audio.src === window.location.href) {
-        loadAndPlay(p);
-      } else {
-        audio.play();
-      }
+      if (!audio.src || audio.src === window.location.href) loadAndPlay(p);
+      else audio.play();
     } else {
       audio.pause();
       clearAutoTimer();
     }
   });
 
-  // Audio events
   audio.addEventListener("play", () => { statusText.textContent = "Playing..."; });
   audio.addEventListener("pause", () => { statusText.textContent = "Paused"; });
   audio.addEventListener("ended", () => {
     statusText.textContent = "Done";
-    if (mode === "listen") {
-      scheduleAutoAdvance(3000);
-    } else if (mode === "shadow") {
-      // Pause for user to shadow, then auto-advance
-      statusText.textContent = "Repeat aloud!";
-      scheduleAutoAdvance(5000);
-    }
+    if (mode === "listen") scheduleAutoAdvance(3000);
+    else if (mode === "shadow") { statusText.textContent = "Repeat aloud!"; scheduleAutoAdvance(5000); }
   });
   audio.addEventListener("error", () => { statusText.textContent = "Audio error"; });
 
-  // Tap card to reveal (shadow mode: translation, recall mode: German + audio)
   cardEl.addEventListener("click", (e) => {
     if (e.target.closest("#audio-bar") || e.target.closest("#recall-buttons")) return;
     const p = queue[queueIndex];
@@ -269,11 +302,9 @@ function setupEvents() {
     }
   });
 
-  // Recall: Got it / Missed
   gotItBtn.addEventListener("click", () => {
     const p = queue[queueIndex];
-    sessionGot++;
-    sessionTotal++;
+    sessionGot++; sessionTotal++;
     if (missedWeights[p.id] > 0) missedWeights[p.id]--;
     if (missedWeights[p.id] === 0) delete missedWeights[p.id];
     localStorage.setItem("missedWeights", JSON.stringify(missedWeights));
@@ -282,19 +313,17 @@ function setupEvents() {
 
   missedBtn.addEventListener("click", () => {
     const p = queue[queueIndex];
-    sessionMissed++;
-    sessionTotal++;
+    sessionMissed++; sessionTotal++;
     missedWeights[p.id] = (missedWeights[p.id] || 0) + 1;
     localStorage.setItem("missedWeights", JSON.stringify(missedWeights));
     advance(1);
   });
 
-  // Prev/Next
   prevBtn.addEventListener("click", () => advance(-1));
   nextBtn.addEventListener("click", () => advance(1));
 
-  // Keyboard shortcuts (desktop)
   document.addEventListener("keydown", (e) => {
+    if (mode === "ai") return;
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
     if (e.key === "p" || e.key === "P") playBtn.click();
@@ -302,6 +331,193 @@ function setupEvents() {
     if (e.key === "g" || e.key === "G") gotItBtn.click();
     if (e.key === "m" || e.key === "M") missedBtn.click();
   });
+}
+
+// ---- AI Chat ----
+
+function initAI() {
+  aiCategorySelect.innerHTML = "";
+  for (const [val, label] of Object.entries(CATEGORIES)) {
+    if (val === "all") continue;
+    const opt = document.createElement("option");
+    opt.value = val;
+    opt.textContent = label;
+    if (val === "hirschsprach_cafe") opt.selected = true;
+    aiCategorySelect.appendChild(opt);
+  }
+  renderAISavedList();
+  setupAIEvents();
+  setupSpeechRecognition();
+}
+
+function setupAIEvents() {
+  aiSubBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      aiMode = btn.dataset.aimode;
+      aiSubBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      aiLangHint.textContent = aiMode === "translate" ? "Speak in English" : "Sprechen Sie Deutsch";
+      document.getElementById("ai-category-row").style.display = aiMode === "translate" ? "flex" : "none";
+      clearAIResult();
+      if (recognition) recognition.lang = aiMode === "translate" ? "en-US" : "de-DE";
+    });
+  });
+
+  aiMicBtn.addEventListener("click", toggleRecording);
+  aiSendBtn.addEventListener("click", () => sendToAI(aiTextInput.value.trim()));
+  aiTextInput.addEventListener("keydown", e => { if (e.key === "Enter") sendToAI(aiTextInput.value.trim()); });
+  aiReplayBtn.addEventListener("click", () => { if (lastAIResult?.audio_base64) playBase64Audio(lastAIResult.audio_base64); });
+  aiSaveBtn.addEventListener("click", saveCurrentPhrase);
+  aiExportBtn.addEventListener("click", exportAIPhrases);
+  aiClearBtn.addEventListener("click", () => {
+    if (confirm("Clear all saved AI phrases?")) {
+      localStorage.removeItem("ai_phrases");
+      renderAISavedList();
+    }
+  });
+}
+
+function setupSpeechRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    aiMicBtn.style.display = "none";
+    aiLangHint.style.display = "none";
+    aiMicStatus.textContent = "Mic not supported in this browser - use text input below";
+    return;
+  }
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  recognition.onstart = () => {
+    isRecording = true;
+    aiMicBtn.classList.add("recording");
+    aiMicStatus.textContent = "Listening...";
+  };
+  recognition.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    aiTextInput.value = text;
+    aiMicStatus.textContent = `Heard: "${text}"`;
+    sendToAI(text);
+  };
+  recognition.onerror = (e) => {
+    aiMicStatus.textContent = `Could not hear you (${e.error}). Try typing instead.`;
+    stopRecording();
+  };
+  recognition.onend = () => stopRecording();
+}
+
+function toggleRecording() {
+  if (!recognition) return;
+  if (isRecording) { recognition.stop(); }
+  else {
+    recognition.lang = aiMode === "translate" ? "en-US" : "de-DE";
+    recognition.start();
+  }
+}
+
+function stopRecording() {
+  isRecording = false;
+  aiMicBtn.classList.remove("recording");
+  if (!lastAIResult) aiMicStatus.textContent = "Tap mic to start";
+}
+
+async function sendToAI(text) {
+  if (!text) return;
+  clearAIResult();
+  aiResultCard.style.display = "flex";
+  aiSpinner.style.display = "block";
+  aiMicStatus.textContent = "Processing...";
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: aiMode, text }),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Server error");
+
+    lastAIResult = result;
+    aiSpinner.style.display = "none";
+    renderAIResult(result);
+    playBase64Audio(result.audio_base64);
+    aiMicStatus.textContent = "Done";
+    aiTextInput.value = "";
+  } catch (err) {
+    aiSpinner.style.display = "none";
+    aiResultBody.innerHTML = `<span style="color:var(--red)">Error: ${err.message}</span>`;
+    aiMicStatus.textContent = "Error - try again";
+  }
+}
+
+function renderAIResult(result) {
+  if (aiMode === "translate") {
+    aiResultBody.innerHTML = `
+      <div class="ai-english">You: "${result.english}"</div>
+      <div class="ai-german">${result.german}</div>
+    `;
+  } else {
+    const badge = result.is_correct ? `<div class="ai-correct-badge">✓ Perfect German!</div>` : "";
+    aiResultBody.innerHTML = `
+      <div class="ai-original">You said: "${result.original}"</div>
+      ${badge}
+      <div class="ai-corrected">${result.corrected}</div>
+      <div class="ai-explanation">${result.explanation}</div>
+    `;
+  }
+}
+
+function playBase64Audio(base64) {
+  if (!base64) return;
+  if (aiAudio) aiAudio.pause();
+  aiAudio = new Audio(`data:audio/mp3;base64,${base64}`);
+  aiAudio.play().catch(() => {});
+}
+
+function clearAIResult() {
+  lastAIResult = null;
+  aiResultCard.style.display = "none";
+  aiSpinner.style.display = "none";
+  aiResultBody.innerHTML = "";
+}
+
+function saveCurrentPhrase() {
+  if (!lastAIResult) return;
+  const german = aiMode === "translate" ? lastAIResult.german : lastAIResult.corrected;
+  const english = aiMode === "translate" ? lastAIResult.english : lastAIResult.original;
+  const cat = aiCategorySelect.value;
+
+  const saved = JSON.parse(localStorage.getItem("ai_phrases") || "[]");
+  saved.push({ german, english, category: cat, created_date: new Date().toISOString().split("T")[0] });
+  localStorage.setItem("ai_phrases", JSON.stringify(saved));
+
+  aiSaveBtn.textContent = "Saved!";
+  setTimeout(() => { aiSaveBtn.textContent = "+ Save phrase"; }, 1500);
+  renderAISavedList();
+}
+
+function renderAISavedList() {
+  const saved = JSON.parse(localStorage.getItem("ai_phrases") || "[]");
+  aiSavedCount.textContent = `Saved: ${saved.length}`;
+  aiSavedList.innerHTML = saved.slice().reverse().map(p => `
+    <div class="ai-saved-item">
+      <div class="saved-german">${p.german}</div>
+      <div class="saved-english">${p.english}</div>
+      <div class="saved-category">${CATEGORIES[p.category] || p.category}</div>
+    </div>
+  `).join("");
+}
+
+function exportAIPhrases() {
+  const saved = JSON.parse(localStorage.getItem("ai_phrases") || "[]");
+  if (!saved.length) { alert("No saved phrases to export yet."); return; }
+  const blob = new Blob([JSON.stringify(saved, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `ai_phrases_${new Date().toISOString().split("T")[0]}.json`;
+  a.click();
 }
 
 // ---- Start ----
