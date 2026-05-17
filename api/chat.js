@@ -1,7 +1,7 @@
 // Vercel serverless function - proxies Groq (AI) and ElevenLabs (TTS)
 // No npm packages needed - uses Node 18+ native fetch
 
-const GROQ_KEY = process.env.GROQ_API_KEY;
+const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY;
 const EL_KEY = process.env.ELEVENLABS_API_KEY;
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9";
 
@@ -66,7 +66,7 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  if (!GROQ_KEY) return res.status(500).json({ error: "GROQ_API_KEY not configured in Vercel environment variables" });
+  if (!GROQ_KEY) return res.status(500).json({ error: "GROQ_KEY not configured in Vercel environment variables" });
   if (!EL_KEY) return res.status(500).json({ error: "ELEVENLABS_API_KEY not configured in Vercel environment variables" });
 
   const { mode, text } = req.body || {};
