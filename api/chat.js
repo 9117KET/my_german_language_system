@@ -4,23 +4,36 @@
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const EL_KEY = process.env.ELEVENLABS_API_KEY;
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9";
-const GEMINI_MODEL = "gemini-1.5-flash";
+
+// Tried in order until one works - handles regional availability differences
+const GEMINI_MODELS = [
+  { model: "gemini-1.5-flash-8b", api: "v1beta" },
+  { model: "gemini-1.5-flash",    api: "v1beta" },
+  { model: "gemini-1.5-flash",    api: "v1"     },
+  { model: "gemini-1.0-pro",      api: "v1beta" },
+];
 
 async function callGemini(prompt) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+  let lastError;
+  for (const { model, api } of GEMINI_MODELS) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/${api}/models/${model}:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      return data.candidates[0].content.parts[0].text.trim();
     }
-  );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Gemini ${res.status}: ${err}`);
+    const body = await res.text();
+    lastError = `Gemini ${model} (${api}) ${res.status}: ${body}`;
+    // Only retry on 404 (model not found) - stop on auth/quota errors
+    if (res.status !== 404) break;
   }
-  const data = await res.json();
-  return data.candidates[0].content.parts[0].text.trim();
+  throw new Error(lastError);
 }
 
 async function callElevenLabs(text) {
