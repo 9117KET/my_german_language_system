@@ -99,7 +99,8 @@ def main(only_id: str | None = None) -> None:
         with open(PHRASES_FILE, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=["id", "german", "english", "category", "audio_file", "created_date"])
             writer.writeheader()
-            writer.writerows(rows)
+            for row in rows:
+                writer.writerow({k: v for k, v in row.items() if k is not None})
         print("\nUpdated phrases.csv")
 
     write_data_js(rows)
