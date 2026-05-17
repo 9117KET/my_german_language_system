@@ -1,0 +1,7 @@
+.env
+playlists/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+import_me.txt

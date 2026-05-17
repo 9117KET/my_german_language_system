@@ -1,0 +1,71 @@
+id,german,english,category,audio_file,created_date
+1,Ich bin heute Morgen um sieben Uhr aufgestanden.,I woke up at seven this morning.,morning_routine,,2026-05-17
+2,Ich muss noch schnell duschen.,I still need to shower quickly.,morning_routine,,2026-05-17
+3,Was soll ich heute anziehen?,What should I wear today?,morning_routine,,2026-05-17
+4,Ich mache mir einen Kaffee.,I'm making myself a coffee.,morning_routine,,2026-05-17
+5,Ich habe heute Morgen Haferbrei gegessen.,I had oatmeal for breakfast this morning.,morning_routine,,2026-05-17
+6,Ich bin heute total müde.,I'm totally tired today.,morning_routine,,2026-05-17
+7,Der Wecker hat mich um sechs geweckt.,The alarm woke me up at six.,morning_routine,,2026-05-17
+8,Ich habe heute Nacht schlecht geschlafen.,I slept badly last night.,morning_routine,,2026-05-17
+9,Ich muss mich beeilen, sonst komme ich zu spät.,I need to hurry or I'll be late.,morning_routine,,2026-05-17
+10,Heute fühle ich mich ausgeruht und bereit für den Tag.,Today I feel rested and ready for the day.,morning_routine,,2026-05-17
+11,Ich bin gerade auf Jobsuche.,I'm currently looking for a job.,job_search,,2026-05-17
+12,Ich habe heute eine Bewerbung abgeschickt.,I sent out an application today.,job_search,,2026-05-17
+13,Ich warte noch auf eine Antwort von der Firma.,I'm still waiting for a response from the company.,job_search,,2026-05-17
+14,Das Vorstellungsgespräch war gestern.,The job interview was yesterday.,job_search,,2026-05-17
+15,Ich hoffe, dass ich bald eine Stelle finde.,I hope I find a position soon.,job_search,,2026-05-17
+16,Die Jobsuche ist manchmal wirklich frustrierend.,Job searching is really frustrating sometimes.,job_search,,2026-05-17
+17,Ich habe meinen Lebenslauf aktualisiert.,I updated my resume.,job_search,,2026-05-17
+18,Ich bewerbe mich auf eine Stelle als Softwareentwickler.,I'm applying for a position as a software developer.,job_search,,2026-05-17
+19,Die Stelle klingt wirklich interessant.,The position sounds really interesting.,job_search,,2026-05-17
+20,Ich bin zuversichtlich, dass ich bald etwas finden werde.,I'm confident that I'll find something soon.,job_search,,2026-05-17
+21,Können Sie das bitte wiederholen?,Could you please repeat that?,german_class,,2026-05-17
+22,Ich habe das nicht ganz verstanden.,I didn't quite understand that.,german_class,,2026-05-17
+23,Wie sagt man das auf Deutsch?,How do you say that in German?,german_class,,2026-05-17
+24,Was bedeutet dieses Wort?,What does this word mean?,german_class,,2026-05-17
+25,Können Sie das bitte langsamer sagen?,Could you please say that more slowly?,german_class,,2026-05-17
+26,Ich lerne Deutsch seit ein paar Monaten.,I've been learning German for a few months.,german_class,,2026-05-17
+27,Ich mache noch viele Fehler, aber ich versuche mein Bestes.,I still make many mistakes, but I try my best.,german_class,,2026-05-17
+28,Darf ich eine Frage stellen?,May I ask a question?,german_class,,2026-05-17
+29,Ich verstehe den Unterschied nicht.,I don't understand the difference.,german_class,,2026-05-17
+30,Können Sie das bitte an die Tafel schreiben?,Could you please write that on the board?,german_class,,2026-05-17
+31,Ich gehe heute Nachmittag ins Sprachcafé.,I'm going to the language café this afternoon.,hirschsprach_cafe,,2026-05-17
+32,Es macht mir Spaß, mit Muttersprachlern zu reden.,I enjoy talking with native speakers.,hirschsprach_cafe,,2026-05-17
+33,Manchmal fällt es mir schwer, dem schnellen Gespräch zu folgen.,I sometimes find it hard to follow fast conversation.,hirschsprach_cafe,,2026-05-17
+34,Ich habe heute jemanden Interessantes kennengelernt.,I met someone interesting today.,hirschsprach_cafe,,2026-05-17
+35,Was denkst du darüber?,What do you think about that?,hirschsprach_cafe,,2026-05-17
+36,Ich bin anderer Meinung.,I have a different opinion.,hirschsprach_cafe,,2026-05-17
+37,Das stimmt, aber ich denke auch, dass...,That's true, but I also think that...,hirschsprach_cafe,,2026-05-17
+38,Könntest du mir helfen, das auf Deutsch zu sagen?,Could you help me say this in German?,hirschsprach_cafe,,2026-05-17
+39,Ich bestelle immer einen Kaffee, wenn ich im Café bin.,I always order a coffee when I'm at the café.,hirschsprach_cafe,,2026-05-17
+40,Das heutige Gespräch war sehr hilfreich für mich.,Today's conversation was very helpful for me.,hirschsprach_cafe,,2026-05-17
+41,Ich sehe ein Bild an der Wand.,I see a picture on the wall.,describe_surroundings,,2026-05-17
+42,Das Wetter ist heute wunderschön.,The weather is beautiful today.,describe_surroundings,,2026-05-17
+43,Es ist heute sehr kalt draußen.,It's very cold outside today.,describe_surroundings,,2026-05-17
+44,Ich sitze am Fenster und schaue auf die Straße.,I'm sitting by the window and looking at the street.,describe_surroundings,,2026-05-17
+45,Da drüben steht ein großes rotes Gebäude.,Over there stands a large red building.,describe_surroundings,,2026-05-17
+46,Es regnet gerade in Strömen.,It's raining heavily right now.,describe_surroundings,,2026-05-17
+47,Die Stadt sieht heute Morgen sehr ruhig aus.,The city looks very quiet this morning.,describe_surroundings,,2026-05-17
+48,Ich höre die Vögel draußen singen.,I can hear the birds singing outside.,describe_surroundings,,2026-05-17
+49,Der Tisch in der Mitte des Raumes ist aus Holz.,The table in the middle of the room is made of wood.,describe_surroundings,,2026-05-17
+50,Es riecht nach frischem Kaffee.,It smells like fresh coffee.,describe_surroundings,,2026-05-17
+51,Ich denke, das ist eine gute Idee.,I think that's a good idea.,inner_thoughts,,2026-05-17
+52,Ich bin mir nicht sicher, ob das richtig ist.,I'm not sure if that's right.,inner_thoughts,,2026-05-17
+53,Ich möchte mehr Zeit für mich selbst haben.,I want to have more time for myself.,inner_thoughts,,2026-05-17
+54,Ich frage mich, ob ich das schaffen kann.,I wonder if I can manage that.,inner_thoughts,,2026-05-17
+55,Ich bin wirklich stolz auf meinen Fortschritt.,I'm really proud of my progress.,inner_thoughts,,2026-05-17
+56,Das macht mich ein bisschen nervös.,That makes me a little nervous.,inner_thoughts,,2026-05-17
+57,Ich freue mich sehr auf das Wochenende.,I'm really looking forward to the weekend.,inner_thoughts,,2026-05-17
+58,Ich muss darüber nachdenken.,I need to think about that.,inner_thoughts,,2026-05-17
+59,Das ist genau das, was ich gesucht habe.,That's exactly what I was looking for.,inner_thoughts,,2026-05-17
+60,Ich fühle mich heute besonders motiviert.,I feel particularly motivated today.,inner_thoughts,,2026-05-17
+61,Ich gehe heute zum Supermarkt einkaufen.,I'm going grocery shopping at the supermarket today.,daily_life,,2026-05-17
+62,Die U-Bahn war heute wieder voll.,The subway was packed again today.,daily_life,,2026-05-17
+63,Ich muss noch die Wäsche waschen.,I still need to do the laundry.,daily_life,,2026-05-17
+64,Können Sie mir sagen, wo die nächste Apotheke ist?,Could you tell me where the nearest pharmacy is?,daily_life,,2026-05-17
+65,Ich koche heute Abend selbst.,I'm cooking dinner myself tonight.,daily_life,,2026-05-17
+66,Ich habe das Ticket online gekauft.,I bought the ticket online.,daily_life,,2026-05-17
+67,Der Bus hat heute Verspätung.,The bus is running late today.,daily_life,,2026-05-17
+68,Ich zahle lieber mit Karte.,I prefer to pay by card.,daily_life,,2026-05-17
+69,Ich habe mein Handy zu Hause vergessen.,I left my phone at home.,daily_life,,2026-05-17
+70,Ich brauche dringend neue Schuhe.,I urgently need new shoes.,daily_life,,2026-05-17
