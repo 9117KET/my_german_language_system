@@ -5,12 +5,11 @@ const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const EL_KEY = process.env.ELEVENLABS_API_KEY;
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9";
 
-// Tried in order until one works - handles regional availability differences
+// Tried in order until one works - visit /api/models to see what's available
 const GEMINI_MODELS = [
-  { model: "gemini-1.5-flash-8b", api: "v1beta" },
-  { model: "gemini-1.5-flash",    api: "v1beta" },
-  { model: "gemini-1.5-flash",    api: "v1"     },
-  { model: "gemini-1.0-pro",      api: "v1beta" },
+  { model: "gemini-2.0-flash-lite", api: "v1beta" },
+  { model: "gemini-2.0-flash-exp",  api: "v1beta" },
+  { model: "gemini-2.0-flash",      api: "v1beta" },
 ];
 
 async function callGemini(prompt) {
