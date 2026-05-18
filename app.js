@@ -35,6 +35,8 @@ let sessionMissed = 0;
 let sessionTotal = 0;
 
 let loop = false;
+let repeatCount = parseInt(localStorage.getItem("repeatCount") || "1");
+let currentRepeat = 0;
 
 // SRS state
 let srsData = {};
@@ -254,6 +256,10 @@ function init() {
   if (typeof PHRASES === "undefined" || PHRASES.length === 0) {
     emptyState.style.display = "block";
   }
+  const repeatBtn = document.getElementById("repeat-btn");
+  repeatBtn.textContent = repeatCount > 1 ? `Repeat: ${repeatCount}x` : "Repeat";
+  repeatBtn.classList.toggle("active", repeatCount > 1);
+
   buildCategorySelect();
   buildQueue();
   renderCard();
@@ -281,6 +287,7 @@ function renderCard() {
   progressBar.style.width = `${((queueIndex + 1) / queue.length) * 100}%`;
 
   revealed = false;
+  currentRepeat = 0;
   clearAutoTimer();
   audio.pause();
   audio.src = "";
@@ -436,6 +443,14 @@ function setupEvents() {
     loopBtn.textContent = loop ? "Loop: ON" : "Loop";
   });
 
+  document.getElementById("repeat-btn").addEventListener("click", () => {
+    repeatCount = repeatCount >= 3 ? 1 : repeatCount + 1;
+    localStorage.setItem("repeatCount", String(repeatCount));
+    const btn = document.getElementById("repeat-btn");
+    btn.textContent = repeatCount > 1 ? `Repeat: ${repeatCount}x` : "Repeat";
+    btn.classList.toggle("active", repeatCount > 1);
+  });
+
   playBtn.addEventListener("click", () => {
     const p = queue[queueIndex];
     if (!p) return;
@@ -451,9 +466,21 @@ function setupEvents() {
   audio.addEventListener("play", () => { statusText.textContent = "Playing..."; });
   audio.addEventListener("pause", () => { statusText.textContent = "Paused"; });
   audio.addEventListener("ended", () => {
-    statusText.textContent = "Done";
-    if (mode === "listen") scheduleAutoAdvance(3000);
-    else if (mode === "shadow") { statusText.textContent = "Repeat aloud!"; scheduleAutoAdvance(5000); }
+    currentRepeat++;
+    if (currentRepeat < repeatCount) {
+      if (mode === "listen") {
+        statusText.textContent = `Again (${currentRepeat + 1}/${repeatCount})`;
+        autoTimer = setTimeout(() => audio.play().catch(() => {}), 1500);
+      } else if (mode === "shadow") {
+        statusText.textContent = `Repeat aloud! (${currentRepeat}/${repeatCount})`;
+        autoTimer = setTimeout(() => audio.play().catch(() => {}), 4000);
+      }
+    } else {
+      currentRepeat = 0;
+      statusText.textContent = "Done";
+      if (mode === "listen") scheduleAutoAdvance(3000);
+      else if (mode === "shadow") { statusText.textContent = "Repeat aloud!"; scheduleAutoAdvance(5000); }
+    }
   });
   audio.addEventListener("error", () => { statusText.textContent = "Audio error"; });
 
