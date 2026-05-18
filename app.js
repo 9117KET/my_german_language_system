@@ -569,14 +569,14 @@ function setupEvents() {
   autoBtn.addEventListener("click", () => {
     autoAdvance = !autoAdvance;
     autoBtn.classList.toggle("active", autoAdvance);
-    autoBtn.textContent = autoAdvance ? "Auto: ON" : "Auto: OFF";
+    autoBtn.textContent = autoAdvance ? "Auto ✓" : "Auto";
     if (!autoAdvance) clearAutoTimer();
   });
 
   loopBtn.addEventListener("click", () => {
     loop = !loop;
     loopBtn.classList.toggle("active", loop);
-    loopBtn.textContent = loop ? "Loop: ON" : "Loop";
+    loopBtn.textContent = loop ? "Loop ✓" : "Loop";
   });
 
   document.getElementById("repeat-btn").addEventListener("click", () => {

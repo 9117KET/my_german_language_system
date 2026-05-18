@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0f0f0f">
   <title>Deutsch Lernen</title>
@@ -16,23 +16,27 @@
 </header>
 
 <div id="controls-bar">
-  <select id="category-select"></select>
-  <button class="toggle-btn" id="shuffle-btn">Shuffle</button>
-  <button class="toggle-btn active" id="auto-btn">Auto: ON</button>
-  <button class="toggle-btn" id="loop-btn">Loop</button>
-  <button class="toggle-btn" id="repeat-btn">Repeat</button>
-  <select id="grammar-filter">
-    <option value="all">All Grammar</option>
-    <option value="Präteritum">Präteritum</option>
-    <option value="Relativsatz">Relative Clauses</option>
-    <option value="Passiv">Passive</option>
-    <option value="Konjunktiv-II">Konjunktiv II</option>
-    <option value="Modal">Modal Verbs</option>
-    <option value="Perfekt">Perfekt</option>
-    <option value="Nebensatz">Subordinate Clauses</option>
-    <option value="Futur-I">Futur I</option>
-    <option value="Fragewort">Questions</option>
-  </select>
+  <div id="controls-row-1">
+    <select id="category-select"></select>
+    <select id="grammar-filter">
+      <option value="all">All Grammar</option>
+      <option value="Präteritum">Präteritum</option>
+      <option value="Relativsatz">Relative Clauses</option>
+      <option value="Passiv">Passive</option>
+      <option value="Konjunktiv-II">Konjunktiv II</option>
+      <option value="Modal">Modal Verbs</option>
+      <option value="Perfekt">Perfekt</option>
+      <option value="Nebensatz">Subordinate Clauses</option>
+      <option value="Futur-I">Futur I</option>
+      <option value="Fragewort">Questions</option>
+    </select>
+  </div>
+  <div id="controls-row-2">
+    <button class="toggle-btn active" id="auto-btn">Auto</button>
+    <button class="toggle-btn" id="shuffle-btn">Shuffle</button>
+    <button class="toggle-btn" id="loop-btn">Loop</button>
+    <button class="toggle-btn" id="repeat-btn">Repeat</button>
+  </div>
 </div>
 
 <div id="mode-tabs">
