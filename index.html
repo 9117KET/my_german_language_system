@@ -112,9 +112,12 @@
   <div id="ai-panel" style="display:none">
 
     <div id="ai-sub-tabs">
-      <button class="ai-sub-btn active" data-aimode="translate">How do I say...</button>
-      <button class="ai-sub-btn" data-aimode="correct">Correct my German</button>
+      <button class="ai-sub-btn active" data-aimode="translate">Translate</button>
+      <button class="ai-sub-btn" data-aimode="correct">Correct</button>
+      <button class="ai-sub-btn" data-aimode="chat">Chat</button>
     </div>
+
+    <div id="ai-tc-panel">
 
     <div id="ai-category-row">
       <span class="ai-label">Save to island:</span>
@@ -154,6 +157,66 @@
       </div>
       <div id="ai-saved-list"></div>
     </div>
+
+    </div><!-- end #ai-tc-panel -->
+
+    <!-- Chat panel -->
+    <div id="ai-chat-panel" style="display:none">
+
+      <div id="chat-top-row">
+        <select id="chat-scenario-select">
+          <option value="">Free Chat</option>
+          <option value="hirschsprach_cafe">Language Café</option>
+          <option value="shopping">Shopping</option>
+          <option value="health">Doctor Visit</option>
+          <option value="travel">Train Station</option>
+          <option value="greetings">Meeting Someone</option>
+          <option value="food_drink">At Restaurant</option>
+          <option value="job_search">Job Interview</option>
+          <option value="social">Planning Weekend</option>
+        </select>
+        <button id="chat-new-btn">New</button>
+        <button id="chat-history-btn">History</button>
+      </div>
+
+      <div id="chat-goal-banner" style="display:none">
+        <div id="chat-goal-text"></div>
+      </div>
+
+      <div id="chat-messages"></div>
+
+      <div id="chat-typing" style="display:none">
+        <div class="chat-row ai-row">
+          <div class="chat-bubble ai-bubble typing-indicator">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="chat-hint-area" style="display:none">
+        <div id="chat-hint-chips"></div>
+      </div>
+
+      <div id="chat-input-row">
+        <button id="chat-hint-btn" title="Get a hint in English">?</button>
+        <input id="chat-input" type="text" placeholder="Schreiben Sie auf Deutsch..." autocomplete="off" autocorrect="off" spellcheck="false">
+        <button id="chat-mic-btn" aria-label="Speak German">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+        </button>
+        <button id="chat-send-btn">Send</button>
+      </div>
+
+      <div id="chat-history-panel" style="display:none">
+        <div id="chat-history-header">
+          <span>Past Conversations</span>
+          <button id="chat-history-close">&#10005;</button>
+        </div>
+        <div id="chat-history-list"></div>
+      </div>
+
+    </div><!-- end #ai-chat-panel -->
 
     <!-- Mini-player for practicing saved AI phrases -->
     <div id="ai-mini-player" style="display:none">

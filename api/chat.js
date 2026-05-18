@@ -64,6 +64,52 @@ async function callElevenLabs(text) {
   return Buffer.from(buf).toString("base64");
 }
 
+async function callGroqMessages(messages, maxTokens = 350, retried = false) {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: GROQ_MODEL, messages, max_tokens: maxTokens, temperature: 0.7 }),
+  });
+  if (res.status === 429 && !retried) {
+    const body = await res.json();
+    const match = body?.error?.message?.match(/try again in ([\d.]+)s/i);
+    const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 200 : 2000;
+    await new Promise(r => setTimeout(r, waitMs));
+    return callGroqMessages(messages, maxTokens, true);
+  }
+  if (!res.ok) { const err = await res.text(); throw new Error(`Groq ${res.status}: ${err}`); }
+  const data = await res.json();
+  return data.choices[0].message.content.trim();
+}
+
+function buildConvoSystemPrompt(scenarioKey) {
+  const SCENARIO_ROLES = {
+    hirschsprach_cafe: "a friendly German native speaker at a language café",
+    shopping:          "a helpful shop assistant in a German clothing store",
+    health:            "a German doctor at a standard clinic",
+    travel:            "a ticket office employee at a German train station",
+    greetings:         "a new German-speaking colleague meeting you for the first time",
+    food_drink:        "a waiter at a German restaurant",
+    job_search:        "an HR manager conducting a job interview",
+    social:            "a German friend planning a weekend activity together",
+  };
+  const roleCtx = scenarioKey && SCENARIO_ROLES[scenarioKey]
+    ? `You are playing the role of ${SCENARIO_ROLES[scenarioKey]}.\n`
+    : "";
+  return `${roleCtx}You are a helpful German conversation partner for a B1 learner.
+
+RULES:
+1. Reply in natural German, B1 level, maximum 2-3 short sentences.
+2. Model these high-frequency structures: Perfekt, modal verbs, common subordinate clauses (dass/weil/wenn), polite Konjunktiv II.
+3. Check the learner's last message for ONE grammar or vocabulary error.
+4. Return ONLY valid JSON, no markdown, no extra text:
+   {"reply":"...","correction":null}
+   or
+   {"reply":"...","correction":{"original":"...","corrected":"...","explanation":"one sentence in English"}}
+5. Set correction to null if the learner's message had no errors.
+6. Be encouraging and keep the conversation flowing naturally.`;
+}
+
 function stripMarkdown(text) {
   return text.trim().replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
 }
@@ -79,7 +125,20 @@ module.exports = async function handler(req, res) {
   if (!GROQ_KEY) return res.status(500).json({ error: "GROQ_KEY not configured in Vercel environment variables" });
   if (!EL_KEY) return res.status(500).json({ error: "ELEVENLABS_API_KEY not configured in Vercel environment variables" });
 
-  const { mode, text } = req.body || {};
+  const { mode, text, history, scenario } = req.body || {};
+
+  // hint mode doesn't require user text
+  if (mode === "hint") {
+    const lastExchanges = (history || []).slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
+    const scenarioCtx = scenario ? `Scenario: ${scenario.replace(/_/g, " ")}.` : "Free conversation.";
+    const raw = await callGroq(
+      `A B1 German learner needs ideas for what to say next in a conversation.\n${scenarioCtx}\n\nRecent messages:\n${lastExchanges || "(just starting)"}\n\nGive exactly 3 short ideas in English for what the learner could say or ask next. Practical, B1-appropriate.\nReturn ONLY a JSON array: ["idea 1","idea 2","idea 3"]`
+    );
+    let hints;
+    try { hints = JSON.parse(stripMarkdown(raw)); } catch { hints = ["Ask how they are doing", "Share something about your day", "Ask a follow-up question"]; }
+    return res.json({ hints });
+  }
+
   if (!text || !text.trim()) return res.status(400).json({ error: "No text provided" });
 
   try {
@@ -132,7 +191,28 @@ module.exports = async function handler(req, res) {
       return res.json({ explanation });
     }
 
-    return res.status(400).json({ error: "mode must be translate, correct, vocab, or grammar" });
+    if (mode === "convo") {
+      const systemPrompt = buildConvoSystemPrompt(scenario);
+      const messages = [
+        { role: "system", content: systemPrompt },
+        ...(history || []).slice(-20),
+        { role: "user", content: text },
+      ];
+      const raw = await callGroqMessages(messages, 350);
+      let reply, correction;
+      try {
+        const parsed = JSON.parse(stripMarkdown(raw));
+        reply = parsed.reply || raw;
+        correction = parsed.correction || null;
+      } catch {
+        reply = raw;
+        correction = null;
+      }
+      const audio_base64 = await callElevenLabs(reply);
+      return res.json({ reply, correction, audio_base64 });
+    }
+
+    return res.status(400).json({ error: "unknown mode" });
   } catch (err) {
     console.error("[api/chat]", err.message);
     return res.status(500).json({ error: err.message });

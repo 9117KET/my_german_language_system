@@ -86,6 +86,50 @@ const GRAMMAR_TAGS = {
   163:["Futur-I"], 164:["Futur-I"], 165:["Plusquamperfekt"],
 };
 
+// ---- Conversation Scenarios ----
+const SCENARIOS = {
+  hirschsprach_cafe: {
+    title: "Language Café Chat",
+    goal: "Have a natural conversation about your week, interests, or language learning",
+    starter: "Hallo! Schön, dass du wieder da bist. Wie war deine Woche so?",
+  },
+  shopping: {
+    title: "Shopping for Clothes",
+    goal: "Find and buy a suitable item of clothing",
+    starter: "Guten Tag! Kann ich Ihnen helfen? Suchen Sie etwas Bestimmtes?",
+  },
+  health: {
+    title: "Doctor's Appointment",
+    goal: "Describe your symptoms and get advice",
+    starter: "Guten Morgen! Nehmen Sie bitte Platz. Was führt Sie heute zu mir?",
+  },
+  travel: {
+    title: "At the Train Station",
+    goal: "Buy a train ticket and find out the platform and departure time",
+    starter: "Guten Tag! Was kann ich für Sie tun?",
+  },
+  greetings: {
+    title: "Meeting Someone New",
+    goal: "Introduce yourself and get to know each other",
+    starter: "Oh, hallo! Du bist neu hier, oder? Ich bin Markus — und du?",
+  },
+  food_drink: {
+    title: "At the Restaurant",
+    goal: "Order food and drinks and ask about the menu",
+    starter: "Guten Abend! Herzlich willkommen. Haben Sie schon gewählt, oder brauchen Sie noch einen Moment?",
+  },
+  job_search: {
+    title: "Job Interview",
+    goal: "Answer interview questions and ask about the position",
+    starter: "Guten Tag! Schön, Sie kennenzulernen. Erzählen Sie mir bitte kurz etwas über sich.",
+  },
+  social: {
+    title: "Planning a Weekend",
+    goal: "Agree on what to do and when to meet",
+    starter: "Hey! Hast du am Wochenende schon was vor? Ich hätte da eine Idee!",
+  },
+};
+
 // ---- Grammar Topics (for Grammar tab) ----
 const GRAMMAR_TOPICS = [
   { id:"Perfekt", title:"Perfekt (Present Perfect)",
@@ -166,6 +210,14 @@ let countdownTimer = null;
 let miniPhrases = [];
 let miniIndex = 0;
 let miniRevealed = false;
+
+// Chat state
+let convoHistory = [];
+let convoMessages = [];
+let convoScenario = null;
+let convoSessionId = null;
+let chatRecognition = null;
+let chatIsRecording = false;
 
 // ---- DOM refs (player) ----
 const tabEls = document.querySelectorAll(".tab");
@@ -723,6 +775,7 @@ function initAI() {
   renderAISavedList();
   setupAIEvents();
   setupSpeechRecognition();
+  initChat();
 }
 
 function setupAIEvents() {
@@ -731,10 +784,18 @@ function setupAIEvents() {
       aiMode = btn.dataset.aimode;
       aiSubBtns.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      aiLangHint.textContent = aiMode === "translate" ? "Speak in English" : "Sprechen Sie Deutsch";
-      document.getElementById("ai-category-row").style.display = aiMode === "translate" ? "flex" : "none";
-      clearAIResult();
-      if (recognition) recognition.lang = aiMode === "translate" ? "en-US" : "de-DE";
+
+      if (aiMode === "chat") {
+        document.getElementById("ai-tc-panel").style.display = "none";
+        document.getElementById("ai-chat-panel").style.display = "flex";
+      } else {
+        document.getElementById("ai-tc-panel").style.display = "flex";
+        document.getElementById("ai-chat-panel").style.display = "none";
+        aiLangHint.textContent = aiMode === "translate" ? "Speak in English" : "Sprechen Sie Deutsch";
+        document.getElementById("ai-category-row").style.display = aiMode === "translate" ? "flex" : "none";
+        clearAIResult();
+        if (recognition) recognition.lang = aiMode === "translate" ? "en-US" : "de-DE";
+      }
     });
   });
 
@@ -1264,6 +1325,252 @@ function openGrammarTopic(tagId) {
   mode = "grammar";
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.mode === "grammar"));
   showGrammarPanel(tagId);
+}
+
+// ---- Conversation Chat ----
+
+function initChat() {
+  setupChatSpeech();
+  startConversation(null);
+
+  document.getElementById("chat-scenario-select").addEventListener("change", (e) => {
+    startConversation(e.target.value || null);
+  });
+  document.getElementById("chat-new-btn").addEventListener("click", () => {
+    startConversation(document.getElementById("chat-scenario-select").value || null);
+  });
+  document.getElementById("chat-history-btn").addEventListener("click", showChatHistory);
+  document.getElementById("chat-history-close").addEventListener("click", () => {
+    document.getElementById("chat-history-panel").style.display = "none";
+  });
+  document.getElementById("chat-hint-btn").addEventListener("click", requestHint);
+  document.getElementById("chat-send-btn").addEventListener("click", () => {
+    const text = document.getElementById("chat-input").value.trim();
+    if (text) sendConvoMessage(text);
+  });
+  document.getElementById("chat-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const text = document.getElementById("chat-input").value.trim();
+      if (text) sendConvoMessage(text);
+    }
+  });
+  document.getElementById("chat-mic-btn").addEventListener("click", () => {
+    if (!chatRecognition) return;
+    if (chatIsRecording) { chatRecognition.stop(); }
+    else { chatRecognition.start(); }
+  });
+}
+
+function setupChatSpeech() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { document.getElementById("chat-mic-btn").style.display = "none"; return; }
+  chatRecognition = new SR();
+  chatRecognition.continuous = false;
+  chatRecognition.interimResults = false;
+  chatRecognition.lang = "de-DE";
+  chatRecognition.onstart = () => {
+    chatIsRecording = true;
+    document.getElementById("chat-mic-btn").classList.add("recording");
+  };
+  chatRecognition.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    document.getElementById("chat-input").value = text;
+    sendConvoMessage(text);
+  };
+  chatRecognition.onerror = () => {
+    chatIsRecording = false;
+    document.getElementById("chat-mic-btn").classList.remove("recording");
+  };
+  chatRecognition.onend = () => {
+    chatIsRecording = false;
+    document.getElementById("chat-mic-btn").classList.remove("recording");
+  };
+}
+
+function startConversation(scenarioKey) {
+  convoScenario = scenarioKey || null;
+  convoHistory = [];
+  convoMessages = [];
+  convoSessionId = Date.now().toString();
+  document.getElementById("chat-hint-area").style.display = "none";
+  document.getElementById("chat-history-panel").style.display = "none";
+
+  if (convoScenario && SCENARIOS[convoScenario]) {
+    const s = SCENARIOS[convoScenario];
+    convoMessages.push({ role: "assistant", text: s.starter, correction: null, audio_base64: null, timestamp: new Date().toISOString() });
+    convoHistory.push({ role: "assistant", content: s.starter });
+  }
+
+  renderChatGoal();
+  renderChatMessages();
+}
+
+async function sendConvoMessage(text) {
+  if (!text.trim()) return;
+  document.getElementById("chat-input").value = "";
+  document.getElementById("chat-hint-area").style.display = "none";
+
+  const userMsg = { role: "user", text: text.trim(), correction: null, audio_base64: null, timestamp: new Date().toISOString() };
+  convoMessages.push(userMsg);
+  convoHistory.push({ role: "user", content: text.trim() });
+  renderChatMessages();
+  scrollChatToBottom();
+  showChatTyping(true);
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "convo", text: text.trim(), history: convoHistory.slice(-20), scenario: convoScenario }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Server error");
+    showChatTyping(false);
+
+    convoMessages[convoMessages.length - 1].correction = data.correction || null;
+    convoMessages.push({ role: "assistant", text: data.reply, correction: null, audio_base64: data.audio_base64 || null, timestamp: new Date().toISOString() });
+    convoHistory.push({ role: "assistant", content: data.reply });
+
+    renderChatMessages();
+    scrollChatToBottom();
+    saveConvoSession();
+  } catch (err) {
+    showChatTyping(false);
+    convoMessages.push({ role: "assistant", text: `Error: ${err.message}`, correction: null, audio_base64: null, timestamp: new Date().toISOString() });
+    renderChatMessages();
+    scrollChatToBottom();
+  }
+}
+
+async function requestHint() {
+  const hintArea = document.getElementById("chat-hint-area");
+  const hintChips = document.getElementById("chat-hint-chips");
+  hintChips.innerHTML = `<span class="hint-loading">Getting ideas...</span>`;
+  hintArea.style.display = "block";
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "hint", text: "hint", history: convoHistory.slice(-6), scenario: convoScenario }),
+    });
+    const data = await res.json();
+    const hints = Array.isArray(data.hints) ? data.hints : [];
+    hintChips.innerHTML = hints.map(h =>
+      `<button class="hint-chip" onclick="selectHint(this, '${h.replace(/'/g, "\\'")}')">${h}</button>`
+    ).join("");
+  } catch {
+    hintChips.innerHTML = `<span class="hint-loading">Could not get hints.</span>`;
+  }
+}
+
+function selectHint(btn, hintText) {
+  document.querySelectorAll(".hint-chip").forEach(c => c.classList.remove("selected"));
+  btn.classList.add("selected");
+  document.getElementById("chat-hint-chips").insertAdjacentHTML("beforeend",
+    `<div class="hint-selected-note">Idea: "${hintText}" — write this in German below</div>`
+  );
+}
+
+function renderChatMessages() {
+  const container = document.getElementById("chat-messages");
+  if (!convoMessages.length) {
+    const hasScenario = convoScenario && SCENARIOS[convoScenario];
+    container.innerHTML = `<div class="chat-empty">${hasScenario ? "Conversation started — reply in German below." : "Start chatting in German below."}</div>`;
+    return;
+  }
+  container.innerHTML = convoMessages.map((msg, idx) => {
+    const isUser = msg.role === "user";
+    const corrHtml = msg.correction
+      ? `<div class="chat-correction">
+           <span class="corr-de">${msg.correction.corrected}</span>
+           <span class="corr-en">${msg.correction.explanation}</span>
+         </div>`
+      : "";
+    const audioBtn = !isUser && msg.audio_base64
+      ? `<button class="chat-play-btn" onclick="playChatAudio(${idx})">&#9654;</button>`
+      : "";
+    return `<div class="chat-row ${isUser ? "user-row" : "ai-row"}">
+      <div class="chat-bubble ${isUser ? "user-bubble" : "ai-bubble"}">
+        <div class="chat-text">${msg.text}</div>
+        ${audioBtn}
+      </div>
+      ${corrHtml}
+    </div>`;
+  }).join("");
+}
+
+function playChatAudio(idx) {
+  const msg = convoMessages[idx];
+  if (msg?.audio_base64) playBase64Audio(msg.audio_base64);
+}
+
+function scrollChatToBottom() {
+  const el = document.getElementById("chat-messages");
+  el.scrollTop = el.scrollHeight;
+}
+
+function showChatTyping(show) {
+  document.getElementById("chat-typing").style.display = show ? "block" : "none";
+  if (show) scrollChatToBottom();
+}
+
+function renderChatGoal() {
+  const banner = document.getElementById("chat-goal-banner");
+  if (convoScenario && SCENARIOS[convoScenario]) {
+    banner.style.display = "flex";
+    document.getElementById("chat-goal-text").textContent = `Goal: ${SCENARIOS[convoScenario].goal}`;
+  } else {
+    banner.style.display = "none";
+  }
+}
+
+function saveConvoSession() {
+  if (convoMessages.length < 2) return;
+  const sessions = JSON.parse(localStorage.getItem("convo_sessions") || "[]");
+  const idx = sessions.findIndex(s => s.id === convoSessionId);
+  const session = {
+    id: convoSessionId,
+    date: new Date().toISOString().split("T")[0],
+    title: convoScenario && SCENARIOS[convoScenario] ? SCENARIOS[convoScenario].title : "Free Chat",
+    scenarioKey: convoScenario,
+    messages: convoMessages.map(m => ({ role: m.role, text: m.text, correction: m.correction || null })),
+  };
+  if (idx >= 0) sessions[idx] = session;
+  else sessions.unshift(session);
+  localStorage.setItem("convo_sessions", JSON.stringify(sessions.slice(0, 20)));
+}
+
+function showChatHistory() {
+  const panel = document.getElementById("chat-history-panel");
+  const list = document.getElementById("chat-history-list");
+  const sessions = JSON.parse(localStorage.getItem("convo_sessions") || "[]");
+  if (!sessions.length) {
+    list.innerHTML = `<div class="prog-empty">No past conversations yet.</div>`;
+  } else {
+    list.innerHTML = sessions.map((s, i) => {
+      const corrections = s.messages.filter(m => m.correction).length;
+      return `<div class="history-item" onclick="loadConvoSession(${i})">
+        <div class="history-title">${s.title}</div>
+        <div class="history-meta">${s.date} &middot; ${s.messages.length} messages${corrections ? ` &middot; ${corrections} corrections` : ""}</div>
+      </div>`;
+    }).join("");
+  }
+  panel.style.display = "flex";
+}
+
+function loadConvoSession(idx) {
+  const sessions = JSON.parse(localStorage.getItem("convo_sessions") || "[]");
+  const s = sessions[idx];
+  if (!s) return;
+  convoSessionId = s.id;
+  convoScenario = s.scenarioKey;
+  convoHistory = s.messages.map(m => ({ role: m.role, content: m.text }));
+  convoMessages = s.messages.map(m => ({ ...m, audio_base64: null }));
+  document.getElementById("chat-scenario-select").value = s.scenarioKey || "";
+  document.getElementById("chat-history-panel").style.display = "none";
+  renderChatGoal();
+  renderChatMessages();
+  scrollChatToBottom();
 }
 
 // ---- AI Mini-Player ----
