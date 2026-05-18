@@ -148,10 +148,34 @@
     <div id="ai-saved-section">
       <div id="ai-saved-header">
         <span id="ai-saved-count">Saved: 0</span>
-        <button id="ai-export-btn">Export JSON</button>
+        <button id="mini-practice-btn">&#9654; Practice</button>
+        <button id="ai-export-btn">Export</button>
         <button id="ai-clear-btn">Clear</button>
       </div>
       <div id="ai-saved-list"></div>
+    </div>
+
+    <!-- Mini-player for practicing saved AI phrases -->
+    <div id="ai-mini-player" style="display:none">
+      <div id="mini-player-topbar">
+        <span id="mini-count">1 / 0</span>
+        <div id="mini-player-controls">
+          <button id="mini-shuffle-btn">Shuffle</button>
+          <button id="mini-close-btn">&#10005; Close</button>
+        </div>
+      </div>
+      <div id="mini-card">
+        <div id="mini-category"></div>
+        <div id="mini-english"></div>
+        <div id="mini-hint">Tap card to reveal German</div>
+        <div id="mini-german" style="display:none"></div>
+        <div id="mini-no-audio" style="display:none">No audio for this phrase</div>
+      </div>
+      <div id="mini-player-btns" style="display:none">
+        <button id="mini-got-it-btn">Got it &#10003;</button>
+        <button id="mini-skip-btn">Next &#8594;</button>
+      </div>
+      <button id="mini-replay-btn" style="display:none">&#9654; Replay audio</button>
     </div>
 
   </div>

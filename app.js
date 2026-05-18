@@ -162,6 +162,11 @@ let isRecording = false;
 let lastAIResult = null;
 let countdownTimer = null;
 
+// Mini-player state
+let miniPhrases = [];
+let miniIndex = 0;
+let miniRevealed = false;
+
 // ---- DOM refs (player) ----
 const tabEls = document.querySelectorAll(".tab");
 const categorySelect = document.getElementById("category-select");
@@ -746,6 +751,23 @@ function setupAIEvents() {
       renderAISavedList();
     }
   });
+
+  document.getElementById("mini-practice-btn").addEventListener("click", openMiniPlayer);
+  document.getElementById("mini-close-btn").addEventListener("click", closeMiniPlayer);
+  document.getElementById("mini-shuffle-btn").addEventListener("click", () => {
+    miniPhrases = [...miniPhrases].sort(() => Math.random() - 0.5);
+    miniIndex = 0;
+    renderMiniCard();
+  });
+  document.getElementById("mini-card").addEventListener("click", () => {
+    if (!miniRevealed) miniRevealCard();
+  });
+  document.getElementById("mini-got-it-btn").addEventListener("click", () => miniAdvance());
+  document.getElementById("mini-skip-btn").addEventListener("click", () => miniAdvance());
+  document.getElementById("mini-replay-btn").addEventListener("click", () => {
+    const p = miniPhrases[miniIndex];
+    if (p?.audio_base64) playBase64Audio(p.audio_base64);
+  });
 }
 
 function setupSpeechRecognition() {
@@ -884,9 +906,10 @@ function saveCurrentPhrase() {
   const german = aiMode === "translate" ? lastAIResult.german : lastAIResult.corrected;
   const english = aiMode === "translate" ? lastAIResult.english : lastAIResult.original;
   const cat = aiCategorySelect.value;
+  const audio_base64 = lastAIResult.audio_base64 || null;
 
   const saved = JSON.parse(localStorage.getItem("ai_phrases") || "[]");
-  saved.push({ german, english, category: cat, created_date: new Date().toISOString().split("T")[0] });
+  saved.push({ german, english, category: cat, audio_base64, created_date: new Date().toISOString().split("T")[0] });
   localStorage.setItem("ai_phrases", JSON.stringify(saved));
 
   aiSaveBtn.textContent = "Saved!";
@@ -897,13 +920,26 @@ function saveCurrentPhrase() {
 function renderAISavedList() {
   const saved = JSON.parse(localStorage.getItem("ai_phrases") || "[]");
   aiSavedCount.textContent = `Saved: ${saved.length}`;
-  aiSavedList.innerHTML = saved.slice().reverse().map(p => `
-    <div class="ai-saved-item">
-      <div class="saved-german">${p.german}</div>
-      <div class="saved-english">${p.english}</div>
-      <div class="saved-category">${CATEGORIES[p.category] || p.category}</div>
-    </div>
-  `).join("");
+  if (!saved.length) { aiSavedList.innerHTML = ""; return; }
+  aiSavedList.innerHTML = [...saved].reverse().map((p, revIdx) => {
+    const idx = saved.length - 1 - revIdx;
+    return `
+      <div class="ai-saved-item">
+        <div class="saved-german">${p.german}</div>
+        <div class="saved-english">${p.english}</div>
+        <div class="ai-saved-meta">
+          <span class="saved-category">${CATEGORIES[p.category] || p.category}</span>
+          ${p.audio_base64 ? `<button class="ai-saved-play-btn" onclick="playAISavedPhrase(${idx})">▶ Play</button>` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function playAISavedPhrase(idx) {
+  const saved = JSON.parse(localStorage.getItem("ai_phrases") || "[]");
+  const p = saved[idx];
+  if (p?.audio_base64) playBase64Audio(p.audio_base64);
 }
 
 function exportAIPhrases() {
@@ -1228,6 +1264,73 @@ function openGrammarTopic(tagId) {
   mode = "grammar";
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.mode === "grammar"));
   showGrammarPanel(tagId);
+}
+
+// ---- AI Mini-Player ----
+
+function openMiniPlayer() {
+  const saved = JSON.parse(localStorage.getItem("ai_phrases") || "[]");
+  if (!saved.length) return;
+  miniPhrases = [...saved];
+  miniIndex = 0;
+  miniRevealed = false;
+  document.getElementById("ai-saved-section").style.display = "none";
+  document.getElementById("ai-mini-player").style.display = "flex";
+  renderMiniCard();
+}
+
+function closeMiniPlayer() {
+  document.getElementById("ai-mini-player").style.display = "none";
+  document.getElementById("ai-saved-section").style.display = "flex";
+  if (aiAudio) aiAudio.pause();
+}
+
+function renderMiniCard() {
+  miniRevealed = false;
+  const p = miniPhrases[miniIndex];
+  const total = miniPhrases.length;
+
+  document.getElementById("mini-count").textContent = `${miniIndex + 1} / ${total}`;
+  document.getElementById("mini-english").textContent = p.english;
+  document.getElementById("mini-german").textContent = p.german;
+  document.getElementById("mini-german").style.display = "none";
+  document.getElementById("mini-hint").style.display = "block";
+  document.getElementById("mini-player-btns").style.display = "none";
+  document.getElementById("mini-replay-btn").style.display = "none";
+  document.getElementById("mini-no-audio").style.display = "none";
+  document.getElementById("mini-category").textContent = CATEGORIES[p.category] || p.category;
+}
+
+function miniRevealCard() {
+  miniRevealed = true;
+  const p = miniPhrases[miniIndex];
+  document.getElementById("mini-german").style.display = "block";
+  document.getElementById("mini-hint").style.display = "none";
+  document.getElementById("mini-player-btns").style.display = "flex";
+
+  if (p.audio_base64) {
+    document.getElementById("mini-replay-btn").style.display = "inline-flex";
+    playBase64Audio(p.audio_base64);
+  } else {
+    document.getElementById("mini-no-audio").style.display = "block";
+  }
+}
+
+function miniAdvance() {
+  if (miniIndex < miniPhrases.length - 1) {
+    miniIndex++;
+    renderMiniCard();
+  } else {
+    // End of deck
+    document.getElementById("mini-german").style.display = "none";
+    document.getElementById("mini-hint").style.display = "none";
+    document.getElementById("mini-player-btns").style.display = "none";
+    document.getElementById("mini-replay-btn").style.display = "none";
+    document.getElementById("mini-no-audio").style.display = "none";
+    document.getElementById("mini-english").textContent = "All done!";
+    document.getElementById("mini-count").textContent = `${miniPhrases.length} / ${miniPhrases.length}`;
+    document.getElementById("mini-category").textContent = "";
+  }
 }
 
 // ---- Start ----
