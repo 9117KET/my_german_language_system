@@ -325,6 +325,7 @@ select {
 #ai-result-body { font-size: 0.95rem; line-height: 1.6; }
 #ai-result-body .ai-german { font-size: 1.2rem; font-weight: 600; margin-bottom: 6px; }
 #ai-result-body .ai-english { color: var(--text-dim); }
+#ai-result-body .ai-category-hint { font-size: 0.75rem; color: var(--accent); margin-top: 6px; }
 #ai-result-body .ai-original { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; }
 #ai-result-body .ai-corrected { font-size: 1.15rem; font-weight: 600; color: var(--green); margin-bottom: 6px; }
 #ai-result-body .ai-correct-badge { color: var(--green); font-weight: 600; }
@@ -370,3 +371,43 @@ select {
 .ai-saved-item .saved-german { font-weight: 600; margin-bottom: 2px; }
 .ai-saved-item .saved-english { color: var(--text-dim); }
 .ai-saved-item .saved-category { font-size: 0.7rem; color: var(--accent); margin-top: 4px; }
+
+/* ---- SRS Status Badges ---- */
+.srs-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; }
+.srs-new      { background:var(--surface2); color:var(--text-dim); }
+.srs-due      { background:var(--accent-dim); color:var(--accent); border:1px solid var(--accent); }
+.srs-upcoming { background:var(--surface2); color:var(--yellow); }
+.srs-mastered { background:#1a3322; color:var(--green); }
+.srs-archived { background:var(--surface2); color:var(--text-dim); opacity:0.6; }
+#srs-status-badge { margin-bottom: 6px; }
+
+/* ---- Recall Mode SRS Bar ---- */
+#recall-srs-bar { display:flex; align-items:center; justify-content:space-between; padding:4px 0; font-size:0.82rem; color:var(--text-dim); }
+
+/* ---- Recall Mode Voice Area ---- */
+#recall-voice-area { display:flex; align-items:center; gap:12px; padding:8px 0; }
+#recall-mic-btn { width:44px; height:44px; border-radius:50%; border:1px solid var(--border); background:var(--surface2); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background 0.2s; }
+#recall-mic-btn.recording { background:var(--red); color:#fff; animation:pulse 1s infinite; }
+#recall-mic-btn:active { transform:scale(0.95); }
+#recall-transcript { flex:1; font-size:0.85rem; color:var(--text-dim); font-style:italic; min-height:20px; }
+
+/* ---- Progress Panel ---- */
+#progress-panel { display:flex; flex-direction:column; gap:14px; }
+#progress-summary { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.prog-stat { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 6px; text-align:center; }
+.prog-val { font-size:1.4rem; font-weight:700; color:var(--accent); }
+.prog-lbl { font-size:0.7rem; color:var(--text-dim); margin-top:2px; }
+#progress-filters { display:flex; gap:6px; flex-wrap:wrap; }
+.prog-filter { padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text-dim); font-size:0.8rem; cursor:pointer; }
+.prog-filter.active { background:var(--accent-dim); color:var(--accent); border-color:var(--accent); }
+#progress-list { display:flex; flex-direction:column; gap:10px; padding-bottom:20px; }
+.prog-item { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:6px; }
+.prog-item-top { display:flex; align-items:center; justify-content:space-between; }
+.prog-interval { font-size:0.72rem; color:var(--text-dim); }
+.prog-german { font-weight:600; font-size:1rem; }
+.prog-english { color:var(--text-dim); font-size:0.88rem; }
+.prog-meta { font-size:0.75rem; color:var(--text-dim); }
+.prog-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+.prog-btn { padding:5px 12px; border-radius:7px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:0.78rem; cursor:pointer; }
+.prog-btn.warn { color:var(--red); border-color:var(--red); }
+.prog-empty { text-align:center; color:var(--text-dim); padding:30px; }

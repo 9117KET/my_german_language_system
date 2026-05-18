@@ -18,7 +18,7 @@ async function callGroq(prompt, retried = false) {
     body: JSON.stringify({
       model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 150,
+      max_tokens: 200,
       temperature: 0.3,
     }),
   });
@@ -84,11 +84,23 @@ module.exports = async function handler(req, res) {
 
   try {
     if (mode === "translate") {
-      const german = await callGroq(
-        `Translate to natural conversational German. Return ONLY the German sentence, nothing else.\nEnglish: ${text}`
+      const raw = await callGroq(
+        `Translate to natural conversational German and pick the best category.\n\n` +
+        `Return ONLY this JSON (no markdown): {"german":"...","category":"..."}\n\n` +
+        `Categories: morning_routine (waking up/breakfast), job_search (jobs/work/interviews), german_class (learning German), hirschsprach_cafe (café/meeting people/opinions), describe_surroundings (weather/places/senses), inner_thoughts (feelings/reflections), daily_life (errands/transport), greetings (introductions/small talk), food_drink (restaurants/ordering food), shopping (buying things/prices), health (illness/doctor/pharmacy), travel (directions/getting around), social (plans with friends/events), hobbies (free time/interests)\n\n` +
+        `English: ${text}`
       );
+      let german, category;
+      try {
+        const parsed = JSON.parse(stripMarkdown(raw));
+        german = parsed.german;
+        category = parsed.category || null;
+      } catch {
+        german = raw.replace(/^["']|["']$/g, "").trim();
+        category = null;
+      }
       const audio_base64 = await callElevenLabs(german);
-      return res.json({ german, english: text, audio_base64 });
+      return res.json({ german, english: text, category, audio_base64 });
     }
 
     if (mode === "correct") {

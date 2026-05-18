@@ -69,3 +69,73 @@ id,german,english,category,audio_file,created_date
 68,Ich zahle lieber mit Karte.,I prefer to pay by card.,daily_life,audio/068_ich_zahle_lieber_mit_karte.mp3,2026-05-17
 69,Ich habe mein Handy zu Hause vergessen.,I left my phone at home.,daily_life,audio/069_ich_habe_mein_handy_zu_hause_vergessen.mp3,2026-05-17
 70,Ich brauche dringend neue Schuhe.,I urgently need new shoes.,daily_life,audio/070_ich_brauche_dringend_neue_schuhe.mp3,2026-05-17
+71,Hallo wie geht es Ihnen?,Hello how are you?,greetings,audio/071_hallo_wie_geht_es_ihnen.mp3,2026-05-18
+72,Mir geht es gut danke. Und Ihnen?,I'm doing well thank you. And you?,greetings,audio/072_mir_geht_es_gut_danke_und_ihnen.mp3,2026-05-18
+73,Schön Sie kennenzulernen.,Nice to meet you.,greetings,audio/073_schoen_sie_kennenzulernen.mp3,2026-05-18
+74,Woher kommen Sie ursprünglich?,Where are you originally from?,greetings,audio/074_woher_kommen_sie_urspruenglich.mp3,2026-05-18
+75,Ich komme aus Kamerun.,I'm from Cameroon.,greetings,audio/075_ich_komme_aus_kamerun.mp3,2026-05-18
+76,Seit wann wohnen Sie schon hier?,How long have you been living here?,greetings,audio/076_seit_wann_wohnen_sie_schon_hier.mp3,2026-05-18
+77,Ich wohne seit ungefähr einem Jahr hier.,I've been living here for about a year.,greetings,audio/077_ich_wohne_seit_ungefaehr_einem_jahr_hier.mp3,2026-05-18
+78,Was machen Sie beruflich?,What do you do for work?,greetings,audio/078_was_machen_sie_beruflich.mp3,2026-05-18
+79,Wie war Ihr Wochenende?,How was your weekend?,greetings,audio/079_wie_war_ihr_wochenende.mp3,2026-05-18
+80,Tschüss bis zum nächsten Mal!,Bye until next time!,greetings,audio/080_tschuess_bis_zum_naechsten_mal.mp3,2026-05-18
+81,Haben Sie einen Tisch für zwei Personen frei?,Do you have a free table for two?,food_drink,audio/081_haben_sie_einen_tisch_fuer_zwei_personen.mp3,2026-05-18
+82,Was würden Sie empfehlen?,What would you recommend?,food_drink,audio/082_was_wuerden_sie_empfehlen.mp3,2026-05-18
+83,Ich bin Vegetarier gibt es etwas ohne Fleisch?,I'm vegetarian is there something without meat?,food_drink,audio/083_ich_bin_vegetarier_gibt_es_etwas_ohne_fl.mp3,2026-05-18
+84,Die Rechnung bitte.,The bill please.,food_drink,audio/084_die_rechnung_bitte.mp3,2026-05-18
+85,Das war wirklich lecker danke.,That was really delicious thank you.,food_drink,audio/085_das_war_wirklich_lecker_danke.mp3,2026-05-18
+86,Ich hätte gerne ein Glas Leitungswasser bitte.,I'd like a glass of tap water please.,food_drink,audio/086_ich_haette_gerne_ein_glas_leitungswasser.mp3,2026-05-18
+87,Was ist das Tagesgericht heute?,What is today's special?,food_drink,audio/087_was_ist_das_tagesgericht_heute.mp3,2026-05-18
+88,Kann ich bitte die Speisekarte haben?,Can I have the menu please?,food_drink,audio/088_kann_ich_bitte_die_speisekarte_haben.mp3,2026-05-18
+89,Ich esse kein Schweinefleisch.,I don't eat pork.,food_drink,audio/089_ich_esse_kein_schweinefleisch.mp3,2026-05-18
+90,Entschuldigung ich habe das falsche Gericht bekommen.,Excuse me I received the wrong dish.,food_drink,audio/090_entschuldigung_ich_habe_das_falsche_geri.mp3,2026-05-18
+91,Ich suche eine warme Winterjacke.,I'm looking for a warm winter jacket.,shopping,audio/091_ich_suche_eine_warme_winterjacke.mp3,2026-05-18
+92,Haben Sie das in Größe M?,Do you have that in size M?,shopping,audio/092_haben_sie_das_in_groesse_m.mp3,2026-05-18
+93,Wo sind die Umkleidekabinen?,Where are the fitting rooms?,shopping,audio/093_wo_sind_die_umkleidekabinen.mp3,2026-05-18
+94,Wie viel kostet das insgesamt?,How much does that cost in total?,shopping,audio/094_wie_viel_kostet_das_insgesamt.mp3,2026-05-18
+95,Haben Sie etwas Günstigeres?,Do you have something cheaper?,shopping,audio/095_haben_sie_etwas_guenstigeres.mp3,2026-05-18
+96,Das gefällt mir ich nehme es.,I like it I'll take it.,shopping,audio/096_das_gefaellt_mir_ich_nehme_es.mp3,2026-05-18
+97,Kann ich das umtauschen wenn es nicht passt?,Can I exchange this if it doesn't fit?,shopping,audio/097_kann_ich_das_umtauschen_wenn_es_nicht_pa.mp3,2026-05-18
+98,Haben Sie das auch in einer anderen Farbe?,Do you have that in another color too?,shopping,audio/098_haben_sie_das_auch_in_einer_anderen_farb.mp3,2026-05-18
+99,Wo finde ich die Sportabteilung?,Where do I find the sports department?,shopping,audio/099_wo_finde_ich_die_sportabteilung.mp3,2026-05-18
+100,Ich brauche eine Tüte bitte.,I need a bag please.,shopping,audio/100_ich_brauche_eine_tuete_bitte.mp3,2026-05-18
+101,Ich fühle mich heute gar nicht wohl.,I don't feel well at all today.,health,audio/101_ich_fuehle_mich_heute_gar_nicht_wohl.mp3,2026-05-18
+102,Ich habe seit zwei Tagen starke Kopfschmerzen.,I've had a bad headache for two days.,health,audio/102_ich_habe_seit_zwei_tagen_starke_kopfschm.mp3,2026-05-18
+103,Ich glaube ich habe eine Erkältung.,I think I have a cold.,health,audio/103_ich_glaube_ich_habe_eine_erkaeltung.mp3,2026-05-18
+104,Haben Sie etwas gegen Halsschmerzen?,Do you have something for a sore throat?,health,audio/104_haben_sie_etwas_gegen_halsschmerzen.mp3,2026-05-18
+105,Wann hat der Arzt den nächsten freien Termin?,When does the doctor have the next free appointment?,health,audio/105_wann_hat_der_arzt_den_naechsten_freien_t.mp3,2026-05-18
+106,Ich habe um zehn Uhr einen Termin.,I have an appointment at ten o'clock.,health,audio/106_ich_habe_um_zehn_uhr_einen_termin.mp3,2026-05-18
+107,Mir tut der Magen weh.,My stomach hurts.,health,audio/107_mir_tut_der_magen_weh.mp3,2026-05-18
+108,Ich bin gegen Penicillin allergisch.,I'm allergic to penicillin.,health,audio/108_ich_bin_gegen_penicillin_allergisch.mp3,2026-05-18
+109,Ich brauche eine Krankmeldung für die Arbeit.,I need a sick note for work.,health,audio/109_ich_brauche_eine_krankmeldung_fuer_die_a.mp3,2026-05-18
+110,Wie oft soll ich die Tabletten nehmen?,How often should I take the tablets?,health,audio/110_wie_oft_soll_ich_die_tabletten_nehmen.mp3,2026-05-18
+111,Wie komme ich am besten zum Hauptbahnhof?,What's the best way to get to the main station?,travel,audio/111_wie_komme_ich_am_besten_zum_hauptbahnhof.mp3,2026-05-18
+112,Wie weit ist es noch von hier?,How far is it from here?,travel,audio/112_wie_weit_ist_es_noch_von_hier.mp3,2026-05-18
+113,Eine Fahrkarte nach Hamburg einfach bitte.,A one-way ticket to Hamburg please.,travel,audio/113_eine_fahrkarte_nach_hamburg_einfach_bitt.mp3,2026-05-18
+114,Auf welchem Gleis fährt der Zug ab?,Which platform does the train depart from?,travel,audio/114_auf_welchem_gleis_faehrt_der_zug_ab.mp3,2026-05-18
+115,Ist dieser Platz noch frei?,Is this seat still free?,travel,audio/115_ist_dieser_platz_noch_frei.mp3,2026-05-18
+116,Ich habe mich verlaufen können Sie mir helfen?,I got lost can you help me?,travel,audio/116_ich_habe_mich_verlaufen_koennen_sie_mir.mp3,2026-05-18
+117,Biegen Sie an der Ampel rechts ab.,Turn right at the traffic lights.,travel,audio/117_biegen_sie_an_der_ampel_rechts_ab.mp3,2026-05-18
+118,Wie lange fährt man bis zur Innenstadt?,How long does it take to get to the city center?,travel,audio/118_wie_lange_faehrt_man_bis_zur_innenstadt.mp3,2026-05-18
+119,Wo ist der nächste Geldautomat?,Where is the nearest ATM?,travel,audio/119_wo_ist_der_naechste_geldautomat.mp3,2026-05-18
+120,Wo kann ich hier ein Fahrrad mieten?,Where can I rent a bicycle here?,travel,audio/120_wo_kann_ich_hier_ein_fahrrad_mieten.mp3,2026-05-18
+121,Hast du am Wochenende schon etwas vor?,Do you already have plans for the weekend?,social,audio/121_hast_du_am_wochenende_schon_etwas_vor.mp3,2026-05-18
+122,Wollen wir zusammen etwas unternehmen?,Shall we do something together?,social,audio/122_wollen_wir_zusammen_etwas_unternehmen.mp3,2026-05-18
+123,Das klingt super ich bin dabei!,That sounds great I'm in!,social,audio/123_das_klingt_super_ich_bin_dabei.mp3,2026-05-18
+124,Tut mir leid da habe ich leider schon was.,I'm sorry I already have something on then.,social,audio/124_tut_mir_leid_da_habe_ich_leider_schon_wa.mp3,2026-05-18
+125,Um wie viel Uhr sollen wir uns treffen?,What time shall we meet?,social,audio/125_um_wie_viel_uhr_sollen_wir_uns_treffen.mp3,2026-05-18
+126,Wo wollen wir uns treffen?,Where shall we meet?,social,audio/126_wo_wollen_wir_uns_treffen.mp3,2026-05-18
+127,Ich freue mich schon sehr darauf.,I'm really looking forward to it.,social,audio/127_ich_freue_mich_schon_sehr_darauf.mp3,2026-05-18
+128,Danke für die Einladung sehr nett von dir.,Thank you for the invitation very kind of you.,social,audio/128_danke_fuer_die_einladung_sehr_nett_von_d.mp3,2026-05-18
+129,Wir sollten das öfter machen.,We should do this more often.,social,audio/129_wir_sollten_das_oefter_machen.mp3,2026-05-18
+130,Es war ein toller Abend danke!,It was a great evening thank you!,social,audio/130_es_war_ein_toller_abend_danke.mp3,2026-05-18
+131,Was machst du in deiner Freizeit am liebsten?,What do you like doing most in your free time?,hobbies,audio/131_was_machst_du_in_deiner_freizeit_am_lieb.mp3,2026-05-18
+132,Ich spiele gerne Fußball mit Freunden.,I like playing football with friends.,hobbies,audio/132_ich_spiele_gerne_fussball_mit_freunden.mp3,2026-05-18
+133,Ich lese jeden Abend vor dem Schlafen.,I read every evening before sleeping.,hobbies,audio/133_ich_lese_jeden_abend_vor_dem_schlafen.mp3,2026-05-18
+134,Ich gehe zweimal pro Woche ins Fitnessstudio.,I go to the gym twice a week.,hobbies,audio/134_ich_gehe_zweimal_pro_woche_ins_fitnessst.mp3,2026-05-18
+135,Hast du irgendwelche Hobbys?,Do you have any hobbies?,hobbies,audio/135_hast_du_irgendwelche_hobbys.mp3,2026-05-18
+136,Ich interessiere mich sehr für Fotografie.,I'm very interested in photography.,hobbies,audio/136_ich_interessiere_mich_sehr_fuer_fotograf.mp3,2026-05-18
+137,Am liebsten probiere ich neue Gerichte aus.,I most enjoy trying out new dishes.,hobbies,audio/137_am_liebsten_probiere_ich_neue_gerichte_a.mp3,2026-05-18
+138,Ich schaue gerne Dokumentationen auf YouTube.,I like watching documentaries on YouTube.,hobbies,audio/138_ich_schaue_gerne_dokumentationen_auf_you.mp3,2026-05-18
+139,Ich gehe oft spazieren um den Kopf frei zu bekommen.,I often go for walks to clear my head.,hobbies,audio/139_ich_gehe_oft_spazieren_um_den_kopf_frei.mp3,2026-05-18
+140,Musik hören ist mein bester Ausgleich zum Stress.,Listening to music is my best stress relief.,hobbies,audio/140_musik_hoeren_ist_mein_bester_ausgleich_z.mp3,2026-05-18

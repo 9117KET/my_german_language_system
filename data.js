@@ -488,5 +488,495 @@ const PHRASES = [
     "english": "I urgently need new shoes.",
     "category": "daily_life",
     "audio": "audio/070_ich_brauche_dringend_neue_schuhe.mp3"
+  },
+  {
+    "id": 71,
+    "german": "Hallo wie geht es Ihnen?",
+    "english": "Hello how are you?",
+    "category": "greetings",
+    "audio": "audio/071_hallo_wie_geht_es_ihnen.mp3"
+  },
+  {
+    "id": 72,
+    "german": "Mir geht es gut danke. Und Ihnen?",
+    "english": "I'm doing well thank you. And you?",
+    "category": "greetings",
+    "audio": "audio/072_mir_geht_es_gut_danke_und_ihnen.mp3"
+  },
+  {
+    "id": 73,
+    "german": "Schön Sie kennenzulernen.",
+    "english": "Nice to meet you.",
+    "category": "greetings",
+    "audio": "audio/073_schoen_sie_kennenzulernen.mp3"
+  },
+  {
+    "id": 74,
+    "german": "Woher kommen Sie ursprünglich?",
+    "english": "Where are you originally from?",
+    "category": "greetings",
+    "audio": "audio/074_woher_kommen_sie_urspruenglich.mp3"
+  },
+  {
+    "id": 75,
+    "german": "Ich komme aus Kamerun.",
+    "english": "I'm from Cameroon.",
+    "category": "greetings",
+    "audio": "audio/075_ich_komme_aus_kamerun.mp3"
+  },
+  {
+    "id": 76,
+    "german": "Seit wann wohnen Sie schon hier?",
+    "english": "How long have you been living here?",
+    "category": "greetings",
+    "audio": "audio/076_seit_wann_wohnen_sie_schon_hier.mp3"
+  },
+  {
+    "id": 77,
+    "german": "Ich wohne seit ungefähr einem Jahr hier.",
+    "english": "I've been living here for about a year.",
+    "category": "greetings",
+    "audio": "audio/077_ich_wohne_seit_ungefaehr_einem_jahr_hier.mp3"
+  },
+  {
+    "id": 78,
+    "german": "Was machen Sie beruflich?",
+    "english": "What do you do for work?",
+    "category": "greetings",
+    "audio": "audio/078_was_machen_sie_beruflich.mp3"
+  },
+  {
+    "id": 79,
+    "german": "Wie war Ihr Wochenende?",
+    "english": "How was your weekend?",
+    "category": "greetings",
+    "audio": "audio/079_wie_war_ihr_wochenende.mp3"
+  },
+  {
+    "id": 80,
+    "german": "Tschüss bis zum nächsten Mal!",
+    "english": "Bye until next time!",
+    "category": "greetings",
+    "audio": "audio/080_tschuess_bis_zum_naechsten_mal.mp3"
+  },
+  {
+    "id": 81,
+    "german": "Haben Sie einen Tisch für zwei Personen frei?",
+    "english": "Do you have a free table for two?",
+    "category": "food_drink",
+    "audio": "audio/081_haben_sie_einen_tisch_fuer_zwei_personen.mp3"
+  },
+  {
+    "id": 82,
+    "german": "Was würden Sie empfehlen?",
+    "english": "What would you recommend?",
+    "category": "food_drink",
+    "audio": "audio/082_was_wuerden_sie_empfehlen.mp3"
+  },
+  {
+    "id": 83,
+    "german": "Ich bin Vegetarier gibt es etwas ohne Fleisch?",
+    "english": "I'm vegetarian is there something without meat?",
+    "category": "food_drink",
+    "audio": "audio/083_ich_bin_vegetarier_gibt_es_etwas_ohne_fl.mp3"
+  },
+  {
+    "id": 84,
+    "german": "Die Rechnung bitte.",
+    "english": "The bill please.",
+    "category": "food_drink",
+    "audio": "audio/084_die_rechnung_bitte.mp3"
+  },
+  {
+    "id": 85,
+    "german": "Das war wirklich lecker danke.",
+    "english": "That was really delicious thank you.",
+    "category": "food_drink",
+    "audio": "audio/085_das_war_wirklich_lecker_danke.mp3"
+  },
+  {
+    "id": 86,
+    "german": "Ich hätte gerne ein Glas Leitungswasser bitte.",
+    "english": "I'd like a glass of tap water please.",
+    "category": "food_drink",
+    "audio": "audio/086_ich_haette_gerne_ein_glas_leitungswasser.mp3"
+  },
+  {
+    "id": 87,
+    "german": "Was ist das Tagesgericht heute?",
+    "english": "What is today's special?",
+    "category": "food_drink",
+    "audio": "audio/087_was_ist_das_tagesgericht_heute.mp3"
+  },
+  {
+    "id": 88,
+    "german": "Kann ich bitte die Speisekarte haben?",
+    "english": "Can I have the menu please?",
+    "category": "food_drink",
+    "audio": "audio/088_kann_ich_bitte_die_speisekarte_haben.mp3"
+  },
+  {
+    "id": 89,
+    "german": "Ich esse kein Schweinefleisch.",
+    "english": "I don't eat pork.",
+    "category": "food_drink",
+    "audio": "audio/089_ich_esse_kein_schweinefleisch.mp3"
+  },
+  {
+    "id": 90,
+    "german": "Entschuldigung ich habe das falsche Gericht bekommen.",
+    "english": "Excuse me I received the wrong dish.",
+    "category": "food_drink",
+    "audio": "audio/090_entschuldigung_ich_habe_das_falsche_geri.mp3"
+  },
+  {
+    "id": 91,
+    "german": "Ich suche eine warme Winterjacke.",
+    "english": "I'm looking for a warm winter jacket.",
+    "category": "shopping",
+    "audio": "audio/091_ich_suche_eine_warme_winterjacke.mp3"
+  },
+  {
+    "id": 92,
+    "german": "Haben Sie das in Größe M?",
+    "english": "Do you have that in size M?",
+    "category": "shopping",
+    "audio": "audio/092_haben_sie_das_in_groesse_m.mp3"
+  },
+  {
+    "id": 93,
+    "german": "Wo sind die Umkleidekabinen?",
+    "english": "Where are the fitting rooms?",
+    "category": "shopping",
+    "audio": "audio/093_wo_sind_die_umkleidekabinen.mp3"
+  },
+  {
+    "id": 94,
+    "german": "Wie viel kostet das insgesamt?",
+    "english": "How much does that cost in total?",
+    "category": "shopping",
+    "audio": "audio/094_wie_viel_kostet_das_insgesamt.mp3"
+  },
+  {
+    "id": 95,
+    "german": "Haben Sie etwas Günstigeres?",
+    "english": "Do you have something cheaper?",
+    "category": "shopping",
+    "audio": "audio/095_haben_sie_etwas_guenstigeres.mp3"
+  },
+  {
+    "id": 96,
+    "german": "Das gefällt mir ich nehme es.",
+    "english": "I like it I'll take it.",
+    "category": "shopping",
+    "audio": "audio/096_das_gefaellt_mir_ich_nehme_es.mp3"
+  },
+  {
+    "id": 97,
+    "german": "Kann ich das umtauschen wenn es nicht passt?",
+    "english": "Can I exchange this if it doesn't fit?",
+    "category": "shopping",
+    "audio": "audio/097_kann_ich_das_umtauschen_wenn_es_nicht_pa.mp3"
+  },
+  {
+    "id": 98,
+    "german": "Haben Sie das auch in einer anderen Farbe?",
+    "english": "Do you have that in another color too?",
+    "category": "shopping",
+    "audio": "audio/098_haben_sie_das_auch_in_einer_anderen_farb.mp3"
+  },
+  {
+    "id": 99,
+    "german": "Wo finde ich die Sportabteilung?",
+    "english": "Where do I find the sports department?",
+    "category": "shopping",
+    "audio": "audio/099_wo_finde_ich_die_sportabteilung.mp3"
+  },
+  {
+    "id": 100,
+    "german": "Ich brauche eine Tüte bitte.",
+    "english": "I need a bag please.",
+    "category": "shopping",
+    "audio": "audio/100_ich_brauche_eine_tuete_bitte.mp3"
+  },
+  {
+    "id": 101,
+    "german": "Ich fühle mich heute gar nicht wohl.",
+    "english": "I don't feel well at all today.",
+    "category": "health",
+    "audio": "audio/101_ich_fuehle_mich_heute_gar_nicht_wohl.mp3"
+  },
+  {
+    "id": 102,
+    "german": "Ich habe seit zwei Tagen starke Kopfschmerzen.",
+    "english": "I've had a bad headache for two days.",
+    "category": "health",
+    "audio": "audio/102_ich_habe_seit_zwei_tagen_starke_kopfschm.mp3"
+  },
+  {
+    "id": 103,
+    "german": "Ich glaube ich habe eine Erkältung.",
+    "english": "I think I have a cold.",
+    "category": "health",
+    "audio": "audio/103_ich_glaube_ich_habe_eine_erkaeltung.mp3"
+  },
+  {
+    "id": 104,
+    "german": "Haben Sie etwas gegen Halsschmerzen?",
+    "english": "Do you have something for a sore throat?",
+    "category": "health",
+    "audio": "audio/104_haben_sie_etwas_gegen_halsschmerzen.mp3"
+  },
+  {
+    "id": 105,
+    "german": "Wann hat der Arzt den nächsten freien Termin?",
+    "english": "When does the doctor have the next free appointment?",
+    "category": "health",
+    "audio": "audio/105_wann_hat_der_arzt_den_naechsten_freien_t.mp3"
+  },
+  {
+    "id": 106,
+    "german": "Ich habe um zehn Uhr einen Termin.",
+    "english": "I have an appointment at ten o'clock.",
+    "category": "health",
+    "audio": "audio/106_ich_habe_um_zehn_uhr_einen_termin.mp3"
+  },
+  {
+    "id": 107,
+    "german": "Mir tut der Magen weh.",
+    "english": "My stomach hurts.",
+    "category": "health",
+    "audio": "audio/107_mir_tut_der_magen_weh.mp3"
+  },
+  {
+    "id": 108,
+    "german": "Ich bin gegen Penicillin allergisch.",
+    "english": "I'm allergic to penicillin.",
+    "category": "health",
+    "audio": "audio/108_ich_bin_gegen_penicillin_allergisch.mp3"
+  },
+  {
+    "id": 109,
+    "german": "Ich brauche eine Krankmeldung für die Arbeit.",
+    "english": "I need a sick note for work.",
+    "category": "health",
+    "audio": "audio/109_ich_brauche_eine_krankmeldung_fuer_die_a.mp3"
+  },
+  {
+    "id": 110,
+    "german": "Wie oft soll ich die Tabletten nehmen?",
+    "english": "How often should I take the tablets?",
+    "category": "health",
+    "audio": "audio/110_wie_oft_soll_ich_die_tabletten_nehmen.mp3"
+  },
+  {
+    "id": 111,
+    "german": "Wie komme ich am besten zum Hauptbahnhof?",
+    "english": "What's the best way to get to the main station?",
+    "category": "travel",
+    "audio": "audio/111_wie_komme_ich_am_besten_zum_hauptbahnhof.mp3"
+  },
+  {
+    "id": 112,
+    "german": "Wie weit ist es noch von hier?",
+    "english": "How far is it from here?",
+    "category": "travel",
+    "audio": "audio/112_wie_weit_ist_es_noch_von_hier.mp3"
+  },
+  {
+    "id": 113,
+    "german": "Eine Fahrkarte nach Hamburg einfach bitte.",
+    "english": "A one-way ticket to Hamburg please.",
+    "category": "travel",
+    "audio": "audio/113_eine_fahrkarte_nach_hamburg_einfach_bitt.mp3"
+  },
+  {
+    "id": 114,
+    "german": "Auf welchem Gleis fährt der Zug ab?",
+    "english": "Which platform does the train depart from?",
+    "category": "travel",
+    "audio": "audio/114_auf_welchem_gleis_faehrt_der_zug_ab.mp3"
+  },
+  {
+    "id": 115,
+    "german": "Ist dieser Platz noch frei?",
+    "english": "Is this seat still free?",
+    "category": "travel",
+    "audio": "audio/115_ist_dieser_platz_noch_frei.mp3"
+  },
+  {
+    "id": 116,
+    "german": "Ich habe mich verlaufen können Sie mir helfen?",
+    "english": "I got lost can you help me?",
+    "category": "travel",
+    "audio": "audio/116_ich_habe_mich_verlaufen_koennen_sie_mir.mp3"
+  },
+  {
+    "id": 117,
+    "german": "Biegen Sie an der Ampel rechts ab.",
+    "english": "Turn right at the traffic lights.",
+    "category": "travel",
+    "audio": "audio/117_biegen_sie_an_der_ampel_rechts_ab.mp3"
+  },
+  {
+    "id": 118,
+    "german": "Wie lange fährt man bis zur Innenstadt?",
+    "english": "How long does it take to get to the city center?",
+    "category": "travel",
+    "audio": "audio/118_wie_lange_faehrt_man_bis_zur_innenstadt.mp3"
+  },
+  {
+    "id": 119,
+    "german": "Wo ist der nächste Geldautomat?",
+    "english": "Where is the nearest ATM?",
+    "category": "travel",
+    "audio": "audio/119_wo_ist_der_naechste_geldautomat.mp3"
+  },
+  {
+    "id": 120,
+    "german": "Wo kann ich hier ein Fahrrad mieten?",
+    "english": "Where can I rent a bicycle here?",
+    "category": "travel",
+    "audio": "audio/120_wo_kann_ich_hier_ein_fahrrad_mieten.mp3"
+  },
+  {
+    "id": 121,
+    "german": "Hast du am Wochenende schon etwas vor?",
+    "english": "Do you already have plans for the weekend?",
+    "category": "social",
+    "audio": "audio/121_hast_du_am_wochenende_schon_etwas_vor.mp3"
+  },
+  {
+    "id": 122,
+    "german": "Wollen wir zusammen etwas unternehmen?",
+    "english": "Shall we do something together?",
+    "category": "social",
+    "audio": "audio/122_wollen_wir_zusammen_etwas_unternehmen.mp3"
+  },
+  {
+    "id": 123,
+    "german": "Das klingt super ich bin dabei!",
+    "english": "That sounds great I'm in!",
+    "category": "social",
+    "audio": "audio/123_das_klingt_super_ich_bin_dabei.mp3"
+  },
+  {
+    "id": 124,
+    "german": "Tut mir leid da habe ich leider schon was.",
+    "english": "I'm sorry I already have something on then.",
+    "category": "social",
+    "audio": "audio/124_tut_mir_leid_da_habe_ich_leider_schon_wa.mp3"
+  },
+  {
+    "id": 125,
+    "german": "Um wie viel Uhr sollen wir uns treffen?",
+    "english": "What time shall we meet?",
+    "category": "social",
+    "audio": "audio/125_um_wie_viel_uhr_sollen_wir_uns_treffen.mp3"
+  },
+  {
+    "id": 126,
+    "german": "Wo wollen wir uns treffen?",
+    "english": "Where shall we meet?",
+    "category": "social",
+    "audio": "audio/126_wo_wollen_wir_uns_treffen.mp3"
+  },
+  {
+    "id": 127,
+    "german": "Ich freue mich schon sehr darauf.",
+    "english": "I'm really looking forward to it.",
+    "category": "social",
+    "audio": "audio/127_ich_freue_mich_schon_sehr_darauf.mp3"
+  },
+  {
+    "id": 128,
+    "german": "Danke für die Einladung sehr nett von dir.",
+    "english": "Thank you for the invitation very kind of you.",
+    "category": "social",
+    "audio": "audio/128_danke_fuer_die_einladung_sehr_nett_von_d.mp3"
+  },
+  {
+    "id": 129,
+    "german": "Wir sollten das öfter machen.",
+    "english": "We should do this more often.",
+    "category": "social",
+    "audio": "audio/129_wir_sollten_das_oefter_machen.mp3"
+  },
+  {
+    "id": 130,
+    "german": "Es war ein toller Abend danke!",
+    "english": "It was a great evening thank you!",
+    "category": "social",
+    "audio": "audio/130_es_war_ein_toller_abend_danke.mp3"
+  },
+  {
+    "id": 131,
+    "german": "Was machst du in deiner Freizeit am liebsten?",
+    "english": "What do you like doing most in your free time?",
+    "category": "hobbies",
+    "audio": "audio/131_was_machst_du_in_deiner_freizeit_am_lieb.mp3"
+  },
+  {
+    "id": 132,
+    "german": "Ich spiele gerne Fußball mit Freunden.",
+    "english": "I like playing football with friends.",
+    "category": "hobbies",
+    "audio": "audio/132_ich_spiele_gerne_fussball_mit_freunden.mp3"
+  },
+  {
+    "id": 133,
+    "german": "Ich lese jeden Abend vor dem Schlafen.",
+    "english": "I read every evening before sleeping.",
+    "category": "hobbies",
+    "audio": "audio/133_ich_lese_jeden_abend_vor_dem_schlafen.mp3"
+  },
+  {
+    "id": 134,
+    "german": "Ich gehe zweimal pro Woche ins Fitnessstudio.",
+    "english": "I go to the gym twice a week.",
+    "category": "hobbies",
+    "audio": "audio/134_ich_gehe_zweimal_pro_woche_ins_fitnessst.mp3"
+  },
+  {
+    "id": 135,
+    "german": "Hast du irgendwelche Hobbys?",
+    "english": "Do you have any hobbies?",
+    "category": "hobbies",
+    "audio": "audio/135_hast_du_irgendwelche_hobbys.mp3"
+  },
+  {
+    "id": 136,
+    "german": "Ich interessiere mich sehr für Fotografie.",
+    "english": "I'm very interested in photography.",
+    "category": "hobbies",
+    "audio": "audio/136_ich_interessiere_mich_sehr_fuer_fotograf.mp3"
+  },
+  {
+    "id": 137,
+    "german": "Am liebsten probiere ich neue Gerichte aus.",
+    "english": "I most enjoy trying out new dishes.",
+    "category": "hobbies",
+    "audio": "audio/137_am_liebsten_probiere_ich_neue_gerichte_a.mp3"
+  },
+  {
+    "id": 138,
+    "german": "Ich schaue gerne Dokumentationen auf YouTube.",
+    "english": "I like watching documentaries on YouTube.",
+    "category": "hobbies",
+    "audio": "audio/138_ich_schaue_gerne_dokumentationen_auf_you.mp3"
+  },
+  {
+    "id": 139,
+    "german": "Ich gehe oft spazieren um den Kopf frei zu bekommen.",
+    "english": "I often go for walks to clear my head.",
+    "category": "hobbies",
+    "audio": "audio/139_ich_gehe_oft_spazieren_um_den_kopf_frei.mp3"
+  },
+  {
+    "id": 140,
+    "german": "Musik hören ist mein bester Ausgleich zum Stress.",
+    "english": "Listening to music is my best stress relief.",
+    "category": "hobbies",
+    "audio": "audio/140_musik_hoeren_ist_mein_bester_ausgleich_z.mp3"
   }
 ];

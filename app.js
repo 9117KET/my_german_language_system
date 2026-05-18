@@ -10,6 +10,13 @@ const CATEGORIES = {
   describe_surroundings: "Describe Surroundings",
   inner_thoughts: "Inner Thoughts",
   daily_life: "Daily Life",
+  greetings: "Greetings & Small Talk",
+  food_drink: "Food & Eating Out",
+  shopping: "Shopping",
+  health: "Health & Pharmacy",
+  travel: "Travel & Directions",
+  social: "Social Plans",
+  hobbies: "Hobbies & Free Time",
 };
 
 // ---- State ----
@@ -29,7 +36,15 @@ let sessionTotal = 0;
 
 let loop = false;
 
-let missedWeights = JSON.parse(localStorage.getItem("missedWeights") || "{}");
+// SRS state
+let srsData = {};
+let srsSettings = { autoGrade: false };
+let practiceNowId = null;
+let progressFilter = "due";
+
+// Recall voice state
+let recallRecognition = null;
+let recallIsRecording = false;
 
 // AI state
 let aiMode = "translate";
@@ -88,6 +103,110 @@ const aiExportBtn = document.getElementById("ai-export-btn");
 const aiClearBtn = document.getElementById("ai-clear-btn");
 const aiSavedList = document.getElementById("ai-saved-list");
 
+// ---- SRS Algorithm ----
+
+function todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function getSrsRecord(id) {
+  return srsData[String(id)] || {
+    interval: 0, easeFactor: 2.5, dueDate: null,
+    lastReviewed: null, totalReviews: 0, totalCorrect: 0, archived: false
+  };
+}
+
+function isDue(id) {
+  const r = getSrsRecord(id);
+  return r.dueDate === null || r.dueDate <= todayStr();
+}
+
+function getStatus(id) {
+  const r = getSrsRecord(id);
+  if (r.archived) return "archived";
+  if (r.dueDate === null) return "new";
+  if (r.interval >= 21) return "mastered";
+  if (isDue(id)) return "due";
+  return "upcoming";
+}
+
+function getNextInterval(interval, ef, correct) {
+  if (!correct) return 1;
+  if (interval === 0) return 1;
+  if (interval === 1) return 3;
+  return Math.round(interval * ef);
+}
+
+function saveSrsData() {
+  localStorage.setItem("srsData", JSON.stringify(srsData));
+}
+
+function updateOnGotIt(id) {
+  const r = getSrsRecord(id);
+  const newEF = Math.min(3.0, Math.max(1.3, r.easeFactor + 0.1));
+  const newInterval = getNextInterval(r.interval, newEF, true);
+  const due = new Date();
+  due.setDate(due.getDate() + newInterval);
+  srsData[String(id)] = {
+    ...r, interval: newInterval, easeFactor: newEF,
+    dueDate: due.toISOString().split("T")[0],
+    lastReviewed: todayStr(),
+    totalReviews: r.totalReviews + 1,
+    totalCorrect: r.totalCorrect + 1
+  };
+  saveSrsData();
+}
+
+function updateOnMissed(id) {
+  const r = getSrsRecord(id);
+  const newEF = Math.max(1.3, r.easeFactor - 0.2);
+  const due = new Date();
+  due.setDate(due.getDate() + 1);
+  srsData[String(id)] = {
+    ...r, interval: 1, easeFactor: newEF,
+    dueDate: due.toISOString().split("T")[0],
+    lastReviewed: todayStr(),
+    totalReviews: r.totalReviews + 1
+  };
+  saveSrsData();
+}
+
+function migrateMissedWeights() {
+  const old = JSON.parse(localStorage.getItem("missedWeights") || "null");
+  if (!old) return;
+  const existing = JSON.parse(localStorage.getItem("srsData") || "{}");
+  for (const [idStr, missCount] of Object.entries(old)) {
+    if (existing[idStr] || missCount === 0) continue;
+    const due = new Date();
+    due.setDate(due.getDate() + 1);
+    existing[idStr] = {
+      interval: 1, easeFactor: Math.max(1.3, 2.5 - missCount * 0.1),
+      dueDate: due.toISOString().split("T")[0], lastReviewed: null,
+      totalReviews: missCount, totalCorrect: 0, archived: false
+    };
+  }
+  localStorage.setItem("srsData", JSON.stringify(existing));
+  localStorage.removeItem("missedWeights");
+}
+
+// ---- Voice Matching ----
+
+function normalizeGerman(text) {
+  return text.toLowerCase()
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+    .replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function isVoiceMatch(transcript, phraseGerman) {
+  const aWords = new Set(normalizeGerman(transcript).split(" ").filter(Boolean));
+  const bWords = new Set(normalizeGerman(phraseGerman).split(" ").filter(Boolean));
+  if (!aWords.size) return false;
+  let intersection = 0;
+  for (const w of aWords) { if (bWords.has(w)) intersection++; }
+  const union = new Set([...aWords, ...bWords]).size;
+  return (intersection / union) >= 0.75;
+}
+
 // ---- Init ----
 function buildCategorySelect() {
   categorySelect.innerHTML = "";
@@ -102,21 +221,36 @@ function buildCategorySelect() {
 function buildQueue() {
   let source = category === "all" ? PHRASES : PHRASES.filter(p => p.category === category);
 
+  source = source.filter(p => !getSrsRecord(p.id).archived);
+
   if (mode === "recall") {
-    const weighted = [];
-    for (const p of source) {
-      const w = 1 + (missedWeights[p.id] || 0);
-      for (let i = 0; i < w; i++) weighted.push(p);
+    const statusOrder = { new: 0, due: 0, upcoming: 1, mastered: 2 };
+    source = [...source].sort((a, b) => {
+      const sa = statusOrder[getStatus(a.id)] ?? 1;
+      const sb = statusOrder[getStatus(b.id)] ?? 1;
+      if (sa !== sb) return sa - sb;
+      const ra = getSrsRecord(a.id);
+      const rb = getSrsRecord(b.id);
+      if (ra.dueDate && rb.dueDate) return ra.dueDate.localeCompare(rb.dueDate);
+      return 0;
+    });
+    if (practiceNowId !== null) {
+      const idx = source.findIndex(p => p.id === practiceNowId);
+      if (idx > 0) { const [item] = source.splice(idx, 1); source.unshift(item); }
+      practiceNowId = null;
     }
-    source = weighted;
   }
 
-  if (shuffle) source = [...source].sort(() => Math.random() - 0.5);
+  if (shuffle && mode !== "recall") source = [...source].sort(() => Math.random() - 0.5);
   queue = source;
   queueIndex = 0;
 }
 
 function init() {
+  migrateMissedWeights();
+  srsData = JSON.parse(localStorage.getItem("srsData") || "{}");
+  srsSettings = JSON.parse(localStorage.getItem("srsSettings") || '{"autoGrade":false}');
+
   if (typeof PHRASES === "undefined" || PHRASES.length === 0) {
     emptyState.style.display = "block";
   }
@@ -125,6 +259,7 @@ function init() {
   renderCard();
   setupEvents();
   initAI();
+  setupRecallSpeech();
 }
 
 // ---- Render (player) ----
@@ -150,6 +285,13 @@ function renderCard() {
   audio.pause();
   audio.src = "";
 
+  // Hide recall-specific elements by default; recall branch shows them
+  document.getElementById("recall-srs-bar").style.display = "none";
+  document.getElementById("recall-voice-area").style.display = "none";
+  document.getElementById("srs-status-badge").style.display = "none";
+  if (recallIsRecording) recallRecognition.stop();
+  document.getElementById("recall-transcript").textContent = "";
+
   if (mode === "listen") {
     germanEl.classList.remove("hidden");
     englishEl.classList.remove("hidden");
@@ -171,13 +313,21 @@ function renderCard() {
     germanEl.classList.add("hidden");
     englishEl.classList.remove("hidden");
     revealHint.style.display = "block";
-    revealHint.textContent = "Say it in German, then tap to reveal";
+    revealHint.textContent = "Tap mic or card to reveal";
     recallButtons.classList.remove("visible");
     statsBar.style.display = "flex";
     statGot.textContent = sessionGot;
     statMissed.textContent = sessionMissed;
     statTotal.textContent = sessionTotal;
     statusText.textContent = "Produce German from memory";
+    document.getElementById("recall-srs-bar").style.display = "flex";
+    document.getElementById("recall-voice-area").style.display = "flex";
+    const st = getStatus(p.id);
+    const badge = document.getElementById("srs-status-badge");
+    badge.style.display = "inline-block";
+    badge.className = `srs-badge srs-${st}`;
+    badge.textContent = st;
+    renderRecallModeHeader();
   }
 
   germanEl.textContent = p.german;
@@ -219,6 +369,7 @@ function advance(delta) {
 function showPlayerPanel() {
   document.getElementById("controls-bar").style.display = "flex";
   aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
   playerEls.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
@@ -239,13 +390,18 @@ function showAIPanel() {
 function setupEvents() {
   tabEls.forEach(tab => {
     tab.addEventListener("click", () => {
-      mode = tab.dataset.mode;
+      const newMode = tab.dataset.mode;
       tabEls.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
 
-      if (mode === "ai") {
+      if (newMode === "ai") {
+        mode = "ai";
         showAIPanel();
+      } else if (newMode === "progress") {
+        mode = "progress";
+        showProgressPanel();
       } else {
+        mode = newMode;
         showPlayerPanel();
         if (mode === "recall") { sessionGot = 0; sessionMissed = 0; sessionTotal = 0; }
         buildQueue();
@@ -305,40 +461,52 @@ function setupEvents() {
     if (e.target.closest("#audio-bar") || e.target.closest("#recall-buttons")) return;
     const p = queue[queueIndex];
     if (!p || revealed) return;
-    revealed = true;
     if (mode === "shadow") {
+      revealed = true;
       englishEl.classList.remove("hidden");
       revealHint.style.display = "none";
     } else if (mode === "recall") {
-      germanEl.classList.remove("hidden");
-      revealHint.style.display = "none";
-      recallButtons.classList.add("visible");
-      loadAndPlay(p);
+      revealRecallCard();
     }
   });
 
   gotItBtn.addEventListener("click", () => {
     const p = queue[queueIndex];
     sessionGot++; sessionTotal++;
-    if (missedWeights[p.id] > 0) missedWeights[p.id]--;
-    if (missedWeights[p.id] === 0) delete missedWeights[p.id];
-    localStorage.setItem("missedWeights", JSON.stringify(missedWeights));
+    updateOnGotIt(p.id);
+    renderRecallModeHeader();
     advance(1);
   });
 
   missedBtn.addEventListener("click", () => {
     const p = queue[queueIndex];
     sessionMissed++; sessionTotal++;
-    missedWeights[p.id] = (missedWeights[p.id] || 0) + 1;
-    localStorage.setItem("missedWeights", JSON.stringify(missedWeights));
+    updateOnMissed(p.id);
+    renderRecallModeHeader();
     advance(1);
   });
 
   prevBtn.addEventListener("click", () => advance(-1));
   nextBtn.addEventListener("click", () => advance(1));
 
+  document.getElementById("recall-mic-btn").addEventListener("click", () => {
+    if (!recallRecognition) return;
+    if (recallIsRecording) { recallRecognition.stop(); }
+    else { document.getElementById("recall-transcript").textContent = ""; recallRecognition.start(); }
+  });
+
+  document.getElementById("recall-autograde-toggle").addEventListener("click", () => {
+    srsSettings.autoGrade = !srsSettings.autoGrade;
+    localStorage.setItem("srsSettings", JSON.stringify(srsSettings));
+    renderRecallModeHeader();
+  });
+
+  document.querySelectorAll(".prog-filter").forEach(btn => {
+    btn.addEventListener("click", () => { progressFilter = btn.dataset.filter; renderProgressTab(); });
+  });
+
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai") return;
+    if (mode === "ai" || mode === "progress") return;
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
     if (e.key === "p" || e.key === "P") playBtn.click();
@@ -489,9 +657,15 @@ async function sendToAI(text) {
 
 function renderAIResult(result) {
   if (aiMode === "translate") {
+    if (result.category && aiCategorySelect.querySelector(`option[value="${result.category}"]`)) {
+      aiCategorySelect.value = result.category;
+    }
+    const islandLabel = CATEGORIES[result.category];
+    const hint = islandLabel ? `<div class="ai-category-hint">Suggested island: ${islandLabel}</div>` : "";
     aiResultBody.innerHTML = `
       <div class="ai-english">You: "${result.english}"</div>
       <div class="ai-german">${result.german}</div>
+      ${hint}
     `;
   } else {
     const badge = result.is_correct ? `<div class="ai-correct-badge">✓ Perfect German!</div>` : "";
@@ -553,6 +727,150 @@ function exportAIPhrases() {
   a.href = URL.createObjectURL(blob);
   a.download = `ai_phrases_${new Date().toISOString().split("T")[0]}.json`;
   a.click();
+}
+
+// ---- Recall Voice ----
+
+function setupRecallSpeech() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { document.getElementById("recall-mic-btn").style.display = "none"; return; }
+  recallRecognition = new SR();
+  recallRecognition.continuous = false;
+  recallRecognition.interimResults = false;
+  recallRecognition.lang = "de-DE";
+  recallRecognition.onstart = () => {
+    recallIsRecording = true;
+    document.getElementById("recall-mic-btn").classList.add("recording");
+    document.getElementById("recall-transcript").textContent = "Listening...";
+  };
+  recallRecognition.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    document.getElementById("recall-transcript").textContent = `"${text}"`;
+    handleRecallVoice(text);
+  };
+  recallRecognition.onerror = (e) => {
+    document.getElementById("recall-transcript").textContent = `Error: ${e.error}`;
+    recallIsRecording = false;
+    document.getElementById("recall-mic-btn").classList.remove("recording");
+  };
+  recallRecognition.onend = () => {
+    recallIsRecording = false;
+    document.getElementById("recall-mic-btn").classList.remove("recording");
+  };
+}
+
+function handleRecallVoice(transcript) {
+  const p = queue[queueIndex];
+  if (!p) return;
+  revealRecallCard();
+  if (srsSettings.autoGrade && isVoiceMatch(transcript, p.german)) {
+    setTimeout(() => gotItBtn.click(), 700);
+  }
+}
+
+function revealRecallCard() {
+  if (revealed) return;
+  revealed = true;
+  germanEl.classList.remove("hidden");
+  revealHint.style.display = "none";
+  recallButtons.classList.add("visible");
+  loadAndPlay(queue[queueIndex]);
+}
+
+function renderRecallModeHeader() {
+  const dueCount = PHRASES.filter(p => {
+    const r = getSrsRecord(p.id);
+    return !r.archived && isDue(p.id);
+  }).length;
+  document.getElementById("recall-due-count").textContent =
+    dueCount > 0 ? `${dueCount} due today` : "All caught up!";
+  const btn = document.getElementById("recall-autograde-toggle");
+  btn.textContent = `Auto-grade: ${srsSettings.autoGrade ? "ON" : "OFF"}`;
+  btn.classList.toggle("active", srsSettings.autoGrade);
+}
+
+// ---- Progress Tab ----
+
+function showProgressPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "flex";
+  renderProgressTab();
+}
+
+function renderProgressTab() {
+  const counts = { new: 0, due: 0, upcoming: 0, mastered: 0, archived: 0 };
+  for (const p of PHRASES) { const s = getStatus(p.id); if (counts[s] !== undefined) counts[s]++; }
+  document.getElementById("prog-due-val").textContent = counts.due + counts.new;
+  document.getElementById("prog-upcoming-val").textContent = counts.upcoming;
+  document.getElementById("prog-mastered-val").textContent = counts.mastered;
+  document.getElementById("prog-new-val").textContent = counts.new;
+
+  document.querySelectorAll(".prog-filter").forEach(b => b.classList.toggle("active", b.dataset.filter === progressFilter));
+
+  let filtered = PHRASES.filter(p => {
+    if (progressFilter === "all") return true;
+    if (progressFilter === "due") return ["due", "new"].includes(getStatus(p.id));
+    return getStatus(p.id) === progressFilter;
+  });
+  if (progressFilter === "upcoming") {
+    filtered.sort((a, b) => (getSrsRecord(a.id).dueDate || "").localeCompare(getSrsRecord(b.id).dueDate || ""));
+  }
+
+  const list = document.getElementById("progress-list");
+  if (!filtered.length) { list.innerHTML = `<div class="prog-empty">Nothing here yet.</div>`; return; }
+  list.innerHTML = filtered.map(p => {
+    const r = getSrsRecord(p.id);
+    const st = getStatus(p.id);
+    const dueLabel = r.dueDate ? (isDue(p.id) ? "Due now" : `Due ${r.dueDate}`) : "Never reviewed";
+    return `
+      <div class="prog-item">
+        <div class="prog-item-top">
+          <span class="srs-badge srs-${st}">${st}</span>
+          <span class="prog-interval">Interval: ${r.interval}d &middot; EF: ${r.easeFactor.toFixed(1)}</span>
+        </div>
+        <div class="prog-german">${p.german}</div>
+        <div class="prog-english">${p.english}</div>
+        <div class="prog-meta">${dueLabel} &middot; ${r.totalCorrect}/${r.totalReviews} correct</div>
+        <div class="prog-actions">
+          <button class="prog-btn" onclick="practiceNow(${p.id})">Practice Now</button>
+          <button class="prog-btn" onclick="resetSrs(${p.id})">Reset</button>
+          ${r.archived
+            ? `<button class="prog-btn warn" onclick="restorePhrase(${p.id})">Restore</button>`
+            : `<button class="prog-btn warn" onclick="archivePhrase(${p.id})">Archive</button>`}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function practiceNow(phraseId) {
+  practiceNowId = phraseId;
+  mode = "recall";
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.mode === "recall"));
+  sessionGot = 0; sessionMissed = 0; sessionTotal = 0;
+  showPlayerPanel();
+  buildQueue();
+  renderCard();
+}
+
+function resetSrs(phraseId) {
+  if (!confirm("Reset SRS data for this phrase?")) return;
+  delete srsData[String(phraseId)];
+  saveSrsData();
+  renderProgressTab();
+}
+
+function archivePhrase(phraseId) {
+  srsData[String(phraseId)] = { ...getSrsRecord(phraseId), archived: true };
+  saveSrsData();
+  renderProgressTab();
+}
+
+function restorePhrase(phraseId) {
+  srsData[String(phraseId)] = { ...getSrsRecord(phraseId), archived: false };
+  saveSrsData();
+  renderProgressTab();
 }
 
 // ---- Start ----
