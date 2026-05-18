@@ -113,7 +113,26 @@ module.exports = async function handler(req, res) {
       return res.json({ ...result, original: text, audio_base64 });
     }
 
-    return res.status(400).json({ error: "mode must be translate or correct" });
+    if (mode === "vocab") {
+      const raw = await callGroq(
+        `Explain this German word for a B1 learner.\n` +
+        `Return ONLY this JSON (no markdown):\n` +
+        `{"word":"canonical/infinitive form","article":"der/die/das or none","pos":"Nomen/Verb/Adjektiv/Adverb/Konjunktion/etc","definition":"short English definition","example":"short German example sentence","tip":"one grammar or gender tip"}\n\n` +
+        `Word: ${text}`
+      );
+      const result = JSON.parse(stripMarkdown(raw));
+      return res.json(result);
+    }
+
+    if (mode === "grammar") {
+      const explanation = await callGroq(
+        `You are a German teacher. Explain "${text}" for a B1 learner in 3-4 sentences. ` +
+        `Give 2 short original example sentences. Be concise and clear.`
+      );
+      return res.json({ explanation });
+    }
+
+    return res.status(400).json({ error: "mode must be translate, correct, vocab, or grammar" });
   } catch (err) {
     console.error("[api/chat]", err.message);
     return res.status(500).json({ error: err.message });

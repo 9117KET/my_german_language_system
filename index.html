@@ -21,6 +21,18 @@
   <button class="toggle-btn active" id="auto-btn">Auto: ON</button>
   <button class="toggle-btn" id="loop-btn">Loop</button>
   <button class="toggle-btn" id="repeat-btn">Repeat</button>
+  <select id="grammar-filter">
+    <option value="all">All Grammar</option>
+    <option value="Präteritum">Präteritum</option>
+    <option value="Relativsatz">Relative Clauses</option>
+    <option value="Passiv">Passive</option>
+    <option value="Konjunktiv-II">Konjunktiv II</option>
+    <option value="Modal">Modal Verbs</option>
+    <option value="Perfekt">Perfekt</option>
+    <option value="Nebensatz">Subordinate Clauses</option>
+    <option value="Futur-I">Futur I</option>
+    <option value="Fragewort">Questions</option>
+  </select>
 </div>
 
 <div id="mode-tabs">
@@ -29,6 +41,8 @@
   <div class="tab" data-mode="recall">Recall</div>
   <div class="tab" data-mode="ai">AI</div>
   <div class="tab" data-mode="progress">Progress</div>
+  <div class="tab" data-mode="vocab">Vocab</div>
+  <div class="tab" data-mode="grammar">Grammar</div>
 </div>
 
 <div id="card-area">
@@ -36,6 +50,7 @@
   <div class="card" id="card">
     <div class="category-badge" id="category-badge"></div>
     <div id="srs-status-badge" style="display:none"></div>
+    <div id="grammar-tag-container" style="display:none"></div>
     <div class="german" id="german-text"></div>
     <div class="english" id="english-text"></div>
     <div class="reveal-hint" id="reveal-hint"></div>
@@ -159,6 +174,34 @@
 
   </div>
 
+  <!-- Vocab panel -->
+  <div id="vocab-panel" style="display:none">
+    <div id="vocab-panel-search-row">
+      <input id="vocab-panel-search" type="text" placeholder="Search words...">
+    </div>
+    <div id="vocab-panel-list"></div>
+  </div>
+
+  <!-- Grammar panel -->
+  <div id="grammar-panel" style="display:none">
+    <div id="grammar-list"></div>
+  </div>
+
+</div>
+
+<!-- Vocab popup modal (outside #card-area) -->
+<div id="vocab-modal" style="display:none">
+  <div id="vocab-modal-inner">
+    <button id="vocab-modal-close">✕</button>
+    <div id="vocab-spinner">Looking up...</div>
+    <div id="vocab-result" style="display:none">
+      <div id="vocab-word-main"></div>
+      <span id="vocab-pos-badge"></span>
+      <div id="vocab-def"></div>
+      <div id="vocab-example-text"></div>
+      <div id="vocab-tip-text"></div>
+    </div>
+  </div>
 </div>
 
 <!--

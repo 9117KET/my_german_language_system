@@ -411,3 +411,56 @@ select {
 .prog-btn { padding:5px 12px; border-radius:7px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-size:0.78rem; cursor:pointer; }
 .prog-btn.warn { color:var(--red); border-color:var(--red); }
 .prog-empty { text-align:center; color:var(--text-dim); padding:30px; }
+
+/* ---- Scrollable tabs (7 tabs) ---- */
+#mode-tabs { overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; flex-shrink:0; }
+#mode-tabs::-webkit-scrollbar { display:none; }
+
+/* ---- Grammar filter in controls-bar ---- */
+#grammar-filter { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:5px 8px; color:var(--text); font-size:0.78rem; cursor:pointer; max-width:120px; }
+
+/* ---- Grammar tag chips on card ---- */
+#grammar-tag-container { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px; }
+.grammar-chip { font-size:0.65rem; padding:2px 7px; border-radius:8px; background:var(--surface2); color:var(--yellow); border:1px solid #3a3a2a; cursor:pointer; white-space:nowrap; }
+.grammar-chip:hover { background:#2a2a1a; border-color:var(--yellow); }
+
+/* ---- Tappable words ---- */
+.tap-word { cursor:pointer; border-radius:3px; }
+.tap-word:hover { background:var(--accent-dim); color:var(--accent); }
+
+/* ---- Vocab popup modal ---- */
+#vocab-modal { position:fixed; inset:0; background:rgba(0,0,0,0.75); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+#vocab-modal-inner { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:400px; width:100%; position:relative; }
+#vocab-modal-close { position:absolute; top:12px; right:14px; background:none; border:none; color:var(--text-dim); font-size:1.2rem; cursor:pointer; line-height:1; }
+#vocab-modal-close:hover { color:var(--text); }
+#vocab-spinner { color:var(--text-dim); font-size:0.9rem; padding:8px 0; }
+#vocab-word-main { font-size:1.5rem; font-weight:700; margin-bottom:6px; }
+.vocab-article { color:var(--accent); margin-right:2px; }
+.vocab-word-text { color:var(--text); }
+#vocab-pos-badge { display:inline-block; font-size:0.7rem; padding:2px 8px; border-radius:8px; background:var(--surface2); color:var(--text-dim); margin-bottom:12px; }
+#vocab-def { font-size:0.95rem; margin-bottom:10px; line-height:1.5; }
+#vocab-example-text { font-size:0.85rem; color:var(--text-dim); font-style:italic; margin-bottom:10px; border-left:2px solid var(--border); padding-left:10px; line-height:1.5; }
+#vocab-tip-text { font-size:0.8rem; color:var(--accent); }
+
+/* ---- Vocab panel ---- */
+#vocab-panel { display:flex; flex-direction:column; gap:12px; }
+#vocab-panel-search-row { display:flex; gap:8px; }
+#vocab-panel-search { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:0.9rem; }
+#vocab-panel-search:focus { outline:none; border-color:var(--accent); }
+#vocab-panel-list { display:flex; flex-direction:column; gap:3px; }
+.vocab-item { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; }
+.vocab-item:hover { border-color:var(--accent); }
+.vocab-item-word { font-weight:600; }
+.vocab-item-count { font-size:0.75rem; color:var(--text-dim); }
+
+/* ---- Grammar panel ---- */
+#grammar-panel { display:flex; flex-direction:column; gap:14px; padding-bottom:20px; }
+.grammar-topic { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+.gt-header { font-size:1rem; font-weight:700; color:var(--accent); }
+.gt-rule { font-size:0.85rem; color:var(--text-dim); line-height:1.6; border-left:3px solid var(--accent-dim); padding-left:10px; }
+.gt-examples { display:flex; flex-direction:column; gap:6px; }
+.gt-example { padding:8px 12px; background:var(--surface2); border-radius:8px; cursor:pointer; border:1px solid transparent; }
+.gt-example:hover { border-color:var(--accent); }
+.gt-german { font-weight:600; font-size:0.9rem; }
+.gt-english { font-size:0.8rem; color:var(--text-dim); margin-top:2px; }
+.gt-ai-explanation { font-size:0.85rem; color:var(--text); background:var(--accent-dim); border-radius:8px; padding:12px; line-height:1.6; }

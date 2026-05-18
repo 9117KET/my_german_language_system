@@ -978,5 +978,180 @@ const PHRASES = [
     "english": "Listening to music is my best stress relief.",
     "category": "hobbies",
     "audio": "audio/140_musik_hoeren_ist_mein_bester_ausgleich_z.mp3"
+  },
+  {
+    "id": 141,
+    "german": "Gestern ging ich in die Stadt und traf einen alten Freund.",
+    "english": "Yesterday I went into town and met an old friend.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 142,
+    "german": "Er sprach so schnell dass ich kaum etwas verstehen konnte.",
+    "english": "He spoke so fast that I could barely understand anything.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 143,
+    "german": "Wir saßen im Café und redeten stundenlang miteinander.",
+    "english": "We sat in the café and talked with each other for hours.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 144,
+    "german": "Das Wetter war schlecht also blieb ich den ganzen Tag zu Hause.",
+    "english": "The weather was bad so I stayed home all day.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 145,
+    "german": "Als ich aufstand war es schon halb neun.",
+    "english": "When I got up it was already half past eight.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 146,
+    "german": "Das ist das Restaurant das mir mein Kollege empfohlen hat.",
+    "english": "That is the restaurant that my colleague recommended to me.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 147,
+    "german": "Ich suche einen Job der gut bezahlt ist und mir Spaß macht.",
+    "english": "I'm looking for a job that is well paid and that I enjoy.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 148,
+    "german": "Die Frau mit der ich gesprochen habe war sehr hilfsbereit.",
+    "english": "The woman I spoke with was very helpful.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 149,
+    "german": "Das Buch das ich gerade lese ist wirklich spannend.",
+    "english": "The book I'm currently reading is really exciting.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 150,
+    "german": "Kennst du jemanden der mir bei meinem Deutsch helfen kann?",
+    "english": "Do you know someone who can help me with my German?",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 151,
+    "german": "Deutsch wird in vielen Ländern gesprochen.",
+    "english": "German is spoken in many countries.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 152,
+    "german": "Die Stelle wurde bereits besetzt.",
+    "english": "The position has already been filled.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 153,
+    "german": "Mein Fahrrad wurde gestohlen.",
+    "english": "My bicycle was stolen.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 154,
+    "german": "Das Formular muss bis Freitag ausgefüllt werden.",
+    "english": "The form must be filled out by Friday.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 155,
+    "german": "Wenn ich mehr Zeit hätte würde ich jeden Tag Deutsch lernen.",
+    "english": "If I had more time I would study German every day.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 156,
+    "german": "Ich würde lieber zu Hause bleiben wenn es dir nichts ausmacht.",
+    "english": "I would rather stay home if you don't mind.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 157,
+    "german": "An deiner Stelle würde ich den Arzt anrufen.",
+    "english": "In your position I would call the doctor.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 158,
+    "german": "Es wäre toll wenn wir uns öfter treffen könnten.",
+    "english": "It would be great if we could meet up more often.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 159,
+    "german": "Ich lerne Deutsch weil ich in Deutschland arbeiten möchte.",
+    "english": "I'm learning German because I want to work in Germany.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 160,
+    "german": "Obwohl ich müde war habe ich trotzdem weitergemacht.",
+    "english": "Although I was tired I carried on anyway.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 161,
+    "german": "Nachdem ich gegessen habe mache ich immer einen kurzen Spaziergang.",
+    "english": "After eating I always take a short walk.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 162,
+    "german": "Ich spare Geld damit ich nächstes Jahr reisen kann.",
+    "english": "I'm saving money so that I can travel next year.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 163,
+    "german": "Ich werde morgen früh zum Amt gehen und das erledigen.",
+    "english": "I will go to the office early tomorrow and take care of it.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 164,
+    "german": "Bis nächsten Sommer werde ich fließend Deutsch sprechen.",
+    "english": "By next summer I will speak German fluently.",
+    "category": "core_structures",
+    "audio": null
+  },
+  {
+    "id": 165,
+    "german": "Ich hatte das Formular bereits ausgefüllt bevor ich ankam.",
+    "english": "I had already filled out the form before I arrived.",
+    "category": "core_structures",
+    "audio": null
   }
 ];

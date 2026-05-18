@@ -17,7 +17,108 @@ const CATEGORIES = {
   travel: "Travel & Directions",
   social: "Social Plans",
   hobbies: "Hobbies & Free Time",
+  core_structures: "Core Structures",
 };
+
+// ---- Grammar Tags (phrase ID → grammar structure labels) ----
+const GRAMMAR_TAGS = {
+  1:["Perfekt"], 2:["Modal","Infinitiv"], 3:["Fragewort","Modal"],
+  4:["Präsens","Dativ"], 5:["Perfekt"], 6:["Präsens","Adjektiv"],
+  7:["Perfekt"], 8:["Perfekt"], 9:["Modal","Konjunktion"],
+  10:["Präsens","Adjektiv"], 11:["Präsens"], 12:["Perfekt"],
+  13:["Präsens"], 14:["Präteritum"], 15:["Präsens","Nebensatz-dass"],
+  16:["Präsens","Adjektiv"], 17:["Perfekt"], 18:["Präsens"],
+  19:["Präsens","Adjektiv"], 20:["Präsens","Nebensatz-dass"],
+  21:["Modal","Imperativ"], 22:["Perfekt","Negation"],
+  23:["Fragewort"], 24:["Fragewort"], 25:["Modal","Komparativ"],
+  26:["Präsens","seit"], 27:["Präsens"], 28:["Modal"],
+  29:["Präsens","Negation"], 30:["Modal","Infinitiv"],
+  31:["Präsens"], 32:["Präsens","Dativ"], 33:["Präsens","Infinitivsatz"],
+  34:["Perfekt"], 35:["Fragewort","Meinungsausdruck"],
+  36:["Präsens","Meinungsausdruck"], 37:["Präsens"],
+  38:["Konjunktiv-II","Infinitivsatz"], 39:["Präsens","Temporalsatz"],
+  40:["Präsens","Adjektiv"],
+  41:["Präsens","Akkusativ"], 42:["Präsens","Adjektiv"],
+  43:["Präsens","Adjektiv"], 44:["Präsens"], 45:["Präsens","Adjektiv"],
+  46:["Präsens"], 47:["Präsens","Adjektiv"], 48:["Präsens","Infinitiv"],
+  49:["Präsens","Genitiv"], 50:["Präsens"],
+  51:["Präsens","Nebensatz-dass"], 52:["Präsens","Nebensatz-ob"],
+  53:["Modal","Infinitiv"], 54:["Präsens","Nebensatz-ob"],
+  55:["Präsens"], 56:["Präsens"], 57:["Präsens","Reflexiv"],
+  58:["Modal","Infinitiv"], 59:["Präsens","Relativsatz"], 60:["Präsens","Adjektiv"],
+  61:["Präsens"], 62:["Präteritum"], 63:["Modal"],
+  64:["Modal","Fragewort"], 65:["Präsens"], 66:["Perfekt"],
+  67:["Präsens"], 68:["Präsens","Komparativ"], 69:["Perfekt"], 70:["Präsens","Adjektiv"],
+  71:["Fragewort"], 72:["Präsens"], 73:["Infinitivsatz"],
+  74:["Fragewort"], 75:["Präsens"], 76:["Fragewort","seit"],
+  77:["Präsens","seit"], 78:["Fragewort"], 79:["Fragewort"], 80:["Imperativ"],
+  81:["Fragewort","Modal"], 82:["Konjunktiv-II"], 83:["Präsens","Fragewort"],
+  84:["Imperativ"], 85:["Präteritum","Adjektiv"], 86:["Konjunktiv-II"],
+  87:["Fragewort"], 88:["Modal","Infinitiv"], 89:["Präsens","Negation"], 90:["Perfekt"],
+  91:["Präsens","Akkusativ"], 92:["Fragewort","Modal"], 93:["Fragewort"],
+  94:["Fragewort"], 95:["Fragewort","Komparativ"], 96:["Präsens"],
+  97:["Modal","Nebensatz-wenn"], 98:["Fragewort"], 99:["Fragewort"], 100:["Präsens","Akkusativ"],
+  101:["Präsens","Negation"], 102:["Präsens","seit"], 103:["Präsens","Nebensatz-dass"],
+  104:["Fragewort","Modal"], 105:["Fragewort","Modal"], 106:["Präsens"],
+  107:["Präsens","Dativ"], 108:["Präsens"], 109:["Präsens","Akkusativ"],
+  110:["Modal","Fragewort"],
+  111:["Fragewort","Komparativ"], 112:["Fragewort"], 113:["Akkusativ"],
+  114:["Fragewort"], 115:["Präsens"], 116:["Perfekt","Fragewort"],
+  117:["Imperativ","Separierbar"], 118:["Fragewort"], 119:["Fragewort"], 120:["Fragewort","Modal"],
+  121:["Fragewort"], 122:["Modal","Infinitiv"], 123:["Präsens"],
+  124:["Präsens","Negation"], 125:["Fragewort","Modal"], 126:["Fragewort","Modal"],
+  127:["Präsens","Reflexiv"], 128:["Dativ"], 129:["Konjunktiv-II","Modal"],
+  130:["Präteritum","Adjektiv"],
+  131:["Fragewort","Komparativ"], 132:["Präsens","Dativ"], 133:["Präsens"],
+  134:["Präsens","Häufigkeit"], 135:["Fragewort"], 136:["Präsens","Reflexiv"],
+  137:["Komparativ","Infinitivsatz"], 138:["Präsens"], 139:["Infinitivsatz","um-zu"],
+  140:["Präsens"],
+  141:["Präteritum"], 142:["Präteritum","Nebensatz-dass"],
+  143:["Präteritum"], 144:["Präteritum"], 145:["Präteritum","als-Satz"],
+  146:["Relativsatz","Akkusativ"], 147:["Relativsatz","Nominativ"],
+  148:["Relativsatz","mit-Dativ"], 149:["Relativsatz","Nominativ"],
+  150:["Relativsatz","Modal"], 151:["Passiv","Präsens"],
+  152:["Passiv","Perfekt"], 153:["Passiv","Perfekt"], 154:["Passiv","Modal"],
+  155:["Konjunktiv-II","wenn-Satz"], 156:["Konjunktiv-II","würde"],
+  157:["Konjunktiv-II","Ratschlag"], 158:["Konjunktiv-II","wäre"],
+  159:["Nebensatz-weil"], 160:["Nebensatz-obwohl"],
+  161:["Nebensatz-nachdem","Perfekt"], 162:["Nebensatz-damit"],
+  163:["Futur-I"], 164:["Futur-I"], 165:["Plusquamperfekt"],
+};
+
+// ---- Grammar Topics (for Grammar tab) ----
+const GRAMMAR_TOPICS = [
+  { id:"Perfekt", title:"Perfekt (Present Perfect)",
+    rule:"haben/sein + Partizip II. Used for past events in spoken German.",
+    ids:[1,5,8,12,17,34,66,69,90] },
+  { id:"Präteritum", title:"Präteritum (Simple Past)",
+    rule:"Common in writing and narratives. Key forms: war, hatte, ging, kam, sprach, sah, stand.",
+    ids:[14,62,85,130,141,142,143,144,145] },
+  { id:"Modal", title:"Modal Verbs (können, müssen, wollen...)",
+    rule:"Modal verb in position 2, infinitive goes to the end. Konjunktiv II: könnte, müsste, etc.",
+    ids:[2,9,21,25,28,63,64,104,150] },
+  { id:"Relativsatz", title:"Relative Clauses (Relativsätze)",
+    rule:"der/die/das matches the noun's gender. Verb goes to the end of the relative clause.",
+    ids:[146,147,148,149,150] },
+  { id:"Konjunktiv-II", title:"Konjunktiv II (Conditional)",
+    rule:"würde + infinitive for hypotheticals. Polite requests. hätte/wäre for haben/sein.",
+    ids:[38,82,86,129,155,156,157,158] },
+  { id:"Passiv", title:"Passive Voice (Passiv)",
+    rule:"werden + Partizip II. The focus shifts to the action, not the person doing it.",
+    ids:[151,152,153,154] },
+  { id:"Nebensatz", title:"Subordinate Clauses (weil, obwohl, nachdem, damit, dass, wenn)",
+    rule:"The conjunction sends the verb to the very end of the clause. Main clause can come first or second.",
+    ids:[15,20,37,39,52,54,97,159,160,161,162] },
+  { id:"Futur-I", title:"Future Tense (Futur I)",
+    rule:"werden + infinitive. Present tense + time expression also works (very common in spoken German).",
+    ids:[163,164] },
+  { id:"Plusquamperfekt", title:"Past Perfect (Plusquamperfekt)",
+    rule:"hatte/war + Partizip II. Used for events that happened before another past event.",
+    ids:[165] },
+  { id:"Fragewort", title:"Question Words (Fragewörter)",
+    rule:"Wer/Was/Wo/Woher/Wann/Wie/Warum — verb comes directly after the question word.",
+    ids:[3,23,24,64,74,78,79,81,94,111,119,125,126,131,135] },
+];
 
 // ---- State ----
 let mode = "listen";
@@ -43,6 +144,11 @@ let srsData = {};
 let srsSettings = { autoGrade: false };
 let practiceNowId = null;
 let progressFilter = "due";
+
+// Grammar + Vocab state
+let grammarFilter = "all";
+let grammarTopicFilter = null;
+const vocabCache = {};
 
 // Recall voice state
 let recallRecognition = null;
@@ -225,6 +331,10 @@ function buildQueue() {
 
   source = source.filter(p => !getSrsRecord(p.id).archived);
 
+  if (grammarFilter !== "all") {
+    source = source.filter(p => (GRAMMAR_TAGS[p.id] || []).some(t => t.startsWith(grammarFilter)));
+  }
+
   if (mode === "recall") {
     const statusOrder = { new: 0, due: 0, upcoming: 1, mastered: 2 };
     source = [...source].sort((a, b) => {
@@ -270,7 +380,7 @@ function init() {
 
 // ---- Render (player) ----
 function renderCard() {
-  if (mode === "ai") return;
+  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar") return;
 
   if (!queue.length) {
     emptyState.style.display = "block";
@@ -337,7 +447,19 @@ function renderCard() {
     renderRecallModeHeader();
   }
 
-  germanEl.textContent = p.german;
+  // Grammar tag chips
+  const tagContainer = document.getElementById("grammar-tag-container");
+  const tags = GRAMMAR_TAGS[p.id] || [];
+  tagContainer.innerHTML = tags.slice(0, 3).map(t =>
+    `<span class="grammar-chip" onclick="openGrammarTopic('${t}')">${t}</span>`
+  ).join("");
+  tagContainer.style.display = tags.length ? "flex" : "none";
+
+  // Tappable words
+  germanEl.innerHTML = p.german.split(/(\s+)/).map(tok =>
+    /\s+/.test(tok) ? tok :
+    `<span class="tap-word" data-word="${tok.replace(/[.,!?;:]/g, "")}">${tok}</span>`
+  ).join("");
   englishEl.textContent = p.english;
 }
 
@@ -377,6 +499,8 @@ function showPlayerPanel() {
   document.getElementById("controls-bar").style.display = "flex";
   aiPanel.style.display = "none";
   document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
   playerEls.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
@@ -407,6 +531,12 @@ function setupEvents() {
       } else if (newMode === "progress") {
         mode = "progress";
         showProgressPanel();
+      } else if (newMode === "vocab") {
+        mode = "vocab";
+        showVocabPanel();
+      } else if (newMode === "grammar") {
+        mode = "grammar";
+        showGrammarPanel(null);
       } else {
         mode = newMode;
         showPlayerPanel();
@@ -419,6 +549,12 @@ function setupEvents() {
 
   categorySelect.addEventListener("change", () => {
     category = categorySelect.value;
+    buildQueue();
+    renderCard();
+  });
+
+  document.getElementById("grammar-filter").addEventListener("change", (e) => {
+    grammarFilter = e.target.value;
     buildQueue();
     renderCard();
   });
@@ -532,8 +668,32 @@ function setupEvents() {
     btn.addEventListener("click", () => { progressFilter = btn.dataset.filter; renderProgressTab(); });
   });
 
+  // Tappable word vocab lookup
+  germanEl.addEventListener("click", (e) => {
+    const span = e.target.closest(".tap-word");
+    if (!span) return;
+    const word = span.dataset.word;
+    if (word && word.length > 1) openVocabPopup(word);
+  });
+
+  // Vocab modal close
+  document.getElementById("vocab-modal-close").addEventListener("click", () => {
+    document.getElementById("vocab-modal").style.display = "none";
+  });
+  document.getElementById("vocab-modal").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("vocab-modal")) {
+      document.getElementById("vocab-modal").style.display = "none";
+    }
+  });
+
+  // Vocab panel search/filter
+  document.getElementById("vocab-panel-search").addEventListener("input", (e) => {
+    renderVocabPanel(e.target.value);
+  });
+
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai" || mode === "progress") return;
+    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar") return;
+    if (e.key === "Escape") { document.getElementById("vocab-modal").style.display = "none"; return; }
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
     if (e.key === "p" || e.key === "P") playBtn.click();
@@ -898,6 +1058,176 @@ function restorePhrase(phraseId) {
   srsData[String(phraseId)] = { ...getSrsRecord(phraseId), archived: false };
   saveSrsData();
   renderProgressTab();
+}
+
+// ---- Vocab Popup ----
+
+async function openVocabPopup(word) {
+  const modal = document.getElementById("vocab-modal");
+  modal.style.display = "flex";
+  document.getElementById("vocab-spinner").style.display = "block";
+  document.getElementById("vocab-result").style.display = "none";
+  document.getElementById("vocab-spinner").textContent = "Looking up...";
+
+  if (vocabCache[word]) {
+    renderVocabResult(vocabCache[word]);
+    return;
+  }
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "vocab", text: word }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Server error");
+    vocabCache[word] = data;
+    renderVocabResult(data);
+  } catch (err) {
+    document.getElementById("vocab-spinner").textContent = `Error: ${err.message}`;
+  }
+}
+
+function renderVocabResult(data) {
+  document.getElementById("vocab-spinner").style.display = "none";
+  document.getElementById("vocab-result").style.display = "block";
+  const articleHtml = data.article && data.article !== "none"
+    ? `<span class="vocab-article">${data.article}</span> ` : "";
+  document.getElementById("vocab-word-main").innerHTML =
+    `${articleHtml}<span class="vocab-word-text">${data.word || ""}</span>`;
+  document.getElementById("vocab-pos-badge").textContent = data.pos || "";
+  document.getElementById("vocab-def").textContent = data.definition || "";
+  document.getElementById("vocab-example-text").textContent = data.example || "";
+  document.getElementById("vocab-tip-text").textContent = data.tip || "";
+}
+
+// ---- Vocab Tab ----
+
+const STOP_WORDS = new Set([
+  "ich","du","er","sie","es","wir","ihr","sich","mir","mich","dir","dich","uns","euch",
+  "der","die","das","ein","eine","einen","einem","einer","eines","den","dem","des",
+  "und","oder","aber","auch","denn","wenn","weil","dass","ob","als","wie","damit",
+  "ist","bin","bist","sind","war","waren","sein","haben","hat","habe","hatte","hatten",
+  "nicht","kein","keine","keinen","so","noch","schon","sehr","nur","hier","da","dort",
+  "an","auf","in","von","zu","aus","mit","bei","nach","vor","über","unter","für","gegen",
+  "bis","durch","ohne","um","am","im","ins","zum","zur","beim","vom","was","wer","wo",
+  "wann","wie","warum","woher","wohin","welche","welchen","welchem","welches","mal"
+]);
+
+function extractVocabWords() {
+  const map = new Map();
+  for (const p of PHRASES) {
+    const tokens = p.german.replace(/[.,!?;:]/g, "").split(/\s+/).filter(Boolean);
+    for (const tok of tokens) {
+      const key = tok.toLowerCase();
+      if (key.length < 3 || STOP_WORDS.has(key)) continue;
+      if (!map.has(key)) map.set(key, { display: tok, count: 0, phraseIds: [] });
+      const entry = map.get(key);
+      entry.count++;
+      if (!entry.phraseIds.includes(p.id)) entry.phraseIds.push(p.id);
+    }
+  }
+  return [...map.entries()]
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([key, val]) => ({ key, ...val }));
+}
+
+function renderVocabPanel(search = "") {
+  const words = extractVocabWords();
+  const filtered = search
+    ? words.filter(w => w.key.includes(search.toLowerCase()))
+    : words;
+  const list = document.getElementById("vocab-panel-list");
+  if (!filtered.length) { list.innerHTML = `<div class="prog-empty">No words found.</div>`; return; }
+  list.innerHTML = filtered.slice(0, 100).map(w => `
+    <div class="vocab-item" onclick="openVocabPopup('${w.display.replace(/'/g, "\\'")}')">
+      <span class="vocab-item-word">${w.display}</span>
+      <span class="vocab-item-count">${w.count}×</span>
+    </div>
+  `).join("");
+}
+
+function showVocabPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "flex";
+  document.getElementById("vocab-panel-search").value = "";
+  renderVocabPanel();
+}
+
+// ---- Grammar Tab ----
+
+function showGrammarPanel(filterTag = null) {
+  grammarTopicFilter = filterTag;
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "flex";
+  renderGrammarTab(filterTag);
+}
+
+function renderGrammarTab(filterTag = null) {
+  const topics = filterTag
+    ? GRAMMAR_TOPICS.filter(t => filterTag.startsWith(t.id) || t.id === filterTag)
+    : GRAMMAR_TOPICS;
+  const list = document.getElementById("grammar-list");
+  if (!topics.length) {
+    list.innerHTML = `<div class="prog-empty">No grammar topic found for "${filterTag}".</div>`;
+    return;
+  }
+  list.innerHTML = topics.map(topic => {
+    const examples = topic.ids.map(id => PHRASES.find(p => p.id === id)).filter(Boolean);
+    return `
+      <div class="grammar-topic">
+        <div class="gt-header">${topic.title}</div>
+        <div class="gt-rule">${topic.rule}</div>
+        <div class="gt-examples">
+          ${examples.slice(0, 4).map(p => `
+            <div class="gt-example" onclick="practiceNow(${p.id})">
+              <div class="gt-german">${p.german}</div>
+              <div class="gt-english">${p.english}</div>
+            </div>`).join("")}
+        </div>
+        <button class="prog-btn gt-explain-btn" data-topic-id="${topic.id}" data-topic-title="${topic.title}">Ask AI to explain deeper ›</button>
+      </div>`;
+  }).join("");
+
+  document.querySelectorAll(".gt-explain-btn").forEach(btn => {
+    btn.addEventListener("click", () => explainGrammar(btn.dataset.topicId, btn.dataset.topicTitle, btn));
+  });
+}
+
+async function explainGrammar(topicId, topicTitle, btn) {
+  btn.textContent = "Loading...";
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "grammar", text: topicTitle }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Server error");
+    const expDiv = document.createElement("div");
+    expDiv.className = "gt-ai-explanation";
+    expDiv.textContent = data.explanation || "No explanation returned.";
+    btn.parentElement.insertBefore(expDiv, btn);
+    btn.remove();
+  } catch (err) {
+    btn.textContent = "Error - try again";
+    btn.disabled = false;
+  }
+}
+
+function openGrammarTopic(tagId) {
+  mode = "grammar";
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.mode === "grammar"));
+  showGrammarPanel(tagId);
 }
 
 // ---- Start ----
