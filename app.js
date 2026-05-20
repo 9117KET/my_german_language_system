@@ -146,6 +146,21 @@ const SCENARIOS = {
     goal: "Agree on what to do and when to meet",
     starter: "Hey! Hast du am Wochenende schon was vor? Ich hätte da eine Idee!",
   },
+  university_life: {
+    title: "Study Session",
+    goal: "Discuss coursework, exams, or university life with a classmate",
+    starter: "Hey, hast du schon für die Klausur nächste Woche gelernt? Ich weiß gar nicht wo ich anfangen soll!",
+  },
+  phone_digital: {
+    title: "Phone & Tech Chat",
+    goal: "Handle a real-life phone situation or sort out a tech problem in German",
+    starter: "Hallo? Kannst du mich hören? Ich habe hier gerade kaum Netz. Was wolltest du mir sagen?",
+  },
+  bureaucracy: {
+    title: "Government Office",
+    goal: "Navigate a visit to a German authority and ask about your paperwork",
+    starter: "Guten Tag, nehmen Sie bitte Platz. Womit kann ich Ihnen heute helfen?",
+  },
 };
 
 // ---- Grammar Topics (for Grammar tab) ----
@@ -479,7 +494,6 @@ function renderCard() {
   currentRepeat = 0;
   clearAutoTimer();
   audio.pause();
-  audio.src = "";
 
   // Hide recall-specific elements by default; recall branch shows them
   document.getElementById("recall-srs-bar").style.display = "none";
@@ -670,7 +684,8 @@ function setupEvents() {
     const p = queue[queueIndex];
     if (!p) return;
     if (audio.paused) {
-      if (!audio.src || audio.src === window.location.href) loadAndPlay(p);
+      const audioFile = p.audio ? p.audio.split('/').pop() : '';
+      if (!audio.src || audio.src === window.location.href || !audio.src.endsWith(audioFile)) loadAndPlay(p);
       else audio.play();
     } else {
       audio.pause();
