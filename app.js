@@ -388,6 +388,10 @@ function buildQueue() {
 
   source = source.filter(p => !getSrsRecord(p.id).archived);
 
+  if (mode === "listen" || mode === "shadow") {
+    source = source.filter(p => p.audio);
+  }
+
   if (grammarFilter !== "all") {
     source = source.filter(p => (GRAMMAR_TAGS[p.id] || []).some(t => t.startsWith(grammarFilter)));
   }
@@ -672,7 +676,7 @@ function setupEvents() {
       currentRepeat = 0;
       statusText.textContent = "Done";
       if (mode === "listen") scheduleAutoAdvance(3000);
-      else if (mode === "shadow") { statusText.textContent = "Repeat aloud!"; scheduleAutoAdvance(5000); }
+      else if (mode === "shadow") { statusText.textContent = "Done"; scheduleAutoAdvance(5000); }
     }
   });
   audio.addEventListener("error", () => { statusText.textContent = "Audio error"; });
