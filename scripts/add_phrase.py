@@ -25,6 +25,9 @@ VALID_CATEGORIES = [
     "describe_surroundings",
     "inner_thoughts",
     "daily_life",
+    "university_life",
+    "phone_digital",
+    "bureaucracy",
 ]
 
 

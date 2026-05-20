@@ -34,6 +34,9 @@ VALID_CATEGORIES = [
     "describe_surroundings",
     "inner_thoughts",
     "daily_life",
+    "university_life",
+    "phone_digital",
+    "bureaucracy",
 ]
 
 SYSTEM_PROMPT = """You are a German language assistant helping build a personal phrase bank.

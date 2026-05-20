@@ -1153,5 +1153,215 @@ const PHRASES = [
     "english": "I had already filled out the form before I arrived.",
     "category": "core_structures",
     "audio": "audio/165_ich_hatte_das_formular_bereits_ausgefuel.mp3"
+  },
+  {
+    "id": 166,
+    "german": "Ich habe heute Vormittag drei Vorlesungen.",
+    "english": "I have three lectures this morning.",
+    "category": "university_life",
+    "audio": "audio/166_ich_habe_heute_vormittag_drei_vorlesunge.mp3"
+  },
+  {
+    "id": 167,
+    "german": "Die Abgabefrist für das Projekt ist morgen.",
+    "english": "The deadline for the project is tomorrow.",
+    "category": "university_life",
+    "audio": "audio/167_die_abgabefrist_fuer_das_projekt_ist_mor.mp3"
+  },
+  {
+    "id": 168,
+    "german": "Ich verstehe den Code nicht ganz kannst du mir das erklären?",
+    "english": "I don't quite understand the code - can you explain that to me?",
+    "category": "university_life",
+    "audio": "audio/168_ich_verstehe_den_code_nicht_ganz_kannst.mp3"
+  },
+  {
+    "id": 169,
+    "german": "Wir müssen uns für die Gruppenarbeit aufteilen.",
+    "english": "We need to split up for the group work.",
+    "category": "university_life",
+    "audio": "audio/169_wir_muessen_uns_fuer_die_gruppenarbeit_a.mp3"
+  },
+  {
+    "id": 170,
+    "german": "Ich war heute in der Mensa zum Mittagessen.",
+    "english": "I was at the canteen for lunch today.",
+    "category": "university_life",
+    "audio": "audio/170_ich_war_heute_in_der_mensa_zum_mittagess.mp3"
+  },
+  {
+    "id": 171,
+    "german": "Ich muss mich noch für das nächste Semester anmelden.",
+    "english": "I still need to register for next semester.",
+    "category": "university_life",
+    "audio": "audio/171_ich_muss_mich_noch_fuer_das_naechste_sem.mp3"
+  },
+  {
+    "id": 172,
+    "german": "Die Prüfung war viel schwerer als ich erwartet hatte.",
+    "english": "The exam was much harder than I had expected.",
+    "category": "university_life",
+    "audio": "audio/172_die_pruefung_war_viel_schwerer_als_ich_e.mp3"
+  },
+  {
+    "id": 173,
+    "german": "Ich habe die ganze Nacht für die Klausur gelernt.",
+    "english": "I studied for the exam all night.",
+    "category": "university_life",
+    "audio": "audio/173_ich_habe_die_ganze_nacht_fuer_die_klausu.mp3"
+  },
+  {
+    "id": 174,
+    "german": "Können Sie mir sagen wo das Prüfungsamt ist?",
+    "english": "Could you tell me where the examinations office is?",
+    "category": "university_life",
+    "audio": "audio/174_koennen_sie_mir_sagen_wo_das_pruefungsam.mp3"
+  },
+  {
+    "id": 175,
+    "german": "Mein Professor hat die Vorlesung auf nächste Woche verschoben.",
+    "english": "My professor moved the lecture to next week.",
+    "category": "university_life",
+    "audio": "audio/175_mein_professor_hat_die_vorlesung_auf_nae.mp3"
+  },
+  {
+    "id": 176,
+    "german": "Ich rufe dich gleich zurück mein Akku ist fast leer.",
+    "english": "I'll call you right back - my battery is almost dead.",
+    "category": "phone_digital",
+    "audio": "audio/176_ich_rufe_dich_gleich_zurueck_mein_akku_i.mp3"
+  },
+  {
+    "id": 177,
+    "german": "Hast du gerade WLAN oder bist du auf mobilen Daten?",
+    "english": "Do you have Wi-Fi right now or are you on mobile data?",
+    "category": "phone_digital",
+    "audio": "audio/177_hast_du_gerade_wlan_oder_bist_du_auf_mob.mp3"
+  },
+  {
+    "id": 178,
+    "german": "Kannst du mir deinen Standort schicken?",
+    "english": "Can you send me your location?",
+    "category": "phone_digital",
+    "audio": "audio/178_kannst_du_mir_deinen_standort_schicken.mp3"
+  },
+  {
+    "id": 179,
+    "german": "Ich habe dir eine Nachricht auf WhatsApp geschickt.",
+    "english": "I sent you a message on WhatsApp.",
+    "category": "phone_digital",
+    "audio": "audio/179_ich_habe_dir_eine_nachricht_auf_whatsapp.mp3"
+  },
+  {
+    "id": 180,
+    "german": "Die App stürzt immer wieder ab ich weiß nicht warum.",
+    "english": "The app keeps crashing - I don't know why.",
+    "category": "phone_digital",
+    "audio": "audio/180_die_app_stuerzt_immer_wieder_ab_ich_weis.mp3"
+  },
+  {
+    "id": 181,
+    "german": "Kannst du mich kurz anrufen ich habe keine Zeit zu tippen.",
+    "english": "Can you give me a quick call - I don't have time to type.",
+    "category": "phone_digital",
+    "audio": "audio/181_kannst_du_mich_kurz_anrufen_ich_habe_kei.mp3"
+  },
+  {
+    "id": 182,
+    "german": "Ich bin gerade in einem Videoanruf kannst du später nochmal schreiben?",
+    "english": "I'm in a video call right now - can you message me later?",
+    "category": "phone_digital",
+    "audio": "audio/182_ich_bin_gerade_in_einem_videoanruf_kanns.mp3"
+  },
+  {
+    "id": 183,
+    "german": "Mein Handy-Vertrag läuft nächsten Monat aus.",
+    "english": "My phone contract expires next month.",
+    "category": "phone_digital",
+    "audio": "audio/183_mein_handy_vertrag_laeuft_naechsten_mona.mp3"
+  },
+  {
+    "id": 184,
+    "german": "Ich habe die Benachrichtigungen für diese App ausgeschaltet.",
+    "english": "I've turned off the notifications for this app.",
+    "category": "phone_digital",
+    "audio": "audio/184_ich_habe_die_benachrichtigungen_fuer_die.mp3"
+  },
+  {
+    "id": 185,
+    "german": "Kannst du mir kurz dein WLAN-Passwort geben?",
+    "english": "Could you give me your Wi-Fi password for a moment?",
+    "category": "phone_digital",
+    "audio": "audio/185_kannst_du_mir_kurz_dein_wlan_passwort_ge.mp3"
+  },
+  {
+    "id": 186,
+    "german": "Ich brauche einen Termin bei der Ausländerbehörde.",
+    "english": "I need an appointment at the foreigners' registration office.",
+    "category": "bureaucracy",
+    "audio": "audio/186_ich_brauche_einen_termin_bei_der_auslaen.mp3"
+  },
+  {
+    "id": 187,
+    "german": "Meine Aufenthaltserlaubnis läuft in zwei Monaten ab.",
+    "english": "My residence permit expires in two months.",
+    "category": "bureaucracy",
+    "audio": "audio/187_meine_aufenthaltserlaubnis_laeuft_in_zwe.mp3"
+  },
+  {
+    "id": 188,
+    "german": "Wo muss ich mich offiziell anmelden?",
+    "english": "Where do I have to officially register my address?",
+    "category": "bureaucracy",
+    "audio": "audio/188_wo_muss_ich_mich_offiziell_anmelden.mp3"
+  },
+  {
+    "id": 189,
+    "german": "Ich brauche eine Immatrikulationsbescheinigung von der Uni.",
+    "english": "I need an enrollment certificate from the university.",
+    "category": "bureaucracy",
+    "audio": "audio/189_ich_brauche_eine_immatrikulationsbeschei.mp3"
+  },
+  {
+    "id": 190,
+    "german": "Welche Unterlagen muss ich mitbringen?",
+    "english": "Which documents do I need to bring?",
+    "category": "bureaucracy",
+    "audio": "audio/190_welche_unterlagen_muss_ich_mitbringen.mp3"
+  },
+  {
+    "id": 191,
+    "german": "Ich habe einen Brief vom Amt bekommen aber ich verstehe ihn nicht ganz.",
+    "english": "I received a letter from the office but I don't quite understand it.",
+    "category": "bureaucracy",
+    "audio": "audio/191_ich_habe_einen_brief_vom_amt_bekommen_ab.mp3"
+  },
+  {
+    "id": 192,
+    "german": "Ist meine Krankenversicherung auch im Ausland gültig?",
+    "english": "Is my health insurance also valid abroad?",
+    "category": "bureaucracy",
+    "audio": "audio/192_ist_meine_krankenversicherung_auch_im_au.mp3"
+  },
+  {
+    "id": 193,
+    "german": "Kann ich dieses Formular auch online einreichen?",
+    "english": "Can I also submit this form online?",
+    "category": "bureaucracy",
+    "audio": "audio/193_kann_ich_dieses_formular_auch_online_ein.mp3"
+  },
+  {
+    "id": 194,
+    "german": "Ich bin als Student krankenversichert bei der TK.",
+    "english": "I'm health insured as a student with TK.",
+    "category": "bureaucracy",
+    "audio": "audio/194_ich_bin_als_student_krankenversichert_be.mp3"
+  },
+  {
+    "id": 195,
+    "german": "Wann bekomme ich die Entscheidung über meinen Antrag?",
+    "english": "When will I receive the decision on my application?",
+    "category": "bureaucracy",
+    "audio": "audio/195_wann_bekomme_ich_die_entscheidung_ueber.mp3"
   }
 ];

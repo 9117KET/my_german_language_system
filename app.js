@@ -18,6 +18,9 @@ const CATEGORIES = {
   social: "Social Plans",
   hobbies: "Hobbies & Free Time",
   core_structures: "Core Structures",
+  university_life: "Uni & Studium",
+  phone_digital: "Handy & Digitales",
+  bureaucracy: "Behörden & Bürokratie",
 };
 
 // ---- Grammar Tags (phrase ID → grammar structure labels) ----
@@ -84,6 +87,21 @@ const GRAMMAR_TAGS = {
   159:["Nebensatz-weil"], 160:["Nebensatz-obwohl"],
   161:["Nebensatz-nachdem","Perfekt"], 162:["Nebensatz-damit"],
   163:["Futur-I"], 164:["Futur-I"], 165:["Plusquamperfekt"],
+  166:["Präsens","Akkusativ"], 167:["Präsens"],
+  168:["Präsens","Negation","Modal"], 169:["Modal","Reflexiv","Infinitiv"],
+  170:["Präteritum","Dativ"], 171:["Modal","Reflexiv","Separierbar"],
+  172:["Plusquamperfekt","Komparativ"], 173:["Perfekt","Akkusativ"],
+  174:["Modal","Fragewort"], 175:["Perfekt","Separierbar"],
+  176:["Präsens","Separierbar"], 177:["Präsens","Konjunktion"],
+  178:["Modal","Dativ"], 179:["Perfekt","Dativ"],
+  180:["Präsens","Separierbar"], 181:["Modal","Separierbar","Infinitivsatz"],
+  182:["Präsens","Fragewort"], 183:["Präsens","Separierbar"],
+  184:["Perfekt","Separierbar","Akkusativ"], 185:["Modal","Dativ","Akkusativ"],
+  186:["Präsens","Akkusativ"], 187:["Präsens","Separierbar"],
+  188:["Modal","Fragewort","Reflexiv"], 189:["Präsens","Akkusativ"],
+  190:["Modal","Fragewort","Separierbar"], 191:["Perfekt","Konjunktion","Negation"],
+  192:["Präsens","Adjektiv"], 193:["Modal","Separierbar","Akkusativ"],
+  194:["Präsens","Adjektiv"], 195:["Fragewort","Präsens","Akkusativ"],
 };
 
 // ---- Conversation Scenarios ----
