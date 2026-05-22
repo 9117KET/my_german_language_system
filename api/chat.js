@@ -21,6 +21,7 @@ async function callGroq(prompt, retried = false) {
       max_tokens: 200,
       temperature: 0.3,
     }),
+    signal: AbortSignal.timeout(12000),
   });
 
   if (res.status === 429 && !retried) {
@@ -51,9 +52,10 @@ async function callElevenLabs(text) {
       },
       body: JSON.stringify({
         text,
-        model_id: "eleven_multilingual_v2",
+        model_id: "eleven_turbo_v2_5",
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
+      signal: AbortSignal.timeout(15000),
     }
   );
   if (!res.ok) {
@@ -69,6 +71,7 @@ async function callGroqMessages(messages, maxTokens = 350, retried = false) {
     method: "POST",
     headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: GROQ_MODEL, messages, max_tokens: maxTokens, temperature: 0.7 }),
+    signal: AbortSignal.timeout(12000),
   });
   if (res.status === 429 && !retried) {
     const body = await res.json();

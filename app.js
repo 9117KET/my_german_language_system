@@ -233,6 +233,12 @@ let grammarFilter = "all";
 let grammarTopicFilter = null;
 const vocabCache = {};
 
+// Words mode state
+let wordsSRS = {};
+let wordsQueue = [];
+let wordsIndex = 0;
+let wordRevealed = false;
+
 // Recall voice state
 let recallRecognition = null;
 let recallIsRecording = false;
@@ -476,11 +482,12 @@ function init() {
   setupEvents();
   initAI();
   setupRecallSpeech();
+  initWordsPanel();
 }
 
 // ---- Render (player) ----
 function renderCard() {
-  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar") return;
+  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words") return;
 
   if (!queue.length) {
     emptyState.style.display = "block";
@@ -600,6 +607,7 @@ function showPlayerPanel() {
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
   playerEls.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
@@ -608,10 +616,11 @@ function showPlayerPanel() {
 
 function showAIPanel() {
   document.getElementById("controls-bar").style.display = "none";
-  playerEls.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = "none";
-  });
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
   aiPanel.style.display = "flex";
   renderAISavedList();
 }
@@ -636,6 +645,9 @@ function setupEvents() {
       } else if (newMode === "grammar") {
         mode = "grammar";
         showGrammarPanel(null);
+      } else if (newMode === "words") {
+        mode = "words";
+        showWordsPanel();
       } else {
         mode = newMode;
         showPlayerPanel();
@@ -792,7 +804,7 @@ function setupEvents() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar") return;
+    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words") return;
     if (e.key === "Escape") { document.getElementById("vocab-modal").style.display = "none"; return; }
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
@@ -1681,6 +1693,220 @@ function miniAdvance() {
     document.getElementById("mini-count").textContent = `${miniPhrases.length} / ${miniPhrases.length}`;
     document.getElementById("mini-category").textContent = "";
   }
+}
+
+// ---- Words Mode ----
+
+function loadWordsSRS() {
+  wordsSRS = JSON.parse(localStorage.getItem("wordsSRS") || "{}");
+}
+
+function saveWordsSRS() {
+  localStorage.setItem("wordsSRS", JSON.stringify(wordsSRS));
+}
+
+function getWordRecord(id) {
+  return wordsSRS[String(id)] || {
+    interval: 0, easeFactor: 2.5, dueDate: null,
+    lastReviewed: null, totalReviews: 0, totalCorrect: 0,
+  };
+}
+
+function isWordDue(id) {
+  const r = getWordRecord(id);
+  return r.dueDate === null || r.dueDate <= todayStr();
+}
+
+function getWordStatus(id) {
+  const r = getWordRecord(id);
+  if (!r.dueDate) return "new";
+  if (r.interval >= 21) return "mastered";
+  if (isWordDue(id)) return "due";
+  return "upcoming";
+}
+
+function updateWordSRS(id, rating) {
+  const r = getWordRecord(id);
+  let interval = r.interval;
+  let ef = r.easeFactor;
+
+  if (rating === "miss") {
+    interval = 1;
+    ef = Math.max(1.3, ef - 0.2);
+  } else if (rating === "hard") {
+    interval = Math.max(1, interval === 0 ? 1 : Math.round(interval * 1.2));
+    ef = Math.max(1.3, ef - 0.15);
+  } else if (rating === "good") {
+    if (interval === 0) interval = 1;
+    else if (interval === 1) interval = 3;
+    else interval = Math.round(interval * ef);
+  } else if (rating === "easy") {
+    if (interval === 0) interval = 3;
+    else if (interval === 1) interval = 4;
+    else interval = Math.round(interval * ef * 1.3);
+    ef = Math.min(3.0, ef + 0.1);
+  }
+
+  const due = new Date();
+  due.setDate(due.getDate() + interval);
+  wordsSRS[String(id)] = {
+    ...r,
+    interval,
+    easeFactor: ef,
+    dueDate: due.toISOString().split("T")[0],
+    lastReviewed: todayStr(),
+    totalReviews: r.totalReviews + 1,
+    totalCorrect: r.totalCorrect + (rating !== "miss" ? 1 : 0),
+  };
+  saveWordsSRS();
+}
+
+function buildWordsQueue() {
+  const tierVal = document.getElementById("word-tier-select").value;
+  const posVal = document.getElementById("word-pos-filter").value;
+
+  let source = (typeof WORDS !== "undefined" ? WORDS : []);
+  if (tierVal !== "all") source = source.filter(w => w.tier === parseInt(tierVal));
+  if (posVal !== "all") source = source.filter(w => w.pos === posVal);
+
+  // Due and new first, then by tier, then by id
+  source = [...source].sort((a, b) => {
+    const aDue = isWordDue(a.id) ? 0 : 1;
+    const bDue = isWordDue(b.id) ? 0 : 1;
+    if (aDue !== bDue) return aDue - bDue;
+    return a.tier - b.tier || a.id - b.id;
+  });
+
+  wordsQueue = source;
+  wordsIndex = 0;
+}
+
+function updateWordsStatsBar() {
+  const source = typeof WORDS !== "undefined" ? WORDS : [];
+  let mastered = 0, due = 0;
+  for (const w of source) {
+    const st = getWordStatus(w.id);
+    if (st === "mastered") mastered++;
+    else if (st === "due" || st === "new") due++;
+  }
+  document.getElementById("words-mastered-count").textContent = `${mastered} mastered`;
+  document.getElementById("words-due-count").textContent = `${due} due`;
+  document.getElementById("words-total-count").textContent = `/ ${source.length}`;
+}
+
+const WORD_POS_LABELS = {
+  verb: "Verb", noun: "Nomen", adj: "Adj.", adv: "Adv.",
+  prep: "Präp.", conj: "Konj.", pron: "Pron.",
+};
+
+function renderWordCard() {
+  if (!wordsQueue.length) {
+    document.getElementById("word-card").innerHTML =
+      `<div style="text-align:center;padding:24px;color:var(--text-dim)">No words match the current filter.</div>`;
+    document.getElementById("word-position").textContent = "0 / 0";
+    updateWordsStatsBar();
+    return;
+  }
+
+  const w = wordsQueue[wordsIndex];
+  wordRevealed = false;
+
+  document.getElementById("word-tier-chip").textContent = `T${w.tier}`;
+
+  const posBadge = document.getElementById("word-pos-badge");
+  posBadge.textContent = WORD_POS_LABELS[w.pos] || w.pos;
+  posBadge.className = `wpos-${w.pos}`;
+
+  document.getElementById("word-article-el").textContent = w.article || "";
+  document.getElementById("word-german-el").textContent = w.german;
+  document.getElementById("word-sentence-de").innerHTML = w.example_de || "";
+
+  const mnemonicEl = document.getElementById("word-mnemonic-el");
+  const hintBtn = document.getElementById("word-hint-btn");
+  if (w.mnemonic) {
+    mnemonicEl.textContent = w.mnemonic;
+    mnemonicEl.style.display = "none";
+    hintBtn.style.display = "inline-block";
+  } else {
+    mnemonicEl.style.display = "none";
+    hintBtn.style.display = "none";
+  }
+
+  document.getElementById("word-translation-area").style.display = "none";
+  document.getElementById("word-reveal-btn").style.display = "block";
+  document.getElementById("word-position").textContent = `${wordsIndex + 1} / ${wordsQueue.length}`;
+
+  updateWordsStatsBar();
+}
+
+function revealWordTranslation() {
+  if (wordRevealed) return;
+  wordRevealed = true;
+  const w = wordsQueue[wordsIndex];
+  document.getElementById("word-english-el").textContent = w.english;
+  document.getElementById("word-sentence-en-el").textContent = w.example_en || "";
+  document.getElementById("word-translation-area").style.display = "flex";
+  document.getElementById("word-reveal-btn").style.display = "none";
+}
+
+function handleWordSRS(rating) {
+  if (!wordsQueue.length) return;
+  const w = wordsQueue[wordsIndex];
+  updateWordSRS(w.id, rating);
+  if (wordsIndex < wordsQueue.length - 1) {
+    wordsIndex++;
+  } else {
+    buildWordsQueue();
+  }
+  renderWordCard();
+}
+
+function wordTTS() {
+  if (!wordsQueue.length) return;
+  const w = wordsQueue[wordsIndex];
+  const text = w.example_de ? w.example_de.replace(/<[^>]+>/g, "") : w.german;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = "de-DE";
+  utt.rate = 0.88;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+}
+
+function showWordsPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "flex";
+  buildWordsQueue();
+  renderWordCard();
+}
+
+function initWordsPanel() {
+  loadWordsSRS();
+
+  document.getElementById("word-tier-select").addEventListener("change", () => {
+    buildWordsQueue();
+    renderWordCard();
+  });
+  document.getElementById("word-pos-filter").addEventListener("change", () => {
+    buildWordsQueue();
+    renderWordCard();
+  });
+  document.getElementById("word-reveal-btn").addEventListener("click", revealWordTranslation);
+  document.getElementById("word-hint-btn").addEventListener("click", () => {
+    const el = document.getElementById("word-mnemonic-el");
+    el.style.display = el.style.display === "none" ? "block" : "none";
+  });
+  document.getElementById("word-tts-btn").addEventListener("click", wordTTS);
+  document.getElementById("word-prev-btn").addEventListener("click", () => {
+    if (wordsIndex > 0) { wordsIndex--; renderWordCard(); }
+  });
+  document.getElementById("word-next-btn").addEventListener("click", () => {
+    if (wordsIndex < wordsQueue.length - 1) { wordsIndex++; renderWordCard(); }
+  });
 }
 
 // ---- Start ----

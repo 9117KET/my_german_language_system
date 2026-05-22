@@ -49,6 +49,7 @@
   <div class="tab" data-mode="progress">Progress</div>
   <div class="tab" data-mode="vocab">Vocab</div>
   <div class="tab" data-mode="grammar">Grammar</div>
+  <div class="tab" data-mode="words">Words</div>
 </div>
 
 <div id="card-area">
@@ -283,6 +284,66 @@
     <div id="grammar-list"></div>
   </div>
 
+  <!-- Words panel -->
+  <div id="words-panel" style="display:none">
+    <div id="words-controls">
+      <select id="word-tier-select">
+        <option value="all">All Tiers</option>
+        <option value="1">T1 - Core (1-100)</option>
+        <option value="2">T2 - Daily (101-300)</option>
+        <option value="3">T3 - Broader (301-600)</option>
+        <option value="4">T4 - Advanced (601-1000)</option>
+      </select>
+      <select id="word-pos-filter">
+        <option value="all">All Types</option>
+        <option value="verb">Verbs</option>
+        <option value="noun">Nouns</option>
+        <option value="adj">Adjectives</option>
+        <option value="adv">Adverbs</option>
+        <option value="prep">Prepositions</option>
+        <option value="conj">Conjunctions</option>
+        <option value="pron">Pronouns</option>
+      </select>
+    </div>
+    <div id="words-stats-bar">
+      <span id="words-mastered-count">0 mastered</span>
+      <span id="words-due-count">0 due</span>
+      <span id="words-total-count">/ 0</span>
+    </div>
+    <div id="word-card">
+      <div id="word-meta-row">
+        <span id="word-tier-chip"></span>
+        <span id="word-pos-badge"></span>
+      </div>
+      <div id="word-main-row">
+        <span id="word-article-el"></span>
+        <span id="word-german-el"></span>
+      </div>
+      <div id="word-sentence-de"></div>
+      <div id="word-actions-row">
+        <button id="word-hint-btn" style="display:none">Hint</button>
+        <button id="word-tts-btn">&#9654; Hear it</button>
+      </div>
+      <div id="word-mnemonic-el" style="display:none"></div>
+      <button id="word-reveal-btn">Show Translation</button>
+      <div id="word-translation-area" style="display:none">
+        <div id="word-english-el"></div>
+        <div id="word-sentence-en-el"></div>
+        <div id="word-srs-buttons">
+          <button class="word-srs-btn word-miss" onclick="handleWordSRS('miss')">Miss</button>
+          <button class="word-srs-btn word-hard" onclick="handleWordSRS('hard')">Hard</button>
+          <button class="word-srs-btn word-good" onclick="handleWordSRS('good')">Good</button>
+          <button class="word-srs-btn word-easy" onclick="handleWordSRS('easy')">Easy</button>
+        </div>
+      </div>
+    </div>
+    <div id="word-nav-row">
+      <button id="word-prev-btn">&#8592; Prev</button>
+      <span id="word-position">1 / 1000</span>
+      <button id="word-next-btn">Next &#8594;</button>
+    </div>
+  </div>
+
 </div>
 
 <!-- Vocab popup modal (outside #card-area) -->
@@ -310,6 +371,8 @@
 if (typeof PHRASES === 'undefined') { window.PHRASES = []; }
 </script>
 <script src="data.js" onerror="window.PHRASES=[]"></script>
+<script>if (typeof WORDS === 'undefined') { window.WORDS = []; }</script>
+<script src="words_data.js" onerror="window.WORDS=[]"></script>
 <script src="app.js"></script>
 
 </body>

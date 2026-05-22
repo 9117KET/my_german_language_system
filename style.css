@@ -933,6 +933,113 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 #chat-send-btn:active { opacity: 0.8; }
 
+/* ---- Words Panel ---- */
+#words-panel { display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
+
+#words-controls { display: flex; gap: 8px; }
+#words-controls select { flex: 1; font-size: 0.9rem; padding: 9px 10px; }
+
+#words-stats-bar {
+  display: flex; gap: 10px; align-items: center;
+  font-size: 0.8rem; color: var(--text-dim); padding: 2px 0;
+}
+#words-mastered-count { color: var(--green); font-weight: 600; }
+#words-due-count { color: var(--accent); font-weight: 600; }
+
+#word-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 24px 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+#word-meta-row { display: flex; align-items: center; gap: 8px; }
+
+#word-tier-chip {
+  font-size: 0.68rem; font-weight: 700; padding: 3px 8px;
+  border-radius: 6px; background: var(--surface2);
+  color: var(--text-dim); border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#word-pos-badge {
+  font-size: 0.7rem; padding: 3px 10px;
+  border-radius: 8px; font-weight: 600;
+}
+.wpos-verb { background: #1a2a4a; color: var(--accent); }
+.wpos-noun { background: #1a3322; color: var(--green); }
+.wpos-adj  { background: #2a2a1a; color: var(--yellow); }
+.wpos-adv  { background: #221a2a; color: #c084fc; }
+.wpos-prep { background: #1a2a2a; color: #67e8f9; }
+.wpos-conj { background: #2a1a1a; color: #fb923c; }
+.wpos-pron { background: #1a2a1a; color: #86efac; }
+
+#word-main-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+#word-article-el { font-size: 1.4rem; font-weight: 400; color: var(--accent); }
+#word-german-el  { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+
+#word-sentence-de {
+  font-size: 1rem; line-height: 1.65; color: var(--text-dim);
+  border-left: 2px solid var(--accent-dim); padding-left: 12px;
+}
+#word-sentence-de mark {
+  background: none; color: var(--text); font-weight: 700; font-style: normal;
+}
+
+#word-actions-row { display: flex; gap: 8px; align-items: center; }
+#word-hint-btn, #word-tts-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text-dim); padding: 7px 14px;
+  font-size: 0.82rem; cursor: pointer; touch-action: manipulation;
+}
+#word-hint-btn:active, #word-tts-btn:active { opacity: 0.7; }
+#word-tts-btn { color: var(--accent); border-color: var(--accent-dim); }
+
+#word-mnemonic-el {
+  font-size: 0.85rem; color: var(--yellow);
+  background: #2a2200; border: 1px solid #554400;
+  border-radius: 10px; padding: 10px 14px; line-height: 1.55;
+}
+
+#word-reveal-btn {
+  background: var(--accent); color: #fff; border: none;
+  border-radius: var(--radius); padding: 16px;
+  font-size: 1rem; font-weight: 600; cursor: pointer;
+  touch-action: manipulation; text-align: center;
+}
+#word-reveal-btn:active { opacity: 0.8; }
+
+#word-translation-area { display: flex; flex-direction: column; gap: 12px; }
+#word-english-el { font-size: 1.45rem; font-weight: 700; color: var(--green); }
+#word-sentence-en-el {
+  font-size: 0.9rem; color: var(--text-dim);
+  font-style: italic; line-height: 1.6;
+}
+
+#word-srs-buttons { display: flex; gap: 8px; }
+.word-srs-btn {
+  flex: 1; border: none; border-radius: 10px;
+  padding: 13px 6px; font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; touch-action: manipulation;
+}
+.word-srs-btn:active { opacity: 0.8; transform: scale(0.97); }
+.word-miss { background: #3a0f0f; color: var(--red); }
+.word-hard { background: #3a2a0f; color: var(--yellow); }
+.word-good { background: #0f2a1f; color: var(--green); }
+.word-easy { background: #0f1f3a; color: var(--accent); }
+
+#word-nav-row {
+  display: flex; align-items: center; gap: 10px;
+  justify-content: space-between;
+}
+#word-prev-btn, #word-next-btn {
+  flex: 1; background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 13px; font-size: 0.95rem; cursor: pointer;
+  font-weight: 500; touch-action: manipulation; text-align: center;
+}
+#word-prev-btn:active, #word-next-btn:active { opacity: 0.65; }
+#word-position { font-size: 0.8rem; color: var(--text-dim); white-space: nowrap; }
+
 /* Session history panel */
 #chat-history-panel {
   display: flex; flex-direction: column; gap: 8px;
