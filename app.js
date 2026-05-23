@@ -238,6 +238,11 @@ let wordsSRS = {};
 let wordsQueue = [];
 let wordsIndex = 0;
 let wordRevealed = false;
+let wordsShuffled = false;
+let wordsDirection = "de_en"; // "de_en" | "en_de"
+let wordsMode = "flashcard";  // "flashcard" | "mc"
+let wordsSessionCorrect = 0;
+let wordsSessionTotal = 0;
 
 // Recall voice state
 let recallRecognition = null;
@@ -1769,13 +1774,22 @@ function buildWordsQueue() {
   if (tierVal !== "all") source = source.filter(w => w.tier === parseInt(tierVal));
   if (posVal !== "all") source = source.filter(w => w.pos === posVal);
 
-  // Due and new first, then by tier, then by id
-  source = [...source].sort((a, b) => {
-    const aDue = isWordDue(a.id) ? 0 : 1;
-    const bDue = isWordDue(b.id) ? 0 : 1;
-    if (aDue !== bDue) return aDue - bDue;
-    return a.tier - b.tier || a.id - b.id;
-  });
+  if (wordsShuffled) {
+    // Shuffle within due/new and upcoming groups separately to keep priority
+    const dueGroup = source.filter(w => isWordDue(w.id));
+    const upcomingGroup = source.filter(w => !isWordDue(w.id));
+    source = [
+      ...dueGroup.sort(() => Math.random() - 0.5),
+      ...upcomingGroup.sort(() => Math.random() - 0.5),
+    ];
+  } else {
+    source = [...source].sort((a, b) => {
+      const aDue = isWordDue(a.id) ? 0 : 1;
+      const bDue = isWordDue(b.id) ? 0 : 1;
+      if (aDue !== bDue) return aDue - bDue;
+      return a.tier - b.tier || a.id - b.id;
+    });
+  }
 
   wordsQueue = source;
   wordsIndex = 0;
@@ -1792,6 +1806,15 @@ function updateWordsStatsBar() {
   document.getElementById("words-mastered-count").textContent = `${mastered} mastered`;
   document.getElementById("words-due-count").textContent = `${due} due`;
   document.getElementById("words-total-count").textContent = `/ ${source.length}`;
+
+  const sessionEl = document.getElementById("words-session-stats");
+  if (wordsSessionTotal > 0) {
+    const pct = Math.round((wordsSessionCorrect / wordsSessionTotal) * 100);
+    sessionEl.textContent = `${wordsSessionCorrect}/${wordsSessionTotal} (${pct}%)`;
+    sessionEl.style.display = "inline";
+  } else {
+    sessionEl.style.display = "none";
+  }
 }
 
 const WORD_POS_LABELS = {
@@ -1811,16 +1834,40 @@ function renderWordCard() {
   const w = wordsQueue[wordsIndex];
   wordRevealed = false;
 
+  // Meta chips
   document.getElementById("word-tier-chip").textContent = `T${w.tier}`;
-
   const posBadge = document.getElementById("word-pos-badge");
   posBadge.textContent = WORD_POS_LABELS[w.pos] || w.pos;
   posBadge.className = `wpos-${w.pos}`;
 
-  document.getElementById("word-article-el").textContent = w.article || "";
-  document.getElementById("word-german-el").textContent = w.german;
-  document.getElementById("word-sentence-de").innerHTML = w.example_de || "";
+  // SRS status chip
+  const statusChip = document.getElementById("word-srs-status-chip");
+  const wst = getWordStatus(w.id);
+  statusChip.textContent = wst;
+  statusChip.className = `srs-badge srs-${wst}`;
+  statusChip.style.display = "inline-block";
 
+  const mainRow = document.getElementById("word-main-row");
+  const enPromptRow = document.getElementById("word-en-prompt-row");
+  const sentenceDe = document.getElementById("word-sentence-de");
+
+  if (wordsDirection === "de_en") {
+    document.getElementById("word-article-el").textContent = w.article || "";
+    document.getElementById("word-german-el").textContent = w.german;
+    sentenceDe.innerHTML = w.example_de || "";
+    mainRow.style.display = "flex";
+    enPromptRow.style.display = "none";
+    document.getElementById("word-tts-btn").style.display = "inline-block";
+  } else {
+    document.getElementById("word-en-prompt-el").textContent = w.english;
+    sentenceDe.innerHTML = w.example_en ? `<em style="color:var(--text-dim)">${w.example_en}</em>` : "";
+    mainRow.style.display = "none";
+    enPromptRow.style.display = "flex";
+    // TTS plays German - hide before reveal in production mode
+    document.getElementById("word-tts-btn").style.display = "none";
+  }
+
+  // Mnemonic hint (useful in both directions for memory aid)
   const mnemonicEl = document.getElementById("word-mnemonic-el");
   const hintBtn = document.getElementById("word-hint-btn");
   if (w.mnemonic) {
@@ -1833,9 +1880,18 @@ function renderWordCard() {
   }
 
   document.getElementById("word-translation-area").style.display = "none";
-  document.getElementById("word-reveal-btn").style.display = "block";
-  document.getElementById("word-position").textContent = `${wordsIndex + 1} / ${wordsQueue.length}`;
 
+  const mcChoices = document.getElementById("word-mc-choices");
+  if (wordsMode === "mc") {
+    document.getElementById("word-reveal-btn").style.display = "none";
+    mcChoices.style.display = "flex";
+    renderMCChoices(w);
+  } else {
+    document.getElementById("word-reveal-btn").style.display = "block";
+    mcChoices.style.display = "none";
+  }
+
+  document.getElementById("word-position").textContent = `${wordsIndex + 1} / ${wordsQueue.length}`;
   updateWordsStatsBar();
 }
 
@@ -1843,16 +1899,74 @@ function revealWordTranslation() {
   if (wordRevealed) return;
   wordRevealed = true;
   const w = wordsQueue[wordsIndex];
-  document.getElementById("word-english-el").textContent = w.english;
-  document.getElementById("word-sentence-en-el").textContent = w.example_en || "";
+
+  if (wordsDirection === "de_en") {
+    document.getElementById("word-english-el").textContent = w.english;
+    document.getElementById("word-sentence-en-el").textContent = w.example_en || "";
+  } else {
+    // EN→DE: reveal the German word as the answer
+    const answerText = w.article ? `${w.article} ${w.german}` : w.german;
+    document.getElementById("word-english-el").textContent = answerText;
+    document.getElementById("word-sentence-en-el").innerHTML = w.example_de || "";
+    // Show TTS now that German is revealed
+    document.getElementById("word-tts-btn").style.display = "inline-block";
+  }
+
   document.getElementById("word-translation-area").style.display = "flex";
   document.getElementById("word-reveal-btn").style.display = "none";
+}
+
+function generateMCChoices(correctWord) {
+  const all = typeof WORDS !== "undefined" ? WORDS : [];
+  // Prefer same POS and tier for plausible distractors
+  let pool = all.filter(w => w.id !== correctWord.id && w.pos === correctWord.pos && w.tier === correctWord.tier);
+  if (pool.length < 3) pool = all.filter(w => w.id !== correctWord.id && w.pos === correctWord.pos);
+  if (pool.length < 3) pool = all.filter(w => w.id !== correctWord.id);
+  const distractors = [...pool].sort(() => Math.random() - 0.5).slice(0, 3);
+  return [...distractors, correctWord].sort(() => Math.random() - 0.5);
+}
+
+function renderMCChoices(correctWord) {
+  const choices = generateMCChoices(correctWord);
+  const container = document.getElementById("word-mc-choices");
+  container.innerHTML = choices.map(w => {
+    const label = wordsDirection === "de_en"
+      ? w.english
+      : (w.article ? `${w.article} ${w.german}` : w.german);
+    return `<button class="word-mc-btn" data-id="${w.id}" onclick="handleMCChoice(${w.id}, ${correctWord.id})">${label}</button>`;
+  }).join("");
+}
+
+function handleMCChoice(selectedId, correctId) {
+  document.querySelectorAll(".word-mc-btn").forEach(btn => {
+    btn.disabled = true;
+    const btnId = parseInt(btn.dataset.id);
+    if (btnId === correctId) btn.classList.add("mc-correct");
+    else if (btnId === selectedId) btn.classList.add("mc-wrong");
+  });
+
+  const isCorrect = selectedId === correctId;
+  wordsSessionTotal++;
+  if (isCorrect) wordsSessionCorrect++;
+  updateWordSRS(correctId, isCorrect ? "good" : "miss");
+  updateWordsStatsBar();
+
+  setTimeout(() => {
+    if (wordsIndex < wordsQueue.length - 1) {
+      wordsIndex++;
+    } else {
+      buildWordsQueue();
+    }
+    renderWordCard();
+  }, isCorrect ? 700 : 1400);
 }
 
 function handleWordSRS(rating) {
   if (!wordsQueue.length) return;
   const w = wordsQueue[wordsIndex];
   updateWordSRS(w.id, rating);
+  wordsSessionTotal++;
+  if (rating !== "miss") wordsSessionCorrect++;
   if (wordsIndex < wordsQueue.length - 1) {
     wordsIndex++;
   } else {
@@ -1880,6 +1994,8 @@ function showWordsPanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "flex";
+  wordsSessionCorrect = 0;
+  wordsSessionTotal = 0;
   buildWordsQueue();
   renderWordCard();
 }
@@ -1906,6 +2022,31 @@ function initWordsPanel() {
   });
   document.getElementById("word-next-btn").addEventListener("click", () => {
     if (wordsIndex < wordsQueue.length - 1) { wordsIndex++; renderWordCard(); }
+  });
+
+  document.getElementById("word-shuffle-btn").addEventListener("click", () => {
+    wordsShuffled = !wordsShuffled;
+    const btn = document.getElementById("word-shuffle-btn");
+    btn.textContent = wordsShuffled ? "Shuffle ✓" : "Shuffle";
+    btn.classList.toggle("active", wordsShuffled);
+    buildWordsQueue();
+    renderWordCard();
+  });
+
+  document.getElementById("word-dir-btn").addEventListener("click", () => {
+    wordsDirection = wordsDirection === "de_en" ? "en_de" : "de_en";
+    const btn = document.getElementById("word-dir-btn");
+    btn.textContent = wordsDirection === "de_en" ? "DE→EN" : "EN→DE";
+    btn.classList.toggle("active", wordsDirection === "en_de");
+    renderWordCard();
+  });
+
+  document.getElementById("word-mc-btn").addEventListener("click", () => {
+    wordsMode = wordsMode === "flashcard" ? "mc" : "flashcard";
+    const btn = document.getElementById("word-mc-btn");
+    btn.textContent = wordsMode === "mc" ? "MC ✓" : "MC";
+    btn.classList.toggle("active", wordsMode === "mc");
+    renderWordCard();
   });
 }
 

@@ -305,15 +305,25 @@
         <option value="pron">Pronouns</option>
       </select>
     </div>
+    <div id="words-mode-controls">
+      <button id="word-shuffle-btn">Shuffle</button>
+      <button id="word-dir-btn" title="Toggle study direction">DE&#8594;EN</button>
+      <button id="word-mc-btn" title="Multiple choice mode">MC</button>
+    </div>
     <div id="words-stats-bar">
       <span id="words-mastered-count">0 mastered</span>
       <span id="words-due-count">0 due</span>
       <span id="words-total-count">/ 0</span>
+      <span id="words-session-stats" style="display:none"></span>
     </div>
     <div id="word-card">
       <div id="word-meta-row">
         <span id="word-tier-chip"></span>
         <span id="word-pos-badge"></span>
+        <span id="word-srs-status-chip" style="display:none"></span>
+      </div>
+      <div id="word-en-prompt-row" style="display:none">
+        <span id="word-en-prompt-el"></span>
       </div>
       <div id="word-main-row">
         <span id="word-article-el"></span>
@@ -325,7 +335,8 @@
         <button id="word-tts-btn">&#9654; Hear it</button>
       </div>
       <div id="word-mnemonic-el" style="display:none"></div>
-      <button id="word-reveal-btn">Show Translation</button>
+      <div id="word-mc-choices" style="display:none"></div>
+      <button id="word-reveal-btn">Show Answer</button>
       <div id="word-translation-area" style="display:none">
         <div id="word-english-el"></div>
         <div id="word-sentence-en-el"></div>
