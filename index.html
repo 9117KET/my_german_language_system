@@ -79,6 +79,12 @@
   <div id="recall-srs-bar" style="display:none">
     <span id="recall-due-count"></span>
     <button class="toggle-btn" id="recall-autograde-toggle">Auto-grade: OFF</button>
+    <button class="toggle-btn" id="phrase-dir-btn" title="Toggle study direction">EN&#8594;DE</button>
+    <button class="toggle-btn" id="phrase-mc-btn" title="Multiple choice mode">MC</button>
+  </div>
+
+  <div id="phrase-mc-area" style="display:none">
+    <div id="phrase-mc-choices"></div>
   </div>
 
   <div id="recall-buttons">
@@ -99,6 +105,7 @@
     <div class="stat green"><div class="val" id="stat-got">0</div><div class="lbl">Got</div></div>
     <div class="stat yellow"><div class="val" id="stat-total">0</div><div class="lbl">Done</div></div>
     <div class="stat red"><div class="val" id="stat-missed">0</div><div class="lbl">Missed</div></div>
+    <div class="stat purple"><div class="val" id="stat-pct" style="display:none">-</div><div class="lbl">Acc.</div></div>
   </div>
 
   <div id="nav-buttons">

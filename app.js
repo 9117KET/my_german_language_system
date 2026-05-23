@@ -228,6 +228,10 @@ let srsSettings = { autoGrade: false };
 let practiceNowId = null;
 let progressFilter = "due";
 
+// Recall mode enhancements
+let phraseDirection = "en_de"; // "en_de" (production, default) | "de_en" (recognition)
+let phraseMode = "flashcard";  // "flashcard" | "mc"
+
 // Grammar + Vocab state
 let grammarFilter = "all";
 let grammarTopicFilter = null;
@@ -447,16 +451,26 @@ function buildQueue() {
   }
 
   if (mode === "recall") {
-    const statusOrder = { new: 0, due: 0, upcoming: 1, mastered: 2 };
-    source = [...source].sort((a, b) => {
-      const sa = statusOrder[getStatus(a.id)] ?? 1;
-      const sb = statusOrder[getStatus(b.id)] ?? 1;
-      if (sa !== sb) return sa - sb;
-      const ra = getSrsRecord(a.id);
-      const rb = getSrsRecord(b.id);
-      if (ra.dueDate && rb.dueDate) return ra.dueDate.localeCompare(rb.dueDate);
-      return 0;
-    });
+    if (shuffle) {
+      // Shuffle within due/new group and upcoming group separately to keep SRS priority
+      const dueGroup = source.filter(p => isDue(p.id));
+      const upcomingGroup = source.filter(p => !isDue(p.id));
+      source = [
+        ...dueGroup.sort(() => Math.random() - 0.5),
+        ...upcomingGroup.sort(() => Math.random() - 0.5),
+      ];
+    } else {
+      const statusOrder = { new: 0, due: 0, upcoming: 1, mastered: 2 };
+      source = [...source].sort((a, b) => {
+        const sa = statusOrder[getStatus(a.id)] ?? 1;
+        const sb = statusOrder[getStatus(b.id)] ?? 1;
+        if (sa !== sb) return sa - sb;
+        const ra = getSrsRecord(a.id);
+        const rb = getSrsRecord(b.id);
+        if (ra.dueDate && rb.dueDate) return ra.dueDate.localeCompare(rb.dueDate);
+        return 0;
+      });
+    }
     if (practiceNowId !== null) {
       const idx = source.findIndex(p => p.id === practiceNowId);
       if (idx > 0) { const [item] = source.splice(idx, 1); source.unshift(item); }
@@ -538,24 +552,54 @@ function renderCard() {
     statusText.textContent = "Listen and repeat aloud";
     loadAndPlay(p);
   } else if (mode === "recall") {
-    germanEl.classList.add("hidden");
-    englishEl.classList.remove("hidden");
-    revealHint.style.display = "block";
-    revealHint.textContent = "Tap mic or card to reveal";
     recallButtons.classList.remove("visible");
     statsBar.style.display = "flex";
-    statGot.textContent = sessionGot;
-    statMissed.textContent = sessionMissed;
-    statTotal.textContent = sessionTotal;
-    statusText.textContent = "Produce German from memory";
+    renderSessionStats();
     document.getElementById("recall-srs-bar").style.display = "flex";
-    document.getElementById("recall-voice-area").style.display = "flex";
     const st = getStatus(p.id);
     const badge = document.getElementById("srs-status-badge");
     badge.style.display = "inline-block";
     badge.className = `srs-badge srs-${st}`;
     badge.textContent = st;
     renderRecallModeHeader();
+
+    const mcArea = document.getElementById("phrase-mc-area");
+
+    if (phraseMode === "mc") {
+      // MC mode: show prompt, hide reveal hint, display choices
+      document.getElementById("recall-voice-area").style.display = "none";
+      revealHint.style.display = "none";
+      if (phraseDirection === "en_de") {
+        germanEl.classList.add("hidden");
+        englishEl.classList.remove("hidden");
+        statusText.textContent = "Pick the German phrase";
+      } else {
+        germanEl.classList.remove("hidden");
+        englishEl.classList.add("hidden");
+        statusText.textContent = "Pick the English meaning";
+        if (p.audio) loadAndPlay(p);
+      }
+      mcArea.style.display = "flex";
+      renderPhraseMC(p);
+    } else {
+      // Flashcard mode
+      mcArea.style.display = "none";
+      document.getElementById("recall-voice-area").style.display = "flex";
+      if (phraseDirection === "en_de") {
+        germanEl.classList.add("hidden");
+        englishEl.classList.remove("hidden");
+        revealHint.style.display = "block";
+        revealHint.textContent = "Tap mic or card to reveal";
+        statusText.textContent = "Produce German from memory";
+      } else {
+        germanEl.classList.remove("hidden");
+        englishEl.classList.add("hidden");
+        revealHint.style.display = "block";
+        revealHint.textContent = "Tap card to reveal meaning";
+        statusText.textContent = "Recall the English meaning";
+        if (p.audio) loadAndPlay(p);
+      }
+    }
   }
 
   // Grammar tag chips
@@ -656,7 +700,16 @@ function setupEvents() {
       } else {
         mode = newMode;
         showPlayerPanel();
-        if (mode === "recall") { sessionGot = 0; sessionMissed = 0; sessionTotal = 0; }
+        if (mode === "recall") {
+          sessionGot = 0; sessionMissed = 0; sessionTotal = 0;
+          // Sync button states in case they were toggled while on another tab
+          const dirBtn = document.getElementById("phrase-dir-btn");
+          dirBtn.textContent = phraseDirection === "en_de" ? "EN→DE" : "DE→EN";
+          dirBtn.classList.toggle("active", phraseDirection === "de_en");
+          const mcBtn = document.getElementById("phrase-mc-btn");
+          mcBtn.textContent = phraseMode === "mc" ? "MC ✓" : "MC";
+          mcBtn.classList.toggle("active", phraseMode === "mc");
+        }
         buildQueue();
         renderCard();
       }
@@ -738,14 +791,14 @@ function setupEvents() {
   audio.addEventListener("error", () => { statusText.textContent = "Audio error"; });
 
   cardEl.addEventListener("click", (e) => {
-    if (e.target.closest("#audio-bar") || e.target.closest("#recall-buttons")) return;
+    if (e.target.closest("#audio-bar") || e.target.closest("#recall-buttons") || e.target.closest("#phrase-mc-area")) return;
     const p = queue[queueIndex];
     if (!p || revealed) return;
     if (mode === "shadow") {
       revealed = true;
       englishEl.classList.remove("hidden");
       revealHint.style.display = "none";
-    } else if (mode === "recall") {
+    } else if (mode === "recall" && phraseMode === "flashcard") {
       revealRecallCard();
     }
   });
@@ -755,6 +808,7 @@ function setupEvents() {
     sessionGot++; sessionTotal++;
     updateOnGotIt(p.id);
     renderRecallModeHeader();
+    renderSessionStats();
     advance(1);
   });
 
@@ -763,6 +817,7 @@ function setupEvents() {
     sessionMissed++; sessionTotal++;
     updateOnMissed(p.id);
     renderRecallModeHeader();
+    renderSessionStats();
     advance(1);
   });
 
@@ -779,6 +834,22 @@ function setupEvents() {
     srsSettings.autoGrade = !srsSettings.autoGrade;
     localStorage.setItem("srsSettings", JSON.stringify(srsSettings));
     renderRecallModeHeader();
+  });
+
+  document.getElementById("phrase-dir-btn").addEventListener("click", () => {
+    phraseDirection = phraseDirection === "en_de" ? "de_en" : "en_de";
+    const btn = document.getElementById("phrase-dir-btn");
+    btn.textContent = phraseDirection === "en_de" ? "EN→DE" : "DE→EN";
+    btn.classList.toggle("active", phraseDirection === "de_en");
+    if (mode === "recall") renderCard();
+  });
+
+  document.getElementById("phrase-mc-btn").addEventListener("click", () => {
+    phraseMode = phraseMode === "flashcard" ? "mc" : "flashcard";
+    const btn = document.getElementById("phrase-mc-btn");
+    btn.textContent = phraseMode === "mc" ? "MC ✓" : "MC";
+    btn.classList.toggle("active", phraseMode === "mc");
+    if (mode === "recall") renderCard();
   });
 
   document.querySelectorAll(".prog-filter").forEach(btn => {
@@ -1105,7 +1176,7 @@ function setupRecallSpeech() {
 
 function handleRecallVoice(transcript) {
   const p = queue[queueIndex];
-  if (!p) return;
+  if (!p || phraseMode !== "flashcard" || phraseDirection !== "en_de") return;
   revealRecallCard();
   if (srsSettings.autoGrade && isVoiceMatch(transcript, p.german)) {
     setTimeout(() => gotItBtn.click(), 700);
@@ -1115,10 +1186,71 @@ function handleRecallVoice(transcript) {
 function revealRecallCard() {
   if (revealed) return;
   revealed = true;
-  germanEl.classList.remove("hidden");
   revealHint.style.display = "none";
   recallButtons.classList.add("visible");
-  loadAndPlay(queue[queueIndex]);
+
+  if (phraseDirection === "en_de") {
+    germanEl.classList.remove("hidden");
+    loadAndPlay(queue[queueIndex]);
+  } else {
+    // DE→EN: reveal the English meaning (no audio needed)
+    englishEl.classList.remove("hidden");
+  }
+}
+
+function generatePhraseMCChoices(correctPhrase) {
+  // Prefer same category, then any other
+  let pool = PHRASES.filter(p => p.id !== correctPhrase.id && p.category === correctPhrase.category);
+  if (pool.length < 3) pool = PHRASES.filter(p => p.id !== correctPhrase.id);
+  const distractors = [...pool].sort(() => Math.random() - 0.5).slice(0, 3);
+  return [...distractors, correctPhrase].sort(() => Math.random() - 0.5);
+}
+
+function renderPhraseMC(correctPhrase) {
+  const choices = generatePhraseMCChoices(correctPhrase);
+  const container = document.getElementById("phrase-mc-choices");
+  container.innerHTML = choices.map(p => {
+    const label = phraseDirection === "en_de" ? p.german : p.english;
+    return `<button class="phrase-mc-btn" data-id="${p.id}" onclick="handlePhraseMC(${p.id}, ${correctPhrase.id})">${label}</button>`;
+  }).join("");
+}
+
+function handlePhraseMC(selectedId, correctId) {
+  document.querySelectorAll(".phrase-mc-btn").forEach(btn => {
+    btn.disabled = true;
+    const btnId = parseInt(btn.dataset.id);
+    if (btnId === correctId) btn.classList.add("mc-correct");
+    else if (btnId === selectedId) btn.classList.add("mc-wrong");
+  });
+
+  const isCorrect = selectedId === correctId;
+  if (isCorrect) { sessionGot++; sessionTotal++; updateOnGotIt(correctId); }
+  else { sessionMissed++; sessionTotal++; updateOnMissed(correctId); }
+
+  renderRecallModeHeader();
+  renderSessionStats();
+
+  // Play German audio of correct phrase as audio feedback
+  const correctPhrase = PHRASES.find(p => p.id === correctId);
+  if (correctPhrase?.audio) {
+    audio.src = correctPhrase.audio;
+    audio.play().catch(() => {});
+  }
+
+  setTimeout(() => advance(1), isCorrect ? 900 : 1600);
+}
+
+function renderSessionStats() {
+  statGot.textContent = sessionGot;
+  statMissed.textContent = sessionMissed;
+  statTotal.textContent = sessionTotal;
+  const pctEl = document.getElementById("stat-pct");
+  if (pctEl && sessionTotal > 0) {
+    pctEl.textContent = `${Math.round((sessionGot / sessionTotal) * 100)}%`;
+    pctEl.style.display = "block";
+  } else if (pctEl) {
+    pctEl.style.display = "none";
+  }
 }
 
 function renderRecallModeHeader() {
