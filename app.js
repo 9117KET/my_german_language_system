@@ -159,6 +159,33 @@ const GRAMMAR_TAGS = {
   249:["NebensatzVerb","Relativsatz","Separierbar"],
   250:["NebensatzVerb","Relativsatz","Perfekt"],
   251:["NebensatzVerb","Nebensatz-wenn","Separierbar","Inversion"],
+  252:["DativAkkusativ","Dativ","Akkusativ"],
+  253:["DativAkkusativ","Dativ","Akkusativ"],
+  254:["DativAkkusativ","Dativ","Akkusativ"],
+  255:["DativAkkusativ","Dativ","Akkusativ"],
+  256:["DativAkkusativ","Dativ","Akkusativ"],
+  257:["DativAkkusativ","Pronomen","Dativ","Akkusativ"],
+  258:["DativAkkusativ","Pronomen","Dativ","Akkusativ"],
+  259:["DativAkkusativ","Pronomen","Dativ","Akkusativ"],
+  260:["DativAkkusativ","Pronomen","Dativ","Akkusativ"],
+  261:["DativAkkusativ","Pronomen","Dativ","Akkusativ"],
+  262:["DativAkkusativ","Pronomen","Dativ","Akkusativ"],
+  263:["SatzbauAussage","Inversion","AltVorNeu"],
+  264:["SatzbauAussage","Inversion","Perfekt","AltVorNeu"],
+  265:["TeKaMoLo","SatzbauAussage"],
+  266:["AltVorNeu","DativAkkusativ","Dativ","Akkusativ"],
+  267:["AltVorNeu","TeKaMoLo","SatzbauAussage"],
+  268:["AltVorNeu","TeKaMoLo","SatzbauAussage"],
+  269:["TeKaMoLo","SatzbauAussage","DativAkkusativ","Akkusativ"],
+  270:["TeKaMoLo","SatzbauAussage","DativAkkusativ","Dativ","Akkusativ"],
+  271:["TeKaMoLo","SatzbauAussage","Perfekt","DativAkkusativ","Dativ","Akkusativ"],
+  272:["TeKaMoLo","SatzbauAussage"],
+  273:["TeKaMoLo","SatzbauAussage","Modal"],
+  274:["DativAkkusativ","Dativ","Akkusativ","TeKaMoLo","SatzbauAussage"],
+  275:["DativAkkusativ","Pronomen","Dativ","Akkusativ"],
+  276:["DativAkkusativ","Perfekt","TeKaMoLo","Dativ","Akkusativ"],
+  277:["DativAkkusativ","Pronomen","Dativ","Akkusativ","TeKaMoLo"],
+  278:["NebensatzVerb","Nebensatz-seitdem","DativAkkusativ","Dativ","Akkusativ"],
 };
 
 // ---- Conversation Scenarios ----
@@ -260,7 +287,7 @@ const GRAMMAR_TOPICS = [
     ids:[57,127,136,169,171,188] },
   { id:"SatzbauAussage", title:"Satzbau: Aussagen — Verb always at Position 2",
     rule:"In statements the verb is ALWAYS at position 2. Any element (time, location, manner) can move to position 1, which pushes the subject to position 3. This is called Inversion — the verb never moves!",
-    ids:[196,222,223,197,198,199,200,221,230,231,232],
+    ids:[196,222,223,197,198,199,200,221,230,231,232,263,264,265],
     breakdown:[
       { phraseId:196, parts:[
         {text:"Ich",label:"Subj.",pos:"subj"},{text:"habe",label:"Verb",pos:"verb"},
@@ -341,7 +368,7 @@ const GRAMMAR_TOPICS = [
     ]},
   { id:"TeKaMoLo", title:"TeKaMoLo — Time, Manner, Location Order",
     rule:"When stacking adverbs after the verb, use TeKaMoLo order: Temporal (wann?) → Kausal (warum?) → Modal (wie?) → Lokal (wo/wohin?). Memory aid: Te-Ka-Mo-Lo!",
-    ids:[230,231,218,219,220,199,1,232],
+    ids:[230,231,269,218,219,220,199,1,232,265,270,271,272,273],
     breakdown:[
       { phraseId:230, parts:[
         {text:"Hans",label:"Subj.",pos:"subj"},{text:"fährt",label:"Verb",pos:"verb"},
@@ -352,6 +379,12 @@ const GRAMMAR_TOPICS = [
         {text:"Lisa",label:"Subj.",pos:"subj"},{text:"geht",label:"Verb",pos:"verb"},
         {text:"am Dienstag",label:"Te (wann?)",pos:"temp"},{text:"zu Fuß",label:"Mo (wie?)",pos:"manner"},
         {text:"ins Kino",label:"Lo (wohin?)",pos:"local"}
+      ]},
+      { phraseId:269, parts:[
+        {text:"Ich",label:"Subj.",pos:"subj"},{text:"fahre",label:"Verb",pos:"verb"},
+        {text:"morgen",label:"Te (wann?)",pos:"temp"},{text:"meine Frau",label:"Obj. (Akk)",pos:"akk"},
+        {text:"wegen des Regens",label:"Ka (warum?)",pos:"erg"},{text:"mit dem Auto",label:"Mo (wie?)",pos:"manner"},
+        {text:"ins Büro",label:"Lo (wohin?)",pos:"local"}
       ]},
       { phraseId:218, parts:[
         {text:"Ich",label:"Subj.",pos:"subj"},{text:"fahre",label:"Verb",pos:"verb"},
@@ -403,6 +436,69 @@ const GRAMMAR_TOPICS = [
         {text:"Wenn",label:"Konj.",pos:"conj"},{text:"ich",label:"Subj.",pos:"subj"},
         {text:"die B1-Prüfung",label:"Erg.",pos:"erg"},{text:"bestehe",label:"Verb (Ende!)",pos:"verb"},
         {text:",",label:"",pos:"erg"},{text:"kann ich mich für mehr Masterprogramme bewerben",label:"Hauptsatz",pos:"erg"}
+      ]}
+    ]},
+  { id:"DativAkkusativ", title:"Dativ & Akkusativ — Two Noun Objects (Dat. before Akk.)",
+    rule:"Rule 1: When a verb has TWO noun objects, the Dativ (wem?) comes BEFORE the Akkusativ (was?/wen?). Exception: if the Akkusativ noun has a definite article, it can come before an indefinite Dativ.",
+    ids:[252,253,254,255,256,274,276],
+    breakdown:[
+      { phraseId:252, parts:[
+        {text:"Die Mutter",label:"Subj.",pos:"subj"},{text:"schenkt",label:"Verb",pos:"verb"},
+        {text:"dem Kind",label:"Dativ (wem?)",pos:"dativ"},{text:"einen Teddybär",label:"Akkusativ (was?)",pos:"akk"}
+      ]},
+      { phraseId:253, parts:[
+        {text:"Die Eltern",label:"Subj.",pos:"subj"},{text:"schicken",label:"Verb",pos:"verb"},
+        {text:"der Lehrerin",label:"Dativ (wem?)",pos:"dativ"},{text:"eine E-Mail",label:"Akkusativ (was?)",pos:"akk"}
+      ]},
+      { phraseId:254, parts:[
+        {text:"Hans",label:"Subj.",pos:"subj"},{text:"gibt",label:"Verb",pos:"verb"},
+        {text:"der Schwester",label:"Dativ (wem?)",pos:"dativ"},{text:"ein Auto",label:"Akkusativ (was?)",pos:"akk"}
+      ]},
+      { phraseId:255, parts:[
+        {text:"Die Mutter",label:"Subj.",pos:"subj"},{text:"schenkt",label:"Verb",pos:"verb"},
+        {text:"den Teddy",label:"Akk. (best. - Ausnahme!)",pos:"akk"},{text:"einem Kind",label:"Dat. (unbest.)",pos:"dativ"}
+      ]}
+    ]},
+  { id:"PronomStellung", title:"Pronomen vor Nomen — Pronoun before Noun, Akk. before Dat.",
+    rule:"Rule 2: When one object is a PRONOUN, the pronoun always comes before the noun (regardless of case). Rule 3: When BOTH objects are pronouns, the Akkusativ pronoun comes BEFORE the Dativ pronoun.",
+    ids:[257,258,259,260,261,262,275,277],
+    breakdown:[
+      { phraseId:257, parts:[
+        {text:"Die Mutter",label:"Subj.",pos:"subj"},{text:"schenkt",label:"Verb",pos:"verb"},
+        {text:"ihm",label:"Pron. Dat (1.)",pos:"dativ"},{text:"den Teddybär",label:"Nomen Akk (2.)",pos:"akk"}
+      ]},
+      { phraseId:258, parts:[
+        {text:"Die Eltern",label:"Subj.",pos:"subj"},{text:"schicken",label:"Verb",pos:"verb"},
+        {text:"ihr",label:"Pron. Dat (1.)",pos:"dativ"},{text:"eine E-Mail",label:"Nomen Akk (2.)",pos:"akk"}
+      ]},
+      { phraseId:260, parts:[
+        {text:"Die Mutter",label:"Subj.",pos:"subj"},{text:"schenkt",label:"Verb",pos:"verb"},
+        {text:"ihn",label:"Pron. Akk (1.!)",pos:"akk"},{text:"ihr",label:"Pron. Dat (2.)",pos:"dativ"}
+      ]},
+      { phraseId:262, parts:[
+        {text:"Hans",label:"Subj.",pos:"subj"},{text:"gibt",label:"Verb",pos:"verb"},
+        {text:"es",label:"Pron. Akk (1.!)",pos:"akk"},{text:"ihr",label:"Pron. Dat (2.)",pos:"dativ"}
+      ]}
+    ]},
+  { id:"AltVorNeu", title:"Alt vor Neu — Old Information before New",
+    rule:"Known/old information (pronouns, definite articles) comes BEFORE new/unknown information (indefinite articles, no article). Important new information tends to land at the END of the sentence. This principle works together with TeKaMoLo.",
+    ids:[267,268,266,263,264],
+    breakdown:[
+      { phraseId:267, parts:[
+        {text:"Lisa",label:"Subj.",pos:"subj"},{text:"trinkt",label:"Verb",pos:"verb"},
+        {text:"im Café",label:"Alt (bekannt)",pos:"local"},{text:"einen Tee",label:"Neu (unbekannt)",pos:"akk"}
+      ]},
+      { phraseId:268, parts:[
+        {text:"Lisa",label:"Subj.",pos:"subj"},{text:"trinkt",label:"Verb",pos:"verb"},
+        {text:"den Tee",label:"Alt (jetzt bekannt)",pos:"akk"},{text:"in einem Café",label:"Neu (unbekannt)",pos:"local"}
+      ]},
+      { phraseId:266, parts:[
+        {text:"Du",label:"Subj.",pos:"subj"},{text:"schickst",label:"Verb",pos:"verb"},
+        {text:"dem Kunden",label:"Alt (bekannt)",pos:"dativ"},{text:"eine E-Mail",label:"Neu (unbekannt)",pos:"akk"}
+      ]},
+      { phraseId:263, parts:[
+        {text:"Morgen",label:"Temporal",pos:"temp"},{text:"kaufe",label:"Verb",pos:"verb"},
+        {text:"ich",label:"Subj.",pos:"subj"},{text:"einen Computer",label:"Neu (unbekannt)",pos:"akk"}
       ]}
     ]},
 ];

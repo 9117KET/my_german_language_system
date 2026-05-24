@@ -1755,5 +1755,194 @@ const PHRASES = [
     "english": "If you open the window, it will get cold.",
     "category": "satzbau",
     "audio": ""
+  },
+  {
+    "id": 252,
+    "german": "Die Mutter schenkt dem Kind einen Teddybär.",
+    "english": "The mother gives the child a teddy bear.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 253,
+    "german": "Die Eltern schicken der Lehrerin eine E-Mail.",
+    "english": "The parents send the teacher an email.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 254,
+    "german": "Hans gibt der Schwester ein Auto.",
+    "english": "Hans gives his sister a car.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 255,
+    "german": "Die Mutter schenkt den Teddy einem Kind.",
+    "english": "The mother gives the teddy to a child.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 256,
+    "german": "Die Mutter schenkt den Teddy dem Kind.",
+    "english": "The mother gives the teddy to the child.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 257,
+    "german": "Die Mutter schenkt ihm den Teddybär.",
+    "english": "The mother gives him the teddy bear.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 258,
+    "german": "Die Eltern schicken ihr eine E-Mail.",
+    "english": "The parents send her an email.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 259,
+    "german": "Hans gibt ihr ein Auto.",
+    "english": "Hans gives her a car.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 260,
+    "german": "Die Mutter schenkt ihn ihr.",
+    "english": "The mother gives it to her.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 261,
+    "german": "Die Eltern schicken sie ihr.",
+    "english": "The parents send it to her.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 262,
+    "german": "Hans gibt es ihr.",
+    "english": "Hans gives it to her.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 263,
+    "german": "Morgen kaufe ich einen Computer.",
+    "english": "Tomorrow I'm buying a computer.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 264,
+    "german": "Gestern hat er einen Film gesehen.",
+    "english": "Yesterday he watched a film.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 265,
+    "german": "Wir fahren mit dem Zug nach Berlin.",
+    "english": "We're travelling to Berlin by train.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 266,
+    "german": "Du schickst dem Kunden eine E-Mail.",
+    "english": "You're sending the customer an email.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 267,
+    "german": "Lisa trinkt im Café einen Tee.",
+    "english": "Lisa is drinking a tea in the café.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 268,
+    "german": "Lisa trinkt den Tee in einem Café.",
+    "english": "Lisa is drinking the tea in a café.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 269,
+    "german": "Ich fahre morgen meine Frau wegen des Regens mit dem Auto ins Büro.",
+    "english": "I'm driving my wife to the office tomorrow because of the rain.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 270,
+    "german": "Ich bringe heute Abend meiner Frau mit dem Auto ein Geschenk nach Hause.",
+    "english": "I'm bringing my wife a gift home by car this evening.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 271,
+    "german": "Lisa hat gestern ihrem Vater einen Brief ins Büro geschickt.",
+    "english": "Lisa sent her father a letter to the office yesterday.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 272,
+    "german": "Hans spielt jeden Tag mit Freude auf dem Sportplatz Basketball.",
+    "english": "Hans plays basketball on the sports field with joy every day.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 273,
+    "german": "Ihr sollt täglich fleißig zu Hause Deutsch lernen.",
+    "english": "You all should learn German diligently at home every day.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 274,
+    "german": "Ich schicke meinem Freund eine Nachricht nach dem Sprachcafé.",
+    "english": "I send my friend a message after the language café.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 275,
+    "german": "Ich gebe ihm meine Handynummer.",
+    "english": "I give him my phone number.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 276,
+    "german": "Ich habe meiner Mutter gestern Fotos aus Bremen geschickt.",
+    "english": "I sent my mother photos from Bremen yesterday.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 277,
+    "german": "Ich kaufe ihr heute ein kleines Geschenk.",
+    "english": "I'm buying her a small gift today.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 278,
+    "german": "Seitdem ich in Deutschland lebe, schicke ich meiner Familie regelmäßig Pakete.",
+    "english": "Since I've been living in Germany, I regularly send packages to my family.",
+    "category": "satzbau",
+    "audio": ""
   }
 ];

@@ -1130,3 +1130,5 @@ select:focus { outline: none; border-color: var(--accent); }
 .satz-part.manner { background: #7c3aed; }
 .satz-part.local  { background: #16a34a; }
 .satz-part.erg    { background: #475569; }
+.satz-part.dativ  { background: #0e7490; } /* dark teal - Dativ recipient */
+.satz-part.akk    { background: #c2410c; } /* burnt orange - Akkusativ object */
