@@ -21,6 +21,7 @@ const CATEGORIES = {
   university_life: "Uni & Studium",
   phone_digital: "Handy & Digitales",
   bureaucracy: "Behörden & Bürokratie",
+  satzbau: "Satzbau (Sentence Structure)",
 };
 
 // ---- Grammar Tags (phrase ID → grammar structure labels) ----
@@ -102,6 +103,31 @@ const GRAMMAR_TAGS = {
   190:["Modal","Fragewort","Separierbar"], 191:["Perfekt","Konjunktion","Negation"],
   192:["Präsens","Adjektiv"], 193:["Modal","Separierbar","Akkusativ"],
   194:["Präsens","Adjektiv"], 195:["Fragewort","Präsens","Akkusativ"],
+  196:["SatzbauAussage"],
+  197:["SatzbauAussage","Inversion"],
+  198:["SatzbauAussage","Inversion"],
+  199:["SatzbauAussage","Inversion","TeKaMoLo"],
+  200:["SatzbauAussage","Inversion"],
+  201:["SatzbauWFrage","Fragewort","Modal","Separierbar"],
+  202:["SatzbauWFrage","Fragewort"],
+  203:["SatzbauWFrage","Fragewort","Modal"],
+  204:["SatzbauWFrage","Fragewort"],
+  205:["SatzbauWFrage","Fragewort"],
+  206:["SatzbauJaNein"],
+  207:["SatzbauJaNein","Perfekt"],
+  208:["SatzbauJaNein"],
+  209:["SatzbauJaNein","Modal"],
+  210:["SatzbauJaNein"],
+  211:["NebensatzVerb","Nebensatz-weil","Modal"],
+  212:["NebensatzVerb","Nebensatz-weil","Inversion","Reflexiv"],
+  213:["NebensatzVerb","Nebensatz-wenn","Modal"],
+  214:["NebensatzVerb","Nebensatz-damit"],
+  215:["NebensatzVerb","Nebensatz-dass"],
+  216:["NebensatzVerb","Fragewort","Modal"],
+  217:["NebensatzVerb","Relativsatz","Perfekt"],
+  218:["TeKaMoLo","SatzbauAussage"],
+  219:["TeKaMoLo","SatzbauAussage"],
+  220:["TeKaMoLo","SatzbauAussage"],
 };
 
 // ---- Conversation Scenarios ----
@@ -201,6 +227,124 @@ const GRAMMAR_TOPICS = [
   { id:"Reflexiv", title:"Reflexive Verbs (Reflexivverben)",
     rule:"Use a reflexive pronoun (mich/dich/sich/uns/euch) that refers back to the subject. Common verbs: sich anmelden, sich aufteilen, sich beeilen, sich fühlen, sich vorstellen.",
     ids:[57,127,136,169,171,188] },
+  { id:"SatzbauAussage", title:"Satzbau: Aussagen — Verb always at Position 2",
+    rule:"In statements the verb is ALWAYS at position 2. Any element (time, location, manner) can move to position 1, which pushes the subject to position 3. This is called Inversion — the verb never moves!",
+    ids:[196,197,198,199,200],
+    breakdown:[
+      { phraseId:196, parts:[
+        {text:"Ich",label:"Subj.",pos:"subj"},{text:"habe",label:"Verb",pos:"verb"},
+        {text:"letzten Dezember",label:"Temporal",pos:"temp"},{text:"meinen Bachelor",label:"Erg.",pos:"erg"},
+        {text:"abgeschlossen",label:"Partizip",pos:"erg"}
+      ]},
+      { phraseId:197, parts:[
+        {text:"Jetzt",label:"Temporal",pos:"temp"},{text:"bewerbe",label:"Verb",pos:"verb"},
+        {text:"ich",label:"Subj.",pos:"subj"},{text:"mich",label:"Erg.",pos:"erg"},
+        {text:"auf Masterstudienplätze",label:"Erg.",pos:"erg"},{text:"in Deutschland",label:"Lokal",pos:"local"}
+      ]},
+      { phraseId:198, parts:[
+        {text:"Jeden Morgen",label:"Temporal",pos:"temp"},{text:"lerne",label:"Verb",pos:"verb"},
+        {text:"ich",label:"Subj.",pos:"subj"},{text:"zwei Stunden Deutsch",label:"Erg.",pos:"erg"},
+        {text:"für meinen B1-Kurs",label:"Erg.",pos:"erg"}
+      ]},
+      { phraseId:199, parts:[
+        {text:"Mit dem Fahrrad",label:"Modal",pos:"manner"},{text:"fahre",label:"Verb",pos:"verb"},
+        {text:"ich",label:"Subj.",pos:"subj"},{text:"meistens",label:"Temporal",pos:"temp"},
+        {text:"zum Sprachcafé",label:"Lokal",pos:"local"}
+      ]}
+    ]},
+  { id:"SatzbauWFrage", title:"Satzbau: W-Fragen — Question Word at Position 1",
+    rule:"W-questions: question word (Fragewort) at position 1, verb at position 2, subject at position 3. The verb stays at position 2 — same rule as statements!",
+    ids:[201,202,203,204,205],
+    breakdown:[
+      { phraseId:201, parts:[
+        {text:"Wie",label:"Fragewort",pos:"frage"},{text:"bereite",label:"Verb",pos:"verb"},
+        {text:"ich",label:"Subj.",pos:"subj"},{text:"mich",label:"Erg.",pos:"erg"},
+        {text:"am besten",label:"Modal",pos:"manner"},{text:"auf ein Vorstellungsgespräch",label:"Erg.",pos:"erg"},
+        {text:"vor",label:"Präfix",pos:"erg"}
+      ]},
+      { phraseId:202, parts:[
+        {text:"Wann",label:"Fragewort",pos:"frage"},{text:"beginnt",label:"Verb",pos:"verb"},
+        {text:"mein Online-Kurs",label:"Subj.",pos:"subj"},{text:"bei IQ Lingua",label:"Lokal",pos:"local"}
+      ]},
+      { phraseId:203, parts:[
+        {text:"Wo",label:"Fragewort",pos:"frage"},{text:"kann",label:"Verb",pos:"verb"},
+        {text:"ich",label:"Subj.",pos:"subj"},{text:"in Bremen",label:"Lokal",pos:"local"},
+        {text:"gut Bachata tanzen gehen",label:"Erg.",pos:"erg"}
+      ]},
+      { phraseId:205, parts:[
+        {text:"Warum",label:"Fragewort",pos:"frage"},{text:"lernst",label:"Verb",pos:"verb"},
+        {text:"du",label:"Subj.",pos:"subj"},{text:"so intensiv",label:"Modal",pos:"manner"},
+        {text:"Deutsch",label:"Erg.",pos:"erg"}
+      ]}
+    ]},
+  { id:"SatzbauJaNein", title:"Satzbau: Ja/Nein-Fragen — Verb at Position 1",
+    rule:"Yes/no questions: the verb jumps to position 1, the subject moves to position 2. There is no question word — the inverted structure itself signals a question!",
+    ids:[206,207,208,209,210],
+    breakdown:[
+      { phraseId:206, parts:[
+        {text:"Gehst",label:"Verb",pos:"verb"},{text:"du",label:"Subj.",pos:"subj"},
+        {text:"heute Abend",label:"Temporal",pos:"temp"},{text:"ins Sprachcafé",label:"Lokal",pos:"local"}
+      ]},
+      { phraseId:207, parts:[
+        {text:"Hast",label:"Verb",pos:"verb"},{text:"du",label:"Subj.",pos:"subj"},
+        {text:"schon",label:"Temporal",pos:"temp"},{text:"Bewerbungen",label:"Erg.",pos:"erg"},
+        {text:"abgeschickt",label:"Partizip",pos:"erg"}
+      ]},
+      { phraseId:209, parts:[
+        {text:"Kannst",label:"Verb",pos:"verb"},{text:"du",label:"Subj.",pos:"subj"},
+        {text:"mir",label:"Erg.",pos:"erg"},{text:"beim Lebenslauf",label:"Erg.",pos:"erg"},
+        {text:"helfen",label:"Infinitiv",pos:"erg"}
+      ]},
+      { phraseId:210, parts:[
+        {text:"Fährst",label:"Verb",pos:"verb"},{text:"du",label:"Subj.",pos:"subj"},
+        {text:"heute",label:"Temporal",pos:"temp"},{text:"mit dem Fahrrad",label:"Modal",pos:"manner"}
+      ]}
+    ]},
+  { id:"TeKaMoLo", title:"TeKaMoLo — Time, Manner, Location Order",
+    rule:"When stacking adverbs after the verb, use TeKaMoLo order: Temporal (wann?) → Kausal (warum?) → Modal (wie?) → Lokal (wo/wohin?). Memory aid: Te-Ka-Mo-Lo!",
+    ids:[218,219,220,199,1],
+    breakdown:[
+      { phraseId:218, parts:[
+        {text:"Ich",label:"Subj.",pos:"subj"},{text:"fahre",label:"Verb",pos:"verb"},
+        {text:"jeden Morgen",label:"Te (wann?)",pos:"temp"},{text:"mit dem Fahrrad",label:"Mo (wie?)",pos:"manner"},
+        {text:"zum Sprachcafé",label:"Lo (wohin?)",pos:"local"}
+      ]},
+      { phraseId:219, parts:[
+        {text:"Wir",label:"Subj.",pos:"subj"},{text:"spielen",label:"Verb",pos:"verb"},
+        {text:"am Freitag",label:"Te (wann?)",pos:"temp"},{text:"zusammen",label:"Mo (wie?)",pos:"manner"},
+        {text:"Tischtennis",label:"Erg.",pos:"erg"},{text:"im Park",label:"Lo (wo?)",pos:"local"}
+      ]},
+      { phraseId:199, parts:[
+        {text:"Mit dem Fahrrad",label:"Mo (wie?)",pos:"manner"},{text:"fahre",label:"Verb",pos:"verb"},
+        {text:"ich",label:"Subj.",pos:"subj"},{text:"meistens",label:"Te (wann?)",pos:"temp"},
+        {text:"zum Sprachcafé",label:"Lo (wohin?)",pos:"local"}
+      ]}
+    ]},
+  { id:"NebensatzVerb", title:"Nebensatz — Verb always at the End (7 Types)",
+    rule:"In ALL subordinate clauses the conjugated verb goes to the VERY END. Types: weil/da (causal), wenn/falls (conditional), seitdem/während/bis (temporal), damit (final), dass, indirect questions (wo/was/wann), relative clauses (der/die/das).",
+    ids:[211,212,213,214,215,216,217,159,162],
+    breakdown:[
+      { phraseId:211, parts:[
+        {text:"Ich lerne Deutsch intensiv",label:"Hauptsatz",pos:"erg"},{text:",",label:"",pos:"erg"},
+        {text:"weil",label:"Konj.",pos:"conj"},{text:"ich",label:"Subj.",pos:"subj"},
+        {text:"in Deutschland",label:"Lokal",pos:"local"},{text:"bleiben möchte",label:"Verb (Ende!)",pos:"verb"}
+      ]},
+      { phraseId:212, parts:[
+        {text:"Weil",label:"Konj.",pos:"conj"},{text:"ich",label:"Subj.",pos:"subj"},
+        {text:"einen B1-Kurs bei IQ Lingua",label:"Erg.",pos:"erg"},{text:"mache",label:"Verb (Ende!)",pos:"verb"},
+        {text:",",label:"",pos:"erg"},{text:"verbessert sich mein Deutsch schnell",label:"Hauptsatz",pos:"erg"}
+      ]},
+      { phraseId:215, parts:[
+        {text:"Ich glaube",label:"Hauptsatz",pos:"erg"},{text:",",label:"",pos:"erg"},
+        {text:"dass",label:"Konj.",pos:"conj"},{text:"das wöchentliche Sprachcafé",label:"Subj.",pos:"subj"},
+        {text:"sehr hilfreich",label:"Erg.",pos:"erg"},{text:"ist",label:"Verb (Ende!)",pos:"verb"}
+      ]},
+      { phraseId:213, parts:[
+        {text:"Wenn",label:"Konj.",pos:"conj"},{text:"ich",label:"Subj.",pos:"subj"},
+        {text:"die B1-Prüfung",label:"Erg.",pos:"erg"},{text:"bestehe",label:"Verb (Ende!)",pos:"verb"},
+        {text:",",label:"",pos:"erg"},{text:"kann ich mich für mehr Masterprogramme bewerben",label:"Hauptsatz",pos:"erg"}
+      ]}
+    ]},
 ];
 
 // ---- State ----
@@ -509,6 +653,8 @@ function renderCard() {
   if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words") return;
 
   if (!queue.length) {
+    audio.pause();
+    statusText.textContent = "";
     emptyState.style.display = "block";
     cardEl.style.display = "none";
     return;
@@ -1460,6 +1606,16 @@ function showGrammarPanel(filterTag = null) {
   renderGrammarTab(filterTag);
 }
 
+function renderSatzbauBreakdown(parts) {
+  return `<div class="satzbau-breakdown">${parts.map(p =>
+    p.text === "," ? `<span style="align-self:center;color:var(--text-dim);font-size:1rem">,</span>` :
+    `<div class="satz-part ${p.pos}">
+      <span class="satz-text">${p.text}</span>
+      ${p.label ? `<span class="satz-label">${p.label}</span>` : ""}
+    </div>`
+  ).join("")}</div>`;
+}
+
 function renderGrammarTab(filterTag = null) {
   const topics = filterTag
     ? GRAMMAR_TOPICS.filter(t => filterTag.startsWith(t.id) || t.id === filterTag)
@@ -1476,11 +1632,13 @@ function renderGrammarTab(filterTag = null) {
         <div class="gt-header">${topic.title}</div>
         <div class="gt-rule">${topic.rule}</div>
         <div class="gt-examples">
-          ${examples.slice(0, 4).map(p => `
-            <div class="gt-example" onclick="practiceNow(${p.id})">
-              <div class="gt-german">${p.german}</div>
+          ${examples.slice(0, 4).map(p => {
+            const bd = topic.breakdown && topic.breakdown.find(b => b.phraseId === p.id);
+            return `<div class="gt-example" onclick="practiceNow(${p.id})">
+              ${bd ? renderSatzbauBreakdown(bd.parts) : `<div class="gt-german">${p.german}</div>`}
               <div class="gt-english">${p.english}</div>
-            </div>`).join("")}
+            </div>`;
+          }).join("")}
         </div>
         <button class="prog-btn gt-explain-btn" data-topic-id="${topic.id}" data-topic-title="${topic.title}">Ask AI to explain deeper ›</button>
       </div>`;

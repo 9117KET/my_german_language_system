@@ -1363,5 +1363,180 @@ const PHRASES = [
     "english": "When will I receive the decision on my application?",
     "category": "bureaucracy",
     "audio": "audio/195_wann_bekomme_ich_die_entscheidung_ueber.mp3"
+  },
+  {
+    "id": 196,
+    "german": "Ich habe letzten Dezember meinen Bachelor abgeschlossen.",
+    "english": "I completed my bachelor's last December.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 197,
+    "german": "Jetzt bewerbe ich mich auf Masterstudienplätze in Deutschland.",
+    "english": "Now I am applying for master's places in Germany.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 198,
+    "german": "Jeden Morgen lerne ich zwei Stunden Deutsch für meinen B1-Kurs.",
+    "english": "Every morning I study German for two hours for my B1 course.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 199,
+    "german": "Mit dem Fahrrad fahre ich meistens zum Sprachcafé.",
+    "english": "I usually cycle to the language café.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 200,
+    "german": "Am Wochenende spiele ich Basketball mit Freunden.",
+    "english": "At the weekend I play basketball with friends.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 201,
+    "german": "Wie bereite ich mich am besten auf ein Vorstellungsgespräch vor?",
+    "english": "How do I best prepare for a job interview?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 202,
+    "german": "Wann beginnt mein Online-Kurs bei IQ Lingua?",
+    "english": "When does my online course at IQ Lingua start?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 203,
+    "german": "Wo kann ich in Bremen gut Bachata tanzen gehen?",
+    "english": "Where can I go bachata dancing in Bremen?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 204,
+    "german": "Was machst du nach dem Sprachcafé heute Abend?",
+    "english": "What are you doing after the language café this evening?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 205,
+    "german": "Warum lernst du so intensiv Deutsch?",
+    "english": "Why are you studying German so intensively?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 206,
+    "german": "Gehst du heute Abend ins Sprachcafé?",
+    "english": "Are you going to the language café this evening?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 207,
+    "german": "Hast du schon Bewerbungen abgeschickt?",
+    "english": "Have you already sent off applications?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 208,
+    "german": "Spielst du lieber Tischtennis oder Tennis?",
+    "english": "Do you prefer table tennis or tennis?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 209,
+    "german": "Kannst du mir beim Lebenslauf helfen?",
+    "english": "Can you help me with my CV?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 210,
+    "german": "Fährst du heute mit dem Fahrrad?",
+    "english": "Are you cycling today?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 211,
+    "german": "Ich lerne Deutsch intensiv, weil ich in Deutschland bleiben möchte.",
+    "english": "I study German intensively because I want to stay in Germany.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 212,
+    "german": "Weil ich einen B1-Kurs bei IQ Lingua mache, verbessert sich mein Deutsch schnell.",
+    "english": "Because I'm doing a B1 course at IQ Lingua, my German is improving quickly.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 213,
+    "german": "Wenn ich die B1-Prüfung bestehe, kann ich mich für mehr Masterprogramme bewerben.",
+    "english": "If I pass the B1 exam, I can apply for more master's programmes.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 214,
+    "german": "Ich übe jeden Tag Klavierspielen, damit ich schneller Fortschritte mache.",
+    "english": "I practise piano every day so that I make progress faster.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 215,
+    "german": "Ich glaube, dass das wöchentliche Sprachcafé sehr hilfreich ist.",
+    "english": "I believe that the weekly language café is very helpful.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 216,
+    "german": "Können Sie mir sagen, wo ich meine Bewerbungsunterlagen einreichen kann?",
+    "english": "Could you tell me where I can submit my application documents?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 217,
+    "german": "Das Masterprogramm, das ich angestrebt habe, beginnt im Oktober.",
+    "english": "The master's programme I have been aiming for starts in October.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 218,
+    "german": "Ich fahre jeden Morgen mit dem Fahrrad zum Sprachcafé.",
+    "english": "I cycle to the language café every morning.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 219,
+    "german": "Wir spielen am Freitag zusammen Tischtennis im Park.",
+    "english": "We play table tennis together in the park on Friday.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 220,
+    "german": "Er tanzt am Wochenende alleine Bachata zu Hause.",
+    "english": "He dances bachata alone at home at the weekend.",
+    "category": "satzbau",
+    "audio": ""
   }
 ];
