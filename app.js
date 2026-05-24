@@ -128,6 +128,37 @@ const GRAMMAR_TAGS = {
   218:["TeKaMoLo","SatzbauAussage"],
   219:["TeKaMoLo","SatzbauAussage"],
   220:["TeKaMoLo","SatzbauAussage"],
+  221:["SatzbauAussage"],
+  222:["SatzbauAussage"],
+  223:["SatzbauAussage","Inversion"],
+  224:["SatzbauWFrage","Fragewort"],
+  225:["SatzbauWFrage","Fragewort"],
+  226:["SatzbauWFrage","Fragewort"],
+  227:["SatzbauJaNein"],
+  228:["SatzbauJaNein"],
+  229:["SatzbauJaNein"],
+  230:["TeKaMoLo","SatzbauAussage"],
+  231:["TeKaMoLo","SatzbauAussage"],
+  232:["TeKaMoLo","SatzbauAussage","Inversion"],
+  233:["NebensatzVerb","Nebensatz-weil"],
+  234:["NebensatzVerb","Nebensatz-weil","Inversion"],
+  235:["NebensatzVerb","Nebensatz-weil"],
+  236:["NebensatzVerb","Nebensatz-weil","Inversion"],
+  237:["NebensatzVerb","Nebensatz-wenn"],
+  238:["NebensatzVerb","Nebensatz-wenn"],
+  239:["NebensatzVerb","Nebensatz-wenn"],
+  240:["NebensatzVerb","Nebensatz-seitdem"],
+  241:["NebensatzVerb","Nebensatz-während"],
+  242:["NebensatzVerb","Nebensatz-bis","Separierbar"],
+  243:["NebensatzVerb","Nebensatz-damit","Modal"],
+  244:["NebensatzVerb","Nebensatz-damit"],
+  245:["NebensatzVerb","Nebensatz-dass"],
+  246:["SatzbauJaNein","NebensatzVerb","Nebensatz-dass"],
+  247:["NebensatzVerb","Fragewort","Modal"],
+  248:["NebensatzVerb","Fragewort","Modal"],
+  249:["NebensatzVerb","Relativsatz","Separierbar"],
+  250:["NebensatzVerb","Relativsatz","Perfekt"],
+  251:["NebensatzVerb","Nebensatz-wenn","Separierbar","Inversion"],
 };
 
 // ---- Conversation Scenarios ----
@@ -229,12 +260,20 @@ const GRAMMAR_TOPICS = [
     ids:[57,127,136,169,171,188] },
   { id:"SatzbauAussage", title:"Satzbau: Aussagen — Verb always at Position 2",
     rule:"In statements the verb is ALWAYS at position 2. Any element (time, location, manner) can move to position 1, which pushes the subject to position 3. This is called Inversion — the verb never moves!",
-    ids:[196,197,198,199,200],
+    ids:[196,222,223,197,198,199,200,221,230,231,232],
     breakdown:[
       { phraseId:196, parts:[
         {text:"Ich",label:"Subj.",pos:"subj"},{text:"habe",label:"Verb",pos:"verb"},
         {text:"letzten Dezember",label:"Temporal",pos:"temp"},{text:"meinen Bachelor",label:"Erg.",pos:"erg"},
         {text:"abgeschlossen",label:"Partizip",pos:"erg"}
+      ]},
+      { phraseId:222, parts:[
+        {text:"Wir",label:"Subj.",pos:"subj"},{text:"sprechen",label:"Verb",pos:"verb"},
+        {text:"heute",label:"Temporal",pos:"temp"},{text:"Deutsch",label:"Erg.",pos:"erg"}
+      ]},
+      { phraseId:223, parts:[
+        {text:"Heute",label:"Temporal",pos:"temp"},{text:"sprechen",label:"Verb",pos:"verb"},
+        {text:"wir",label:"Subj.",pos:"subj"},{text:"Deutsch",label:"Erg.",pos:"erg"}
       ]},
       { phraseId:197, parts:[
         {text:"Jetzt",label:"Temporal",pos:"temp"},{text:"bewerbe",label:"Verb",pos:"verb"},
@@ -254,7 +293,7 @@ const GRAMMAR_TOPICS = [
     ]},
   { id:"SatzbauWFrage", title:"Satzbau: W-Fragen — Question Word at Position 1",
     rule:"W-questions: question word (Fragewort) at position 1, verb at position 2, subject at position 3. The verb stays at position 2 — same rule as statements!",
-    ids:[201,202,203,204,205],
+    ids:[201,202,203,204,205,224,225,226],
     breakdown:[
       { phraseId:201, parts:[
         {text:"Wie",label:"Fragewort",pos:"frage"},{text:"bereite",label:"Verb",pos:"verb"},
@@ -279,7 +318,7 @@ const GRAMMAR_TOPICS = [
     ]},
   { id:"SatzbauJaNein", title:"Satzbau: Ja/Nein-Fragen — Verb at Position 1",
     rule:"Yes/no questions: the verb jumps to position 1, the subject moves to position 2. There is no question word — the inverted structure itself signals a question!",
-    ids:[206,207,208,209,210],
+    ids:[206,207,208,209,210,227,228,229,246],
     breakdown:[
       { phraseId:206, parts:[
         {text:"Gehst",label:"Verb",pos:"verb"},{text:"du",label:"Subj.",pos:"subj"},
@@ -302,8 +341,18 @@ const GRAMMAR_TOPICS = [
     ]},
   { id:"TeKaMoLo", title:"TeKaMoLo — Time, Manner, Location Order",
     rule:"When stacking adverbs after the verb, use TeKaMoLo order: Temporal (wann?) → Kausal (warum?) → Modal (wie?) → Lokal (wo/wohin?). Memory aid: Te-Ka-Mo-Lo!",
-    ids:[218,219,220,199,1],
+    ids:[230,231,218,219,220,199,1,232],
     breakdown:[
+      { phraseId:230, parts:[
+        {text:"Hans",label:"Subj.",pos:"subj"},{text:"fährt",label:"Verb",pos:"verb"},
+        {text:"morgen",label:"Te (wann?)",pos:"temp"},{text:"mit dem Bus",label:"Mo (wie?)",pos:"manner"},
+        {text:"in die Schule",label:"Lo (wohin?)",pos:"local"}
+      ]},
+      { phraseId:231, parts:[
+        {text:"Lisa",label:"Subj.",pos:"subj"},{text:"geht",label:"Verb",pos:"verb"},
+        {text:"am Dienstag",label:"Te (wann?)",pos:"temp"},{text:"zu Fuß",label:"Mo (wie?)",pos:"manner"},
+        {text:"ins Kino",label:"Lo (wohin?)",pos:"local"}
+      ]},
       { phraseId:218, parts:[
         {text:"Ich",label:"Subj.",pos:"subj"},{text:"fahre",label:"Verb",pos:"verb"},
         {text:"jeden Morgen",label:"Te (wann?)",pos:"temp"},{text:"mit dem Fahrrad",label:"Mo (wie?)",pos:"manner"},
@@ -322,8 +371,19 @@ const GRAMMAR_TOPICS = [
     ]},
   { id:"NebensatzVerb", title:"Nebensatz — Verb always at the End (7 Types)",
     rule:"In ALL subordinate clauses the conjugated verb goes to the VERY END. Types: weil/da (causal), wenn/falls (conditional), seitdem/während/bis (temporal), damit (final), dass, indirect questions (wo/was/wann), relative clauses (der/die/das).",
-    ids:[211,212,213,214,215,216,217,159,162],
+    ids:[233,234,211,212,213,214,215,216,217,159,162,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251],
     breakdown:[
+      { phraseId:233, parts:[
+        {text:"Ich esse ein Sandwich",label:"Hauptsatz",pos:"erg"},{text:",",label:"",pos:"erg"},
+        {text:"weil",label:"Konj.",pos:"conj"},{text:"ich",label:"Subj.",pos:"subj"},
+        {text:"Hunger",label:"Erg.",pos:"erg"},{text:"habe",label:"Verb (Ende!)",pos:"verb"}
+      ]},
+      { phraseId:234, parts:[
+        {text:"Weil",label:"Konj.",pos:"conj"},{text:"ich",label:"Subj.",pos:"subj"},
+        {text:"Hunger",label:"Erg.",pos:"erg"},{text:"habe",label:"Verb (Ende!)",pos:"verb"},
+        {text:",",label:"",pos:"erg"},{text:"esse",label:"Verb",pos:"verb"},
+        {text:"ich",label:"Subj.",pos:"subj"},{text:"ein Sandwich",label:"Erg.",pos:"erg"}
+      ]},
       { phraseId:211, parts:[
         {text:"Ich lerne Deutsch intensiv",label:"Hauptsatz",pos:"erg"},{text:",",label:"",pos:"erg"},
         {text:"weil",label:"Konj.",pos:"conj"},{text:"ich",label:"Subj.",pos:"subj"},

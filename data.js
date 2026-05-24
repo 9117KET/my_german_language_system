@@ -1538,5 +1538,222 @@ const PHRASES = [
     "english": "He dances bachata alone at home at the weekend.",
     "category": "satzbau",
     "audio": ""
+  },
+  {
+    "id": 221,
+    "german": "Hans isst gern Spaghetti.",
+    "english": "Hans likes to eat spaghetti.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 222,
+    "german": "Wir sprechen heute Deutsch.",
+    "english": "We are speaking German today.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 223,
+    "german": "Heute sprechen wir Deutsch.",
+    "english": "Today we are speaking German.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 224,
+    "german": "Was esst ihr gern?",
+    "english": "What do you all like to eat?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 225,
+    "german": "Wie geht es dir?",
+    "english": "How are you?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 226,
+    "german": "Wann lernst du Deutsch?",
+    "english": "When do you study German?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 227,
+    "german": "Schaust du gern Fußball?",
+    "english": "Do you like watching football?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 228,
+    "german": "Hört er oft Musik?",
+    "english": "Does he often listen to music?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 229,
+    "german": "Essen wir heute Abend zu Hause?",
+    "english": "Are we eating at home this evening?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 230,
+    "german": "Hans fährt morgen mit dem Bus in die Schule.",
+    "english": "Hans is taking the bus to school tomorrow.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 231,
+    "german": "Lisa geht am Dienstag zu Fuß ins Kino.",
+    "english": "Lisa walks to the cinema on Tuesday.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 232,
+    "german": "Am Dienstag geht Lisa zu Fuß ins Kino.",
+    "english": "On Tuesday Lisa walks to the cinema.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 233,
+    "german": "Ich esse ein Sandwich, weil ich Hunger habe.",
+    "english": "I'm eating a sandwich because I'm hungry.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 234,
+    "german": "Weil ich Hunger habe, esse ich ein Sandwich.",
+    "english": "Because I'm hungry, I'm eating a sandwich.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 235,
+    "german": "Er bleibt zu Hause, weil das Wetter schlecht ist.",
+    "english": "He stays at home because the weather is bad.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 236,
+    "german": "Da ihr Auto kaputt ist, nimmt sie ein Taxi.",
+    "english": "Since her car is broken, she takes a taxi.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 237,
+    "german": "Wir kaufen ein neues Auto, wenn wir Geld haben.",
+    "english": "We will buy a new car when we have money.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 238,
+    "german": "Ich bleibe zu Hause, falls es regnet.",
+    "english": "I'll stay at home if it rains.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 239,
+    "german": "Er hilft dir, sofern er Zeit hat.",
+    "english": "He will help you as long as he has time.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 240,
+    "german": "Er lernt Deutsch, seitdem er in Deutschland lebt.",
+    "english": "He has been learning German since he started living in Germany.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 241,
+    "german": "Sie zeichnet ein Bild, während sie telefoniert.",
+    "english": "She draws a picture while she is on the phone.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 242,
+    "german": "Ich warte, bis du mich anrufst.",
+    "english": "I'll wait until you call me.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 243,
+    "german": "Hans spart Geld, damit er ein Haus kaufen kann.",
+    "english": "Hans is saving money so that he can buy a house.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 244,
+    "german": "Sie geht früh schlafen, damit sie morgen fit ist.",
+    "english": "She goes to bed early so that she is fit tomorrow.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 245,
+    "german": "Wir glauben, dass das Wetter morgen gut ist.",
+    "english": "We believe that the weather will be good tomorrow.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 246,
+    "german": "Denkst du, dass es morgen regnet?",
+    "english": "Do you think it will rain tomorrow?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 247,
+    "german": "Können Sie mir sagen, wo der Bahnhof ist?",
+    "english": "Could you tell me where the train station is?",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 248,
+    "german": "Ich möchte wissen, wie viel das kostet.",
+    "english": "I would like to know how much that costs.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 249,
+    "german": "Das Konzert, das morgen stattfindet, ist ausverkauft.",
+    "english": "The concert that takes place tomorrow is sold out.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 250,
+    "german": "Das ist die Lampe, die ich gekauft habe.",
+    "english": "That is the lamp that I bought.",
+    "category": "satzbau",
+    "audio": ""
+  },
+  {
+    "id": 251,
+    "german": "Wenn du das Fenster aufmachst, wird es kalt.",
+    "english": "If you open the window, it will get cold.",
+    "category": "satzbau",
+    "audio": ""
   }
 ];
