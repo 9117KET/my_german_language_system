@@ -85,7 +85,14 @@ async function callGroqMessages(messages, maxTokens = 350, retried = false) {
   return data.choices[0].message.content.trim();
 }
 
-function buildConvoSystemPrompt(scenarioKey) {
+const TEACHER_PERSONALITIES = {
+  caring: `Teaching style: Warm, encouraging coach. When the learner makes an error, restate the correct form naturally in your reply without explicitly saying "that was wrong". Praise effort frequently. Keep the learner motivated.`,
+  strict: `Teaching style: Rigorous Gymnasium professor. Correct every grammatical error explicitly and immediately before continuing. Name the rule (e.g. "Akkusativ requires 'einen'"). Require precision in case, conjugation, and register.`,
+  blunt: `Teaching style: Blunt Berlin taxi driver. Direct, colloquial German, short sentences. State any mistake in one short sentence and move on. No encouragement, no hand-holding.`,
+  socratic: `Teaching style: Socratic guide. Never correct directly. Instead ask a question that leads the learner to notice and fix their own error. Example: "Welchen Artikel benutzt man hier?" or "Ist das Verb richtig konjugiert?". Only continue after they self-correct.`,
+};
+
+function buildConvoSystemPrompt(scenarioKey, teacherMode) {
   const SCENARIO_ROLES = {
     hirschsprach_cafe: "a friendly German native speaker at a language café",
     shopping:          "a helpful shop assistant in a German clothing store",
@@ -99,7 +106,9 @@ function buildConvoSystemPrompt(scenarioKey) {
   const roleCtx = scenarioKey && SCENARIO_ROLES[scenarioKey]
     ? `You are playing the role of ${SCENARIO_ROLES[scenarioKey]}.\n`
     : "";
-  return `${roleCtx}You are a helpful German conversation partner for a B1 learner.
+  const personalityCtx = TEACHER_PERSONALITIES[teacherMode] || TEACHER_PERSONALITIES.caring;
+  return `${roleCtx}You are a German conversation partner for a B1 learner.
+${personalityCtx}
 
 RULES:
 1. Reply in natural German, B1 level, maximum 2-3 short sentences.
@@ -110,7 +119,7 @@ RULES:
    or
    {"reply":"...","correction":{"original":"...","corrected":"...","explanation":"one sentence in English"}}
 5. Set correction to null if the learner's message had no errors.
-6. Be encouraging and keep the conversation flowing naturally.`;
+6. Keep the conversation flowing naturally.`;
 }
 
 function stripMarkdown(text) {
@@ -128,7 +137,7 @@ module.exports = async function handler(req, res) {
   if (!GROQ_KEY) return res.status(500).json({ error: "GROQ_KEY not configured in Vercel environment variables" });
   if (!EL_KEY) return res.status(500).json({ error: "ELEVENLABS_API_KEY not configured in Vercel environment variables" });
 
-  const { mode, text, history, scenario } = req.body || {};
+  const { mode, text, history, scenario, teacherMode } = req.body || {};
 
   // hint mode doesn't require user text
   if (mode === "hint") {
@@ -195,7 +204,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (mode === "convo") {
-      const systemPrompt = buildConvoSystemPrompt(scenario);
+      const systemPrompt = buildConvoSystemPrompt(scenario, teacherMode);
       const messages = [
         { role: "system", content: systemPrompt },
         ...(history || []).slice(-20),

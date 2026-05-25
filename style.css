@@ -995,6 +995,22 @@ select option {
 }
 #chat-new-btn:active, #chat-history-btn:active { opacity: 0.7; }
 
+#teacher-mode-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.teacher-label { font-size: 0.8rem; color: var(--text-dim); white-space: nowrap; }
+#teacher-mode-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+.teacher-btn {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
+  color: var(--text-dim); padding: 5px 12px; font-size: 0.78rem; cursor: pointer;
+  touch-action: manipulation; transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.teacher-btn.active {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--accent);
+}
+.teacher-btn:not(.active):active { opacity: 0.7; }
+
 #chat-goal-banner {
   background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); border-radius: var(--radius-sm);
   padding: 10px 14px; display: flex; align-items: center; gap: 8px;
@@ -1060,6 +1076,13 @@ select option {
 .hint-chip:active, .hint-chip.selected { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
 .hint-loading { font-size: 0.82rem; color: var(--text-dim); font-style: italic; }
 .hint-selected-note { font-size: 0.8rem; color: var(--accent); margin-top: 4px; width: 100%; }
+
+.chat-interim-text {
+  font-size: 0.88rem; color: var(--text-dim); padding: 6px 10px;
+  background: var(--surface2); border-radius: var(--radius-sm);
+  border: 1px dashed var(--border); opacity: 0.8; font-style: italic;
+  min-height: 30px;
+}
 
 /* Chat input row */
 #chat-input-row { display: flex; gap: 6px; align-items: center; }
