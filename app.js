@@ -527,6 +527,12 @@ let srsData = {};
 let srsSettings = { autoGrade: false };
 let practiceNowId = null;
 let progressFilter = "due";
+let progressPage = 0;
+let vocabPage = 0;
+let grammarPage = 0;
+const PROG_PAGE_SIZE = 15;
+const VOCAB_PAGE_SIZE = 40;
+const GRAM_PAGE_SIZE = 5;
 
 // Recall mode enhancements
 let phraseDirection = "en_de"; // "en_de" (production, default) | "de_en" (recognition)
@@ -1164,7 +1170,7 @@ function setupEvents() {
   });
 
   document.querySelectorAll(".prog-filter").forEach(btn => {
-    btn.addEventListener("click", () => { progressFilter = btn.dataset.filter; renderProgressTab(); });
+    btn.addEventListener("click", () => { progressFilter = btn.dataset.filter; progressPage = 0; renderProgressTab(); });
   });
 
   // Tappable word vocab lookup
@@ -1187,6 +1193,7 @@ function setupEvents() {
 
   // Vocab panel search/filter
   document.getElementById("vocab-panel-search").addEventListener("input", (e) => {
+    vocabPage = 0;
     renderVocabPanel(e.target.value);
   });
 
@@ -1587,6 +1594,16 @@ function showProgressPanel() {
   renderProgressTab();
 }
 
+function paginationHTML(page, total, pageSize, prevFn, nextFn) {
+  if (total <= pageSize) return "";
+  const totalPages = Math.ceil(total / pageSize);
+  return `<div class="pagination-bar">
+    <button class="page-btn" onclick="${prevFn}()" ${page === 0 ? "disabled" : ""}>&#8592; Prev</button>
+    <span class="page-info">${page + 1} / ${totalPages}</span>
+    <button class="page-btn" onclick="${nextFn}()" ${page >= totalPages - 1 ? "disabled" : ""}>Next &#8594;</button>
+  </div>`;
+}
+
 function renderProgressTab() {
   const counts = { new: 0, due: 0, upcoming: 0, mastered: 0, archived: 0 };
   for (const p of PHRASES) { const s = getStatus(p.id); if (counts[s] !== undefined) counts[s]++; }
@@ -1608,7 +1625,10 @@ function renderProgressTab() {
 
   const list = document.getElementById("progress-list");
   if (!filtered.length) { list.innerHTML = `<div class="prog-empty">Nothing here yet.</div>`; return; }
-  list.innerHTML = filtered.map(p => {
+  const totalPages = Math.ceil(filtered.length / PROG_PAGE_SIZE);
+  progressPage = Math.min(progressPage, totalPages - 1);
+  const page = filtered.slice(progressPage * PROG_PAGE_SIZE, (progressPage + 1) * PROG_PAGE_SIZE);
+  list.innerHTML = page.map(p => {
     const r = getSrsRecord(p.id);
     const st = getStatus(p.id);
     const dueLabel = r.dueDate ? (isDue(p.id) ? "Due now" : `Due ${r.dueDate}`) : "Never reviewed";
@@ -1629,8 +1649,11 @@ function renderProgressTab() {
             : `<button class="prog-btn warn" onclick="archivePhrase(${p.id})">Archive</button>`}
         </div>
       </div>`;
-  }).join("");
+  }).join("") + paginationHTML(progressPage, filtered.length, PROG_PAGE_SIZE, "prevProgressPage", "nextProgressPage");
 }
+
+function prevProgressPage() { progressPage = Math.max(0, progressPage - 1); renderProgressTab(); document.getElementById("progress-list").scrollIntoView({ behavior: "smooth", block: "start" }); }
+function nextProgressPage() { progressPage++; renderProgressTab(); document.getElementById("progress-list").scrollIntoView({ behavior: "smooth", block: "start" }); }
 
 function practiceNow(phraseId) {
   practiceNowId = phraseId;
@@ -1740,13 +1763,19 @@ function renderVocabPanel(search = "") {
     : words;
   const list = document.getElementById("vocab-panel-list");
   if (!filtered.length) { list.innerHTML = `<div class="prog-empty">No words found.</div>`; return; }
-  list.innerHTML = filtered.slice(0, 100).map(w => `
+  const totalPages = Math.ceil(filtered.length / VOCAB_PAGE_SIZE);
+  vocabPage = Math.min(vocabPage, totalPages - 1);
+  const page = filtered.slice(vocabPage * VOCAB_PAGE_SIZE, (vocabPage + 1) * VOCAB_PAGE_SIZE);
+  list.innerHTML = page.map(w => `
     <div class="vocab-item" onclick="openVocabPopup('${w.display.replace(/'/g, "\\'")}')">
       <span class="vocab-item-word">${w.display}</span>
       <span class="vocab-item-count">${w.count}×</span>
     </div>
-  `).join("");
+  `).join("") + paginationHTML(vocabPage, filtered.length, VOCAB_PAGE_SIZE, "prevVocabPage", "nextVocabPage");
 }
+
+function prevVocabPage() { vocabPage = Math.max(0, vocabPage - 1); renderVocabPanel(document.getElementById("vocab-panel-search").value); document.getElementById("vocab-panel-list").scrollIntoView({ behavior: "smooth", block: "start" }); }
+function nextVocabPage() { vocabPage++; renderVocabPanel(document.getElementById("vocab-panel-search").value); document.getElementById("vocab-panel-list").scrollIntoView({ behavior: "smooth", block: "start" }); }
 
 function showVocabPanel() {
   document.getElementById("controls-bar").style.display = "none";
@@ -1757,6 +1786,7 @@ function showVocabPanel() {
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "flex";
   document.getElementById("vocab-panel-search").value = "";
+  vocabPage = 0;
   renderVocabPanel();
 }
 
@@ -1764,6 +1794,7 @@ function showVocabPanel() {
 
 function showGrammarPanel(filterTag = null) {
   grammarTopicFilter = filterTag;
+  grammarPage = 0;
   document.getElementById("controls-bar").style.display = "none";
   playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
   hideRecallSpecificEls();
@@ -1793,7 +1824,10 @@ function renderGrammarTab(filterTag = null) {
     list.innerHTML = `<div class="prog-empty">No grammar topic found for "${filterTag}".</div>`;
     return;
   }
-  list.innerHTML = topics.map(topic => {
+  const totalPages = Math.ceil(topics.length / GRAM_PAGE_SIZE);
+  grammarPage = Math.min(grammarPage, totalPages - 1);
+  const page = topics.slice(grammarPage * GRAM_PAGE_SIZE, (grammarPage + 1) * GRAM_PAGE_SIZE);
+  list.innerHTML = page.map(topic => {
     const examples = topic.ids.map(id => PHRASES.find(p => p.id === id)).filter(Boolean);
     return `
       <div class="grammar-topic">
@@ -1810,12 +1844,15 @@ function renderGrammarTab(filterTag = null) {
         </div>
         <button class="prog-btn gt-explain-btn" data-topic-id="${topic.id}" data-topic-title="${topic.title}">Ask AI to explain deeper ›</button>
       </div>`;
-  }).join("");
+  }).join("") + paginationHTML(grammarPage, topics.length, GRAM_PAGE_SIZE, "prevGrammarPage", "nextGrammarPage");
 
   document.querySelectorAll(".gt-explain-btn").forEach(btn => {
     btn.addEventListener("click", () => explainGrammar(btn.dataset.topicId, btn.dataset.topicTitle, btn));
   });
 }
+
+function prevGrammarPage() { grammarPage = Math.max(0, grammarPage - 1); renderGrammarTab(grammarTopicFilter); document.getElementById("grammar-list").scrollIntoView({ behavior: "smooth", block: "start" }); }
+function nextGrammarPage() { grammarPage++; renderGrammarTab(grammarTopicFilter); document.getElementById("grammar-list").scrollIntoView({ behavior: "smooth", block: "start" }); }
 
 async function explainGrammar(topicId, topicTitle, btn) {
   btn.textContent = "Loading...";

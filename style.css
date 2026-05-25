@@ -129,7 +129,8 @@ body {
 .tab:active { opacity: 0.7; }
 
 .tab-icon {
-  font-size: 1rem;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
 }
 .tab-label {
@@ -185,7 +186,7 @@ body {
 
 /* Select elements - 16px+ prevents iOS auto-zoom */
 select {
-  background: var(--surface2);
+  background: #1e1e2a;
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -197,6 +198,10 @@ select {
   touch-action: manipulation;
 }
 select:focus { outline: none; border-color: var(--accent); }
+select option {
+  background: #1e1e2a;
+  color: #f0f0f0;
+}
 
 /* Toggle buttons */
 .toggle-btn {
@@ -1283,6 +1288,42 @@ select:focus { outline: none; border-color: var(--accent); }
 .satz-part.dativ  { background: #0e7490; }
 .satz-part.akk    { background: #c2410c; }
 
+/* ---- Pagination ---- */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 16px 0 8px;
+  margin-top: 4px;
+}
+.page-btn {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 18px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s, border-color 0.15s;
+}
+.page-btn:hover:not(:disabled) {
+  background: var(--surface3);
+  border-color: var(--border-bright);
+}
+.page-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.page-info {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  min-width: 56px;
+  text-align: center;
+}
+
 /* ====================================================
    MOBILE LAYOUT  (<768px)
    ==================================================== */
@@ -1293,24 +1334,31 @@ select:focus { outline: none; border-color: var(--accent); }
     height: auto;
     min-height: 100vh;
     overflow: visible;
+    /* sidebar is fixed, so main fills the full width */
+    align-items: stretch;
   }
 
-  /* Sidebar becomes a top navigation bar */
+  /* Sidebar becomes a fixed bottom nav bar */
   .app-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     width: 100%;
     height: auto;
     flex-direction: column;
     border-right: none;
-    border-bottom: 1px solid var(--border);
-    overflow: visible;
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    background: #0e0e18;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  /* Hide the brand text on mobile to save space */
   .sidebar-brand {
     display: none;
   }
 
-  /* Footer counter goes inline with tabs - hide it on mobile */
   .sidebar-footer {
     display: none;
   }
@@ -1320,8 +1368,8 @@ select:focus { outline: none; border-color: var(--accent); }
     flex-direction: row;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 8px 12px;
-    gap: 4px;
+    padding: 6px 8px;
+    gap: 2px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
@@ -1331,26 +1379,30 @@ select:focus { outline: none; border-color: var(--accent); }
     flex-direction: column;
     align-items: center;
     gap: 3px;
-    padding: 8px 14px;
+    padding: 8px 12px;
     margin: 0;
     border-radius: var(--radius-sm);
     border-left: none;
-    border-bottom: 2px solid transparent;
+    border-bottom: none;
+    border-top: 2px solid transparent;
     min-width: auto;
     flex-shrink: 0;
   }
   .tab.active {
+    background: var(--accent-dim);
+    color: var(--accent);
     border-left-color: transparent;
-    border-bottom-color: var(--accent);
+    border-top-color: var(--accent);
   }
   .tab-icon {
-    font-size: 1.1rem;
+    width: 20px;
+    height: 20px;
   }
   .tab-label {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
   }
 
-  /* Main area fills remaining space */
+  /* Main area fills full screen, padded at bottom to clear the nav bar */
   .app-main {
     flex: 1;
     overflow: visible;
@@ -1361,12 +1413,12 @@ select:focus { outline: none; border-color: var(--accent); }
     padding: 10px 14px 8px;
   }
 
-  /* Card area on mobile */
+  /* Card area on mobile - bottom padding clears the fixed nav bar */
   #card-area {
     padding: 14px 14px;
     gap: 10px;
     overflow-y: visible;
-    padding-bottom: max(80px, calc(60px + env(safe-area-inset-bottom, 0px)));
+    padding-bottom: max(90px, calc(70px + env(safe-area-inset-bottom, 0px)));
   }
 
   /* Smaller German text on mobile */
