@@ -4,367 +4,379 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#0f0f0f">
+  <meta name="theme-color" content="#0a0a0f">
   <title>Deutsch Lernen</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header>
-  <h1>Deutsch Lernen</h1>
-  <span id="counter">0 / 0</span>
-</header>
+<div class="app-layout">
 
-<div id="controls-bar">
-  <div id="controls-row-1">
-    <select id="category-select"></select>
-    <select id="grammar-filter">
-      <option value="all">All Grammar</option>
-      <option value="Präteritum">Präteritum</option>
-      <option value="Relativsatz">Relative Clauses</option>
-      <option value="Passiv">Passive</option>
-      <option value="Konjunktiv-II">Konjunktiv II</option>
-      <option value="Modal">Modal Verbs</option>
-      <option value="Perfekt">Perfekt</option>
-      <option value="Nebensatz">Subordinate Clauses</option>
-      <option value="Futur-I">Futur I</option>
-      <option value="Fragewort">Questions</option>
-      <option value="Separierbar">Separable Verbs</option>
-      <option value="Reflexiv">Reflexive Verbs</option>
-    </select>
-  </div>
-  <div id="controls-row-2">
-    <button class="toggle-btn active" id="auto-btn">Auto</button>
-    <button class="toggle-btn" id="shuffle-btn">Shuffle</button>
-    <button class="toggle-btn" id="loop-btn">Loop</button>
-    <button class="toggle-btn" id="repeat-btn">Repeat</button>
-  </div>
-</div>
-
-<div id="mode-tabs">
-  <div class="tab active" data-mode="listen">Listen</div>
-  <div class="tab" data-mode="shadow">Shadow</div>
-  <div class="tab" data-mode="recall">Recall</div>
-  <div class="tab" data-mode="ai">AI</div>
-  <div class="tab" data-mode="progress">Progress</div>
-  <div class="tab" data-mode="vocab">Vocab</div>
-  <div class="tab" data-mode="grammar">Grammar</div>
-  <div class="tab" data-mode="words">Words</div>
-</div>
-
-<div id="card-area">
-
-  <div class="card" id="card">
-    <div class="category-badge" id="category-badge"></div>
-    <div id="srs-status-badge" style="display:none"></div>
-    <div id="grammar-tag-container" style="display:none"></div>
-    <div class="german" id="german-text"></div>
-    <div class="english" id="english-text"></div>
-    <div class="reveal-hint" id="reveal-hint"></div>
-  </div>
-
-  <div id="audio-bar">
-    <button id="play-btn" aria-label="Play/Pause">
-      <svg width="20" height="20" viewBox="0 0 24 24">
-        <path d="M8 5v14l11-7z"/>
-      </svg>
-    </button>
-    <div id="audio-info">
-      <div class="phrase-num" id="phrase-num"></div>
-      <div class="status-text" id="status-text">Ready</div>
-      <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+  <aside class="app-sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-logo">DL</span>
+      <span class="brand-name">Deutsch Lernen</span>
     </div>
-  </div>
-
-  <div id="recall-srs-bar" style="display:none">
-    <span id="recall-due-count"></span>
-    <button class="toggle-btn" id="recall-autograde-toggle">Auto-grade: OFF</button>
-    <button class="toggle-btn" id="phrase-dir-btn" title="Toggle study direction">EN&#8594;DE</button>
-    <button class="toggle-btn" id="phrase-mc-btn" title="Multiple choice mode">MC</button>
-  </div>
-
-  <div id="phrase-mc-area" style="display:none">
-    <div id="phrase-mc-choices"></div>
-  </div>
-
-  <div id="recall-buttons">
-    <button class="recall-btn got-it" id="got-it-btn">Got it (G)</button>
-    <button class="recall-btn missed" id="missed-btn">Missed (M)</button>
-  </div>
-
-  <div id="recall-voice-area" style="display:none">
-    <button id="recall-mic-btn" aria-label="Speak German">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-      </svg>
-    </button>
-    <div id="recall-transcript"></div>
-  </div>
-
-  <div id="stats-bar" style="display:none">
-    <div class="stat green"><div class="val" id="stat-got">0</div><div class="lbl">Got</div></div>
-    <div class="stat yellow"><div class="val" id="stat-total">0</div><div class="lbl">Done</div></div>
-    <div class="stat red"><div class="val" id="stat-missed">0</div><div class="lbl">Missed</div></div>
-    <div class="stat purple"><div class="val" id="stat-pct" style="display:none">-</div><div class="lbl">%</div></div>
-  </div>
-
-  <div id="nav-buttons">
-    <button class="nav-btn" id="prev-btn">&#8592; Prev</button>
-    <button class="nav-btn" id="next-btn">Next &#8594;</button>
-  </div>
-
-  <div id="empty-state">
-    <p>No phrases found.</p>
-    <p style="margin-top:8px;font-size:0.85rem">Run <code>python scripts/generate_audio.py</code> first.</p>
-  </div>
-
-  <!-- AI Chat panel (shown when AI tab is active) -->
-  <div id="ai-panel" style="display:none">
-
-    <div id="ai-sub-tabs">
-      <button class="ai-sub-btn active" data-aimode="translate">Translate</button>
-      <button class="ai-sub-btn" data-aimode="correct">Correct</button>
-      <button class="ai-sub-btn" data-aimode="chat">Chat</button>
+    <nav id="mode-tabs">
+      <div class="tab active" data-mode="listen"><span class="tab-icon">🎧</span><span class="tab-label">Listen</span></div>
+      <div class="tab" data-mode="shadow"><span class="tab-icon">🔊</span><span class="tab-label">Shadow</span></div>
+      <div class="tab" data-mode="recall"><span class="tab-icon">🧠</span><span class="tab-label">Recall</span></div>
+      <div class="tab" data-mode="ai"><span class="tab-icon">🤖</span><span class="tab-label">AI</span></div>
+      <div class="tab" data-mode="progress"><span class="tab-icon">📊</span><span class="tab-label">Progress</span></div>
+      <div class="tab" data-mode="vocab"><span class="tab-icon">📚</span><span class="tab-label">Vocab</span></div>
+      <div class="tab" data-mode="grammar"><span class="tab-icon">📖</span><span class="tab-label">Grammar</span></div>
+      <div class="tab" data-mode="words"><span class="tab-icon">🔤</span><span class="tab-label">Words</span></div>
+    </nav>
+    <div class="sidebar-footer">
+      <span id="counter">0 / 0</span>
     </div>
+  </aside>
 
-    <div id="ai-tc-panel">
+  <main class="app-main">
 
-    <div id="ai-category-row">
-      <span class="ai-label">Save to island:</span>
-      <select id="ai-category-select"></select>
-    </div>
-
-    <div id="ai-mic-area">
-      <button id="ai-mic-btn" aria-label="Tap to speak">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-        </svg>
-      </button>
-      <div id="ai-lang-hint">Speak in English</div>
-      <div id="ai-mic-status">Tap mic to start</div>
-    </div>
-
-    <div id="ai-fallback-row">
-      <input id="ai-text-input" type="text" placeholder="Or type here and press Send">
-      <button id="ai-send-btn">Send</button>
-    </div>
-
-    <div id="ai-result-card" style="display:none">
-      <div id="ai-spinner" style="display:none">Thinking...</div>
-      <div id="ai-result-body"></div>
-      <div id="ai-result-actions">
-        <button id="ai-replay-btn">&#9654; Replay</button>
-        <button id="ai-save-btn">+ Save phrase</button>
-      </div>
-    </div>
-
-    <div id="ai-saved-section">
-      <div id="ai-saved-header">
-        <span id="ai-saved-count">Saved: 0</span>
-        <button id="mini-practice-btn">&#9654; Practice</button>
-        <button id="ai-export-btn">Export</button>
-        <button id="ai-clear-btn">Clear</button>
-      </div>
-      <div id="ai-saved-list"></div>
-    </div>
-
-    </div><!-- end #ai-tc-panel -->
-
-    <!-- Chat panel -->
-    <div id="ai-chat-panel" style="display:none">
-
-      <div id="chat-top-row">
-        <select id="chat-scenario-select">
-          <option value="">Free Chat</option>
-          <option value="hirschsprach_cafe">Language Café</option>
-          <option value="shopping">Shopping</option>
-          <option value="health">Doctor Visit</option>
-          <option value="travel">Train Station</option>
-          <option value="greetings">Meeting Someone</option>
-          <option value="food_drink">At Restaurant</option>
-          <option value="job_search">Job Interview</option>
-          <option value="social">Planning Weekend</option>
-          <option value="university_life">Study Session</option>
-          <option value="phone_digital">Phone & Tech Chat</option>
-          <option value="bureaucracy">Government Office</option>
+    <div id="controls-bar">
+      <div id="controls-row-1">
+        <select id="category-select"></select>
+        <select id="grammar-filter">
+          <option value="all">All Grammar</option>
+          <option value="Präteritum">Präteritum</option>
+          <option value="Relativsatz">Relative Clauses</option>
+          <option value="Passiv">Passive</option>
+          <option value="Konjunktiv-II">Konjunktiv II</option>
+          <option value="Modal">Modal Verbs</option>
+          <option value="Perfekt">Perfekt</option>
+          <option value="Nebensatz">Subordinate Clauses</option>
+          <option value="Futur-I">Futur I</option>
+          <option value="Fragewort">Questions</option>
+          <option value="Separierbar">Separable Verbs</option>
+          <option value="Reflexiv">Reflexive Verbs</option>
         </select>
-        <button id="chat-new-btn">New</button>
-        <button id="chat-history-btn">History</button>
+      </div>
+      <div id="controls-row-2">
+        <button class="toggle-btn active" id="auto-btn">Auto</button>
+        <button class="toggle-btn" id="shuffle-btn">Shuffle</button>
+        <button class="toggle-btn" id="loop-btn">Loop</button>
+        <button class="toggle-btn" id="repeat-btn">Repeat</button>
+      </div>
+    </div>
+
+    <div id="card-area">
+
+      <div class="card" id="card">
+        <div class="category-badge" id="category-badge"></div>
+        <div id="srs-status-badge" style="display:none"></div>
+        <div id="grammar-tag-container" style="display:none"></div>
+        <div class="german" id="german-text"></div>
+        <div class="english" id="english-text"></div>
+        <div class="reveal-hint" id="reveal-hint"></div>
       </div>
 
-      <div id="chat-goal-banner" style="display:none">
-        <div id="chat-goal-text"></div>
-      </div>
-
-      <div id="chat-messages"></div>
-
-      <div id="chat-typing" style="display:none">
-        <div class="chat-row ai-row">
-          <div class="chat-bubble ai-bubble typing-indicator">
-            <span></span><span></span><span></span>
-          </div>
+      <div id="audio-bar">
+        <button id="play-btn" aria-label="Play/Pause">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </button>
+        <div id="audio-info">
+          <div class="phrase-num" id="phrase-num"></div>
+          <div class="status-text" id="status-text">Ready</div>
+          <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
         </div>
       </div>
 
-      <div id="chat-hint-area" style="display:none">
-        <div id="chat-hint-chips"></div>
+      <div id="recall-srs-bar" style="display:none">
+        <span id="recall-due-count"></span>
+        <button class="toggle-btn" id="recall-autograde-toggle">Auto-grade: OFF</button>
+        <button class="toggle-btn" id="phrase-dir-btn" title="Toggle study direction">EN&#8594;DE</button>
+        <button class="toggle-btn" id="phrase-mc-btn" title="Multiple choice mode">MC</button>
       </div>
 
-      <div id="chat-input-row">
-        <button id="chat-hint-btn" title="Get a hint in English">?</button>
-        <input id="chat-input" type="text" placeholder="Schreiben Sie auf Deutsch..." autocomplete="off" autocorrect="off" spellcheck="false">
-        <button id="chat-mic-btn" aria-label="Speak German">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <div id="phrase-mc-area" style="display:none">
+        <div id="phrase-mc-choices"></div>
+      </div>
+
+      <div id="recall-buttons">
+        <button class="recall-btn got-it" id="got-it-btn">Got it (G)</button>
+        <button class="recall-btn missed" id="missed-btn">Missed (M)</button>
+      </div>
+
+      <div id="recall-voice-area" style="display:none">
+        <button id="recall-mic-btn" aria-label="Speak German">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
           </svg>
         </button>
-        <button id="chat-send-btn">Send</button>
+        <div id="recall-transcript"></div>
       </div>
 
-      <div id="chat-history-panel" style="display:none">
-        <div id="chat-history-header">
-          <span>Past Conversations</span>
-          <button id="chat-history-close">&#10005;</button>
+      <div id="stats-bar" style="display:none">
+        <div class="stat green"><div class="val" id="stat-got">0</div><div class="lbl">Got</div></div>
+        <div class="stat yellow"><div class="val" id="stat-total">0</div><div class="lbl">Done</div></div>
+        <div class="stat red"><div class="val" id="stat-missed">0</div><div class="lbl">Missed</div></div>
+        <div class="stat purple"><div class="val" id="stat-pct" style="display:none">-</div><div class="lbl">%</div></div>
+      </div>
+
+      <div id="nav-buttons">
+        <button class="nav-btn" id="prev-btn">&#8592; Prev</button>
+        <button class="nav-btn" id="next-btn">Next &#8594;</button>
+      </div>
+
+      <div id="empty-state">
+        <p>No phrases found.</p>
+        <p style="margin-top:8px;font-size:0.85rem">Run <code>python scripts/generate_audio.py</code> first.</p>
+      </div>
+
+      <!-- AI Chat panel (shown when AI tab is active) -->
+      <div id="ai-panel" style="display:none">
+
+        <div id="ai-sub-tabs">
+          <button class="ai-sub-btn active" data-aimode="translate">Translate</button>
+          <button class="ai-sub-btn" data-aimode="correct">Correct</button>
+          <button class="ai-sub-btn" data-aimode="chat">Chat</button>
         </div>
-        <div id="chat-history-list"></div>
+
+        <div id="ai-tc-panel">
+
+        <div id="ai-category-row">
+          <span class="ai-label">Save to island:</span>
+          <select id="ai-category-select"></select>
+        </div>
+
+        <div id="ai-mic-area">
+          <button id="ai-mic-btn" aria-label="Tap to speak">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </button>
+          <div id="ai-lang-hint">Speak in English</div>
+          <div id="ai-mic-status">Tap mic to start</div>
+        </div>
+
+        <div id="ai-fallback-row">
+          <input id="ai-text-input" type="text" placeholder="Or type here and press Send">
+          <button id="ai-send-btn">Send</button>
+        </div>
+
+        <div id="ai-result-card" style="display:none">
+          <div id="ai-spinner" style="display:none">Thinking...</div>
+          <div id="ai-result-body"></div>
+          <div id="ai-result-actions">
+            <button id="ai-replay-btn">&#9654; Replay</button>
+            <button id="ai-save-btn">+ Save phrase</button>
+          </div>
+        </div>
+
+        <div id="ai-saved-section">
+          <div id="ai-saved-header">
+            <span id="ai-saved-count">Saved: 0</span>
+            <button id="mini-practice-btn">&#9654; Practice</button>
+            <button id="ai-export-btn">Export</button>
+            <button id="ai-clear-btn">Clear</button>
+          </div>
+          <div id="ai-saved-list"></div>
+        </div>
+
+        </div><!-- end #ai-tc-panel -->
+
+        <!-- Chat panel -->
+        <div id="ai-chat-panel" style="display:none">
+
+          <div id="chat-top-row">
+            <select id="chat-scenario-select">
+              <option value="">Free Chat</option>
+              <option value="hirschsprach_cafe">Language Café</option>
+              <option value="shopping">Shopping</option>
+              <option value="health">Doctor Visit</option>
+              <option value="travel">Train Station</option>
+              <option value="greetings">Meeting Someone</option>
+              <option value="food_drink">At Restaurant</option>
+              <option value="job_search">Job Interview</option>
+              <option value="social">Planning Weekend</option>
+              <option value="university_life">Study Session</option>
+              <option value="phone_digital">Phone &amp; Tech Chat</option>
+              <option value="bureaucracy">Government Office</option>
+            </select>
+            <button id="chat-new-btn">New</button>
+            <button id="chat-history-btn">History</button>
+          </div>
+
+          <div id="chat-goal-banner" style="display:none">
+            <div id="chat-goal-text"></div>
+          </div>
+
+          <div id="chat-messages"></div>
+
+          <div id="chat-typing" style="display:none">
+            <div class="chat-row ai-row">
+              <div class="chat-bubble ai-bubble typing-indicator">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+
+          <div id="chat-hint-area" style="display:none">
+            <div id="chat-hint-chips"></div>
+          </div>
+
+          <div id="chat-input-row">
+            <button id="chat-hint-btn" title="Get a hint in English">?</button>
+            <input id="chat-input" type="text" placeholder="Schreiben Sie auf Deutsch..." autocomplete="off" autocorrect="off" spellcheck="false">
+            <button id="chat-mic-btn" aria-label="Speak German">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            </button>
+            <button id="chat-send-btn">Send</button>
+          </div>
+
+          <div id="chat-history-panel" style="display:none">
+            <div id="chat-history-header">
+              <span>Past Conversations</span>
+              <button id="chat-history-close">&#10005;</button>
+            </div>
+            <div id="chat-history-list"></div>
+          </div>
+
+        </div><!-- end #ai-chat-panel -->
+
+        <!-- Mini-player for practicing saved AI phrases -->
+        <div id="ai-mini-player" style="display:none">
+          <div id="mini-player-topbar">
+            <span id="mini-count">1 / 0</span>
+            <div id="mini-player-controls">
+              <button id="mini-shuffle-btn">Shuffle</button>
+              <button id="mini-close-btn">&#10005; Close</button>
+            </div>
+          </div>
+          <div id="mini-card">
+            <div id="mini-category"></div>
+            <div id="mini-english"></div>
+            <div id="mini-hint">Tap card to reveal German</div>
+            <div id="mini-german" style="display:none"></div>
+            <div id="mini-no-audio" style="display:none">No audio for this phrase</div>
+          </div>
+          <div id="mini-player-btns" style="display:none">
+            <button id="mini-got-it-btn">Got it &#10003;</button>
+            <button id="mini-skip-btn">Next &#8594;</button>
+          </div>
+          <button id="mini-replay-btn" style="display:none">&#9654; Replay audio</button>
+        </div>
+
       </div>
 
-    </div><!-- end #ai-chat-panel -->
+      <!-- Progress panel (shown when Progress tab is active) -->
+      <div id="progress-panel" style="display:none">
 
-    <!-- Mini-player for practicing saved AI phrases -->
-    <div id="ai-mini-player" style="display:none">
-      <div id="mini-player-topbar">
-        <span id="mini-count">1 / 0</span>
-        <div id="mini-player-controls">
-          <button id="mini-shuffle-btn">Shuffle</button>
-          <button id="mini-close-btn">&#10005; Close</button>
+        <div id="progress-summary">
+          <div class="prog-stat"><div class="prog-val" id="prog-due-val">0</div><div class="prog-lbl">Due</div></div>
+          <div class="prog-stat"><div class="prog-val" id="prog-upcoming-val">0</div><div class="prog-lbl">Upcoming</div></div>
+          <div class="prog-stat"><div class="prog-val" id="prog-mastered-val">0</div><div class="prog-lbl">Mastered</div></div>
+          <div class="prog-stat"><div class="prog-val" id="prog-new-val">0</div><div class="prog-lbl">New</div></div>
+        </div>
+
+        <div id="progress-filters">
+          <button class="prog-filter active" data-filter="due">Due Now</button>
+          <button class="prog-filter" data-filter="upcoming">Upcoming</button>
+          <button class="prog-filter" data-filter="mastered">Mastered</button>
+          <button class="prog-filter" data-filter="archived">Archived</button>
+          <button class="prog-filter" data-filter="all">All</button>
+        </div>
+
+        <div id="progress-list"></div>
+
+      </div>
+
+      <!-- Vocab panel -->
+      <div id="vocab-panel" style="display:none">
+        <div id="vocab-panel-search-row">
+          <input id="vocab-panel-search" type="text" placeholder="Search words...">
+        </div>
+        <div id="vocab-panel-list"></div>
+      </div>
+
+      <!-- Grammar panel -->
+      <div id="grammar-panel" style="display:none">
+        <div id="grammar-list"></div>
+      </div>
+
+      <!-- Words panel -->
+      <div id="words-panel" style="display:none">
+        <div id="words-controls">
+          <select id="word-tier-select">
+            <option value="all">All Tiers</option>
+            <option value="1">T1 - Core (1-100)</option>
+            <option value="2">T2 - Daily (101-300)</option>
+            <option value="3">T3 - Broader (301-600)</option>
+            <option value="4">T4 - Advanced (601-1000)</option>
+          </select>
+          <select id="word-pos-filter">
+            <option value="all">All Types</option>
+            <option value="verb">Verbs</option>
+            <option value="noun">Nouns</option>
+            <option value="adj">Adjectives</option>
+            <option value="adv">Adverbs</option>
+            <option value="prep">Prepositions</option>
+            <option value="conj">Conjunctions</option>
+            <option value="pron">Pronouns</option>
+          </select>
+        </div>
+        <div id="words-mode-controls">
+          <button id="word-shuffle-btn">Shuffle</button>
+          <button id="word-dir-btn" title="Toggle study direction">DE&#8594;EN</button>
+          <button id="word-mc-btn" title="Multiple choice mode">MC</button>
+        </div>
+        <div id="words-stats-bar">
+          <span id="words-mastered-count">0 mastered</span>
+          <span id="words-due-count">0 due</span>
+          <span id="words-total-count">/ 0</span>
+          <span id="words-session-stats" style="display:none"></span>
+        </div>
+        <div id="word-card">
+          <div id="word-meta-row">
+            <span id="word-tier-chip"></span>
+            <span id="word-pos-badge"></span>
+            <span id="word-srs-status-chip" style="display:none"></span>
+          </div>
+          <div id="word-en-prompt-row" style="display:none">
+            <span id="word-en-prompt-el"></span>
+          </div>
+          <div id="word-main-row">
+            <span id="word-article-el"></span>
+            <span id="word-german-el"></span>
+          </div>
+          <div id="word-sentence-de"></div>
+          <div id="word-actions-row">
+            <button id="word-hint-btn" style="display:none">Hint</button>
+            <button id="word-tts-btn">&#9654; Hear it</button>
+          </div>
+          <div id="word-mnemonic-el" style="display:none"></div>
+          <div id="word-mc-choices" style="display:none"></div>
+          <button id="word-reveal-btn">Show Answer</button>
+          <div id="word-translation-area" style="display:none">
+            <div id="word-english-el"></div>
+            <div id="word-sentence-en-el"></div>
+            <div id="word-srs-buttons">
+              <button class="word-srs-btn word-miss" onclick="handleWordSRS('miss')">Miss</button>
+              <button class="word-srs-btn word-hard" onclick="handleWordSRS('hard')">Hard</button>
+              <button class="word-srs-btn word-good" onclick="handleWordSRS('good')">Good</button>
+              <button class="word-srs-btn word-easy" onclick="handleWordSRS('easy')">Easy</button>
+            </div>
+          </div>
+        </div>
+        <div id="word-nav-row">
+          <button id="word-prev-btn">&#8592; Prev</button>
+          <span id="word-position">1 / 1000</span>
+          <button id="word-next-btn">Next &#8594;</button>
         </div>
       </div>
-      <div id="mini-card">
-        <div id="mini-category"></div>
-        <div id="mini-english"></div>
-        <div id="mini-hint">Tap card to reveal German</div>
-        <div id="mini-german" style="display:none"></div>
-        <div id="mini-no-audio" style="display:none">No audio for this phrase</div>
-      </div>
-      <div id="mini-player-btns" style="display:none">
-        <button id="mini-got-it-btn">Got it &#10003;</button>
-        <button id="mini-skip-btn">Next &#8594;</button>
-      </div>
-      <button id="mini-replay-btn" style="display:none">&#9654; Replay audio</button>
-    </div>
 
-  </div>
+    </div><!-- end #card-area -->
 
-  <!-- Progress panel (shown when Progress tab is active) -->
-  <div id="progress-panel" style="display:none">
+  </main>
 
-    <div id="progress-summary">
-      <div class="prog-stat"><div class="prog-val" id="prog-due-val">0</div><div class="prog-lbl">Due</div></div>
-      <div class="prog-stat"><div class="prog-val" id="prog-upcoming-val">0</div><div class="prog-lbl">Upcoming</div></div>
-      <div class="prog-stat"><div class="prog-val" id="prog-mastered-val">0</div><div class="prog-lbl">Mastered</div></div>
-      <div class="prog-stat"><div class="prog-val" id="prog-new-val">0</div><div class="prog-lbl">New</div></div>
-    </div>
+</div><!-- end .app-layout -->
 
-    <div id="progress-filters">
-      <button class="prog-filter active" data-filter="due">Due Now</button>
-      <button class="prog-filter" data-filter="upcoming">Upcoming</button>
-      <button class="prog-filter" data-filter="mastered">Mastered</button>
-      <button class="prog-filter" data-filter="archived">Archived</button>
-      <button class="prog-filter" data-filter="all">All</button>
-    </div>
-
-    <div id="progress-list"></div>
-
-  </div>
-
-  <!-- Vocab panel -->
-  <div id="vocab-panel" style="display:none">
-    <div id="vocab-panel-search-row">
-      <input id="vocab-panel-search" type="text" placeholder="Search words...">
-    </div>
-    <div id="vocab-panel-list"></div>
-  </div>
-
-  <!-- Grammar panel -->
-  <div id="grammar-panel" style="display:none">
-    <div id="grammar-list"></div>
-  </div>
-
-  <!-- Words panel -->
-  <div id="words-panel" style="display:none">
-    <div id="words-controls">
-      <select id="word-tier-select">
-        <option value="all">All Tiers</option>
-        <option value="1">T1 - Core (1-100)</option>
-        <option value="2">T2 - Daily (101-300)</option>
-        <option value="3">T3 - Broader (301-600)</option>
-        <option value="4">T4 - Advanced (601-1000)</option>
-      </select>
-      <select id="word-pos-filter">
-        <option value="all">All Types</option>
-        <option value="verb">Verbs</option>
-        <option value="noun">Nouns</option>
-        <option value="adj">Adjectives</option>
-        <option value="adv">Adverbs</option>
-        <option value="prep">Prepositions</option>
-        <option value="conj">Conjunctions</option>
-        <option value="pron">Pronouns</option>
-      </select>
-    </div>
-    <div id="words-mode-controls">
-      <button id="word-shuffle-btn">Shuffle</button>
-      <button id="word-dir-btn" title="Toggle study direction">DE&#8594;EN</button>
-      <button id="word-mc-btn" title="Multiple choice mode">MC</button>
-    </div>
-    <div id="words-stats-bar">
-      <span id="words-mastered-count">0 mastered</span>
-      <span id="words-due-count">0 due</span>
-      <span id="words-total-count">/ 0</span>
-      <span id="words-session-stats" style="display:none"></span>
-    </div>
-    <div id="word-card">
-      <div id="word-meta-row">
-        <span id="word-tier-chip"></span>
-        <span id="word-pos-badge"></span>
-        <span id="word-srs-status-chip" style="display:none"></span>
-      </div>
-      <div id="word-en-prompt-row" style="display:none">
-        <span id="word-en-prompt-el"></span>
-      </div>
-      <div id="word-main-row">
-        <span id="word-article-el"></span>
-        <span id="word-german-el"></span>
-      </div>
-      <div id="word-sentence-de"></div>
-      <div id="word-actions-row">
-        <button id="word-hint-btn" style="display:none">Hint</button>
-        <button id="word-tts-btn">&#9654; Hear it</button>
-      </div>
-      <div id="word-mnemonic-el" style="display:none"></div>
-      <div id="word-mc-choices" style="display:none"></div>
-      <button id="word-reveal-btn">Show Answer</button>
-      <div id="word-translation-area" style="display:none">
-        <div id="word-english-el"></div>
-        <div id="word-sentence-en-el"></div>
-        <div id="word-srs-buttons">
-          <button class="word-srs-btn word-miss" onclick="handleWordSRS('miss')">Miss</button>
-          <button class="word-srs-btn word-hard" onclick="handleWordSRS('hard')">Hard</button>
-          <button class="word-srs-btn word-good" onclick="handleWordSRS('good')">Good</button>
-          <button class="word-srs-btn word-easy" onclick="handleWordSRS('easy')">Easy</button>
-        </div>
-      </div>
-    </div>
-    <div id="word-nav-row">
-      <button id="word-prev-btn">&#8592; Prev</button>
-      <span id="word-position">1 / 1000</span>
-      <button id="word-next-btn">Next &#8594;</button>
-    </div>
-  </div>
-
-</div>
-
-<!-- Vocab popup modal (outside #card-area) -->
+<!-- Vocab popup modal (outside .app-layout) -->
 <div id="vocab-modal" style="display:none">
   <div id="vocab-modal-inner">
     <button id="vocab-modal-close">✕</button>

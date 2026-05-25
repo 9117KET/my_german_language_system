@@ -603,6 +603,14 @@ const statTotal = document.getElementById("stat-total");
 // Player-only elements to hide when AI tab is active
 const playerEls = ["card", "audio-bar", "recall-buttons", "stats-bar", "nav-buttons", "empty-state"];
 
+function hideRecallSpecificEls() {
+  ["recall-srs-bar", "phrase-mc-area", "recall-voice-area"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+  if (recallIsRecording && recallRecognition) recallRecognition.stop();
+}
+
 // ---- DOM refs (AI panel) ----
 const aiPanel = document.getElementById("ai-panel");
 const aiSubBtns = document.querySelectorAll(".ai-sub-btn");
@@ -968,6 +976,7 @@ function showPlayerPanel() {
 function showAIPanel() {
   document.getElementById("controls-bar").style.display = "none";
   playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
@@ -1572,6 +1581,7 @@ function renderRecallModeHeader() {
 function showProgressPanel() {
   document.getElementById("controls-bar").style.display = "none";
   playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
   aiPanel.style.display = "none";
   document.getElementById("progress-panel").style.display = "flex";
   renderProgressTab();
@@ -1741,6 +1751,7 @@ function renderVocabPanel(search = "") {
 function showVocabPanel() {
   document.getElementById("controls-bar").style.display = "none";
   playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
   aiPanel.style.display = "none";
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
@@ -1755,6 +1766,7 @@ function showGrammarPanel(filterTag = null) {
   grammarTopicFilter = filterTag;
   document.getElementById("controls-bar").style.display = "none";
   playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
   aiPanel.style.display = "none";
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "none";
@@ -2435,6 +2447,7 @@ function wordTTS() {
 function showWordsPanel() {
   document.getElementById("controls-bar").style.display = "none";
   playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
   aiPanel.style.display = "none";
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "none";
