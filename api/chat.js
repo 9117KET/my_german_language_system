@@ -230,3 +230,6 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 };
+
+module.exports.buildConvoSystemPrompt = buildConvoSystemPrompt;
+module.exports.TEACHER_PERSONALITIES = TEACHER_PERSONALITIES;

@@ -1,0 +1,11 @@
+{
+  "name": "my-language-learning-system",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/chat.test.js tests/deepgram-token.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
