@@ -151,6 +151,30 @@ module.exports = async function handler(req, res) {
     return res.json({ hints });
   }
 
+  // greeting mode - AI opens the conversation, no learner text needed
+  if (mode === "greeting") {
+    try {
+      const basePrompt = buildConvoSystemPrompt(scenario, teacherMode);
+      const systemPrompt = basePrompt + "\n\nIMPORTANT: The conversation is just starting. The learner has not said anything yet. Open with a warm, natural German greeting. Set correction to null always.";
+      const raw = await callGroqMessages([
+        { role: "system", content: systemPrompt },
+        { role: "user", content: "[CONVERSATION_START]" },
+      ], 150);
+      let reply;
+      try {
+        const parsed = JSON.parse(stripMarkdown(raw));
+        reply = parsed.reply || raw;
+      } catch {
+        reply = raw;
+      }
+      const audio_base64 = await callElevenLabs(reply);
+      return res.json({ reply, correction: null, audio_base64 });
+    } catch (err) {
+      console.error("[api/chat greeting]", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   if (!text || !text.trim()) return res.status(400).json({ error: "No text provided" });
 
   try {

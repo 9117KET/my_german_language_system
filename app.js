@@ -1946,6 +1946,10 @@ function setupChatSpeech() {
 
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { document.getElementById("chat-mic-btn").style.display = "none"; return; }
+
+  const sttLabel = document.getElementById("chat-stt-mode");
+  if (sttLabel) sttLabel.textContent = "Browser mic";
+
   chatRecognition = new SR();
   chatRecognition.continuous = true;
   chatRecognition.interimResults = true;
@@ -1958,6 +1962,7 @@ function setupChatSpeech() {
     chatIsRecording = true;
     finalTranscript = "";
     document.getElementById("chat-mic-btn").classList.add("recording");
+    setChatVoiceStatus("Listening...");
     setChatInterim("");
   };
   chatRecognition.onresult = (e) => {
@@ -1976,12 +1981,14 @@ function setupChatSpeech() {
     chatIsRecording = false;
     clearTimeout(silenceTimer);
     document.getElementById("chat-mic-btn").classList.remove("recording");
+    setChatVoiceStatus("");
     setChatInterim("");
   };
   chatRecognition.onend = () => {
     chatIsRecording = false;
     clearTimeout(silenceTimer);
     document.getElementById("chat-mic-btn").classList.remove("recording");
+    setChatVoiceStatus("");
     setChatInterim("");
     const text = finalTranscript.trim();
     if (text) {
@@ -1997,8 +2004,8 @@ async function checkDeepgramAvailability() {
     const res = await fetch("/api/deepgram-token", { method: "POST" });
     if (res.ok) {
       deepgramAvailable = true;
-      const micBtn = document.getElementById("chat-mic-btn");
-      if (micBtn) micBtn.title = "Deepgram STT active";
+      const sttLabel = document.getElementById("chat-stt-mode");
+      if (sttLabel) sttLabel.textContent = "Deepgram";
     }
   } catch {
     deepgramAvailable = false;
@@ -2019,6 +2026,7 @@ async function startDeepgramRecording() {
     deepgramWS.onopen = () => {
       chatIsRecording = true;
       document.getElementById("chat-mic-btn").classList.add("recording");
+      setChatVoiceStatus("Listening...");
       setChatInterim("");
 
       deepgramRecorder = new MediaRecorder(deepgramStream, { mimeType: "audio/webm;codecs=opus" });
@@ -2066,6 +2074,7 @@ async function startDeepgramRecording() {
 function stopDeepgramRecording(finalText) {
   chatIsRecording = false;
   document.getElementById("chat-mic-btn").classList.remove("recording");
+  setChatVoiceStatus("");
   setChatInterim("");
 
   if (deepgramRecorder && deepgramRecorder.state !== "inactive") deepgramRecorder.stop();
@@ -2086,10 +2095,20 @@ function setChatInterim(text) {
     el = document.createElement("div");
     el.id = "chat-interim";
     el.className = "chat-interim-text";
-    const inputRow = document.getElementById("chat-input-row");
-    inputRow.parentNode.insertBefore(el, inputRow);
+    const statusRow = document.getElementById("chat-voice-status-row");
+    statusRow.parentNode.insertBefore(el, statusRow);
   }
   el.textContent = text;
+}
+
+function setChatVoiceStatus(text) {
+  const el = document.getElementById("chat-voice-status");
+  if (el) el.textContent = text;
+}
+
+function setChatMicEnabled(enabled) {
+  const btn = document.getElementById("chat-mic-btn");
+  if (btn) btn.disabled = !enabled;
 }
 
 function startConversation(scenarioKey) {
@@ -2100,14 +2119,36 @@ function startConversation(scenarioKey) {
   document.getElementById("chat-hint-area").style.display = "none";
   document.getElementById("chat-history-panel").style.display = "none";
 
-  if (convoScenario && SCENARIOS[convoScenario]) {
-    const s = SCENARIOS[convoScenario];
-    convoMessages.push({ role: "assistant", text: s.starter, correction: null, audio_base64: null, timestamp: new Date().toISOString() });
-    convoHistory.push({ role: "assistant", content: s.starter });
-  }
-
   renderChatGoal();
   renderChatMessages();
+  showChatTyping(true);
+  fetchAIGreeting();
+}
+
+async function fetchAIGreeting() {
+  setChatMicEnabled(false);
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "greeting", scenario: convoScenario, teacherMode }),
+    });
+    const data = await res.json();
+    showChatTyping(false);
+    if (!res.ok) throw new Error(data.error || "Server error");
+
+    convoMessages.push({ role: "assistant", text: data.reply, correction: null, audio_base64: data.audio_base64 || null, timestamp: new Date().toISOString() });
+    convoHistory.push({ role: "assistant", content: data.reply });
+
+    renderChatMessages();
+    scrollChatToBottom();
+    if (data.audio_base64) playBase64Audio(data.audio_base64);
+  } catch {
+    showChatTyping(false);
+    renderChatMessages();
+  } finally {
+    setChatMicEnabled(true);
+  }
 }
 
 async function sendConvoMessage(text) {
@@ -2121,6 +2162,8 @@ async function sendConvoMessage(text) {
   renderChatMessages();
   scrollChatToBottom();
   showChatTyping(true);
+  setChatVoiceStatus("Processing...");
+  setChatMicEnabled(false);
 
   try {
     const res = await fetch("/api/chat", {
@@ -2131,6 +2174,8 @@ async function sendConvoMessage(text) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Server error");
     showChatTyping(false);
+    setChatVoiceStatus("");
+    setChatMicEnabled(true);
 
     convoMessages[convoMessages.length - 1].correction = data.correction || null;
     convoMessages.push({ role: "assistant", text: data.reply, correction: null, audio_base64: data.audio_base64 || null, timestamp: new Date().toISOString() });
@@ -2142,6 +2187,8 @@ async function sendConvoMessage(text) {
     saveConvoSession();
   } catch (err) {
     showChatTyping(false);
+    setChatVoiceStatus("");
+    setChatMicEnabled(true);
     convoMessages.push({ role: "assistant", text: `Error: ${err.message}`, correction: null, audio_base64: null, timestamp: new Date().toISOString() });
     renderChatMessages();
     scrollChatToBottom();

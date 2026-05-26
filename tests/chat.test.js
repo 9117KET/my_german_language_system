@@ -253,4 +253,77 @@ describe("handler routing", () => {
     assert.ok(res.body?.correction !== undefined, "correction field missing");
     assert.ok(typeof res.body?.audio_base64 === "string", "audio_base64 should be a string");
   });
+
+  test("greeting mode returns reply and audio without needing text", async () => {
+    const h = loadChatHandler({ GROQ_API_KEY: "fake", ELEVENLABS_API_KEY: "fake" });
+
+    global._chatFetchOrig = global.fetch;
+    global.fetch = async (url) => {
+      if (url.includes("groq")) {
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [{ message: { content: '{"reply":"Hallo! Wie war dein Tag?","correction":null}' } }],
+          }),
+        };
+      }
+      if (url.includes("elevenlabs")) {
+        return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) };
+      }
+    };
+
+    const res = mockRes();
+    await h({ method: "POST", body: { mode: "greeting", scenario: null, teacherMode: "caring" } }, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.ok(typeof res.body?.reply === "string" && res.body.reply.length > 0, "reply should be non-empty string");
+    assert.equal(res.body?.correction, null, "greeting should always have null correction");
+    assert.ok(typeof res.body?.audio_base64 === "string", "audio_base64 should be a string");
+  });
+
+  test("greeting mode includes personality in Groq system prompt", async () => {
+    const h = loadChatHandler({ GROQ_API_KEY: "fake", ELEVENLABS_API_KEY: "fake" });
+
+    let capturedSystem = null;
+    global._chatFetchOrig = global.fetch;
+    global.fetch = async (url, opts) => {
+      if (url.includes("groq")) {
+        const body = JSON.parse(opts.body);
+        capturedSystem = body.messages.find(m => m.role === "system")?.content || "";
+        return {
+          ok: true,
+          json: async () => ({
+            choices: [{ message: { content: '{"reply":"Guten Tag!","correction":null}' } }],
+          }),
+        };
+      }
+      if (url.includes("elevenlabs")) {
+        return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) };
+      }
+    };
+
+    const res = mockRes();
+    await h({ method: "POST", body: { mode: "greeting", scenario: null, teacherMode: "strict" } }, res);
+
+    assert.ok(capturedSystem.includes(TEACHER_PERSONALITIES.strict), "strict personality should be in greeting system prompt");
+  });
+
+  test("greeting mode does not require text field", async () => {
+    const h = loadChatHandler({ GROQ_API_KEY: "fake", ELEVENLABS_API_KEY: "fake" });
+
+    global._chatFetchOrig = global.fetch;
+    global.fetch = async (url) => {
+      if (url.includes("groq")) {
+        return { ok: true, json: async () => ({ choices: [{ message: { content: '{"reply":"Hallo!","correction":null}' } }] }) };
+      }
+      if (url.includes("elevenlabs")) {
+        return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) };
+      }
+    };
+
+    const res = mockRes();
+    // No text field at all
+    await h({ method: "POST", body: { mode: "greeting" } }, res);
+    assert.equal(res.statusCode, 200, "greeting should work with no text field");
+  });
 });
