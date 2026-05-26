@@ -579,6 +579,7 @@ let convoSessionId = null;
 let chatRecognition = null;
 let chatIsRecording = false;
 let teacherMode = localStorage.getItem("teacherMode") || "caring";
+let languageLevel = localStorage.getItem("languageLevel") || "b1";
 
 // Deepgram state
 let deepgramAvailable = false;
@@ -587,6 +588,11 @@ let deepgramStream = null;
 let deepgramRecorder = null;
 let deepgramSilenceTimer = null;
 let deepgramInterimEl = null;
+
+// Conversation session state
+let chatSessionActive = false;
+let chatCurrentAudio = null;
+let audioContextUnlocked = false;
 
 // ---- DOM refs (player) ----
 const tabEls = document.querySelectorAll(".tab");
@@ -1251,6 +1257,15 @@ function setupAIEvents() {
         document.getElementById("ai-chat-panel").style.display = "none";
         aiLangHint.textContent = aiMode === "translate" ? "Speak in English" : "Sprechen Sie Deutsch";
         document.getElementById("ai-category-row").style.display = aiMode === "translate" ? "flex" : "none";
+        const modeTitle = document.getElementById("ai-mode-title");
+        const modeDesc = document.getElementById("ai-mode-desc");
+        if (aiMode === "translate") {
+          if (modeTitle) modeTitle.textContent = "Translate to German";
+          if (modeDesc) modeDesc.textContent = "Speak or type in English — hear the German.";
+        } else {
+          if (modeTitle) modeTitle.textContent = "Check my German";
+          if (modeDesc) modeDesc.textContent = "Say or type a German sentence — get it corrected.";
+        }
         clearAIResult();
         if (recognition) recognition.lang = aiMode === "translate" ? "en-US" : "de-DE";
       }
@@ -1905,13 +1920,25 @@ function initChat() {
     });
   });
 
+  // Language level
+  const levelSel = document.getElementById("chat-level-select");
+  if (levelSel) {
+    levelSel.value = languageLevel;
+    levelSel.addEventListener("change", (e) => {
+      languageLevel = e.target.value;
+      localStorage.setItem("languageLevel", languageLevel);
+    });
+  }
+
   checkDeepgramAvailability().then(() => setupChatSpeech());
   startConversation(null);
 
   document.getElementById("chat-scenario-select").addEventListener("change", (e) => {
+    stopChatSession();
     startConversation(e.target.value || null);
   });
   document.getElementById("chat-new-btn").addEventListener("click", () => {
+    stopChatSession();
     startConversation(document.getElementById("chat-scenario-select").value || null);
   });
   document.getElementById("chat-history-btn").addEventListener("click", showChatHistory);
@@ -1930,14 +1957,9 @@ function initChat() {
     }
   });
   document.getElementById("chat-mic-btn").addEventListener("click", () => {
-    if (deepgramAvailable) {
-      if (chatIsRecording) stopDeepgramRecording();
-      else startDeepgramRecording();
-    } else {
-      if (!chatRecognition) return;
-      if (chatIsRecording) chatRecognition.stop();
-      else chatRecognition.start();
-    }
+    unlockAudio();
+    if (chatSessionActive) stopChatSession();
+    else startChatSession();
   });
 }
 
@@ -1975,7 +1997,7 @@ function setupChatSpeech() {
     clearTimeout(silenceTimer);
     silenceTimer = setTimeout(() => {
       chatRecognition.stop();
-    }, 800);
+    }, 1800);
   };
   chatRecognition.onerror = () => {
     chatIsRecording = false;
@@ -1999,6 +2021,90 @@ function setupChatSpeech() {
   };
 }
 
+// ---- Audio unlock (required on mobile before programmatic play) ----
+
+function unlockAudio() {
+  if (audioContextUnlocked) return;
+  const silent = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=");
+  silent.play().then(() => { audioContextUnlocked = true; }).catch(() => {});
+}
+
+// ---- Conversation session ----
+
+function startChatSession() {
+  chatSessionActive = true;
+  updateMicBtnState("session");
+  startListening();
+}
+
+function stopChatSession() {
+  chatSessionActive = false;
+  if (chatCurrentAudio) { chatCurrentAudio.pause(); chatCurrentAudio = null; }
+  if (chatIsRecording) {
+    if (deepgramAvailable) stopDeepgramRecording();
+    else if (chatRecognition) chatRecognition.stop();
+  }
+  updateMicBtnState("idle");
+}
+
+function startListening() {
+  if (!chatSessionActive || chatIsRecording) return;
+  updateMicBtnState("listening");
+  if (deepgramAvailable) startDeepgramRecording();
+  else if (chatRecognition) chatRecognition.start();
+}
+
+function updateMicBtnState(state) {
+  const btn = document.getElementById("chat-mic-btn");
+  const label = document.getElementById("chat-mic-label");
+  if (!btn) return;
+  btn.classList.remove("recording", "ai-speaking");
+  switch (state) {
+    case "idle":
+      btn.disabled = false;
+      if (label) label.textContent = "Tap to start";
+      break;
+    case "session":
+      btn.disabled = false;
+      if (label) label.textContent = "Tap to stop";
+      break;
+    case "listening":
+      btn.disabled = false;
+      btn.classList.add("recording");
+      if (label) label.textContent = "Listening...";
+      break;
+    case "speaking":
+      btn.disabled = false;
+      btn.classList.add("ai-speaking");
+      if (label) label.textContent = "AI speaking...";
+      break;
+    case "processing":
+      btn.disabled = true;
+      if (label) label.textContent = "Processing...";
+      break;
+  }
+}
+
+function playChatResponse(base64) {
+  if (!base64) {
+    if (chatSessionActive) startListening();
+    return;
+  }
+  updateMicBtnState("speaking");
+  chatCurrentAudio = new Audio(`data:audio/mp3;base64,${base64}`);
+  chatCurrentAudio.onended = () => {
+    chatCurrentAudio = null;
+    setChatVoiceStatus("");
+    if (chatSessionActive) startListening();
+    else updateMicBtnState("idle");
+  };
+  chatCurrentAudio.play().catch(() => {
+    chatCurrentAudio = null;
+    if (chatSessionActive) startListening();
+    else updateMicBtnState("idle");
+  });
+}
+
 async function checkDeepgramAvailability() {
   try {
     const res = await fetch("/api/deepgram-token", { method: "POST" });
@@ -2020,7 +2126,7 @@ async function startDeepgramRecording() {
     const { key } = await tokenRes.json();
 
     deepgramStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const url = `wss://api.deepgram.com/v1/listen?language=de&model=nova-2&interim_results=true&utterance_end_ms=1000&vad_events=true&encoding=linear16&sample_rate=16000`;
+    const url = `wss://api.deepgram.com/v1/listen?language=de&model=nova-2&interim_results=true&utterance_end_ms=1500&endpointing=600&vad_events=true&encoding=linear16&sample_rate=16000`;
     deepgramWS = new WebSocket(url, ["token", key]);
 
     deepgramWS.onopen = () => {
@@ -2131,7 +2237,7 @@ async function fetchAIGreeting() {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "greeting", scenario: convoScenario, teacherMode }),
+      body: JSON.stringify({ mode: "greeting", scenario: convoScenario, teacherMode, languageLevel }),
     });
     const data = await res.json();
     showChatTyping(false);
@@ -2142,12 +2248,16 @@ async function fetchAIGreeting() {
 
     renderChatMessages();
     scrollChatToBottom();
-    if (data.audio_base64) playBase64Audio(data.audio_base64);
+    if (data.audio_base64) {
+      const audio = new Audio(`data:audio/mp3;base64,${data.audio_base64}`);
+      audio.play().catch(() => {});
+    }
   } catch {
     showChatTyping(false);
     renderChatMessages();
   } finally {
     setChatMicEnabled(true);
+    updateMicBtnState("idle");
   }
 }
 
@@ -2162,20 +2272,17 @@ async function sendConvoMessage(text) {
   renderChatMessages();
   scrollChatToBottom();
   showChatTyping(true);
-  setChatVoiceStatus("Processing...");
-  setChatMicEnabled(false);
+  updateMicBtnState("processing");
 
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "convo", text: text.trim(), history: convoHistory.slice(-20), scenario: convoScenario, teacherMode }),
+      body: JSON.stringify({ mode: "convo", text: text.trim(), history: convoHistory.slice(-20), scenario: convoScenario, teacherMode, languageLevel }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Server error");
     showChatTyping(false);
-    setChatVoiceStatus("");
-    setChatMicEnabled(true);
 
     convoMessages[convoMessages.length - 1].correction = data.correction || null;
     convoMessages.push({ role: "assistant", text: data.reply, correction: null, audio_base64: data.audio_base64 || null, timestamp: new Date().toISOString() });
@@ -2183,12 +2290,11 @@ async function sendConvoMessage(text) {
 
     renderChatMessages();
     scrollChatToBottom();
-    if (data.audio_base64) playBase64Audio(data.audio_base64);
+    playChatResponse(data.audio_base64 || null);
     saveConvoSession();
   } catch (err) {
     showChatTyping(false);
-    setChatVoiceStatus("");
-    setChatMicEnabled(true);
+    updateMicBtnState(chatSessionActive ? "session" : "idle");
     convoMessages.push({ role: "assistant", text: `Error: ${err.message}`, correction: null, audio_base64: null, timestamp: new Date().toISOString() });
     renderChatMessages();
     scrollChatToBottom();

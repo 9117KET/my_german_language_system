@@ -85,6 +85,14 @@ async function callGroqMessages(messages, maxTokens = 350, retried = false) {
   return data.choices[0].message.content.trim();
 }
 
+const LEVEL_DESCRIPTIONS = {
+  a1: "Use ONLY very simple German: present tense (sein, haben, gehen), basic everyday words, maximum 5-7 words per sentence. No complex grammar at all.",
+  a2: "Use simple German: present tense and Perfekt, basic modal verbs (können, müssen, wollen), simple conjunctions (und, aber, weil), maximum 8-10 words per sentence.",
+  b1: "Use natural German: Perfekt, modal verbs, common subordinate clauses (dass/weil/wenn), polite Konjunktiv II (würde, könnte).",
+  b2: "Use natural B2 German: all tenses, complex sentences, idiomatic phrases, varied vocabulary. No artificial simplification.",
+  c1: "Use advanced C1 German: complex grammar, Konjunktiv I, formal and informal register as appropriate, idiomatic and nuanced language.",
+};
+
 const TEACHER_PERSONALITIES = {
   caring: `Teaching style: Warm, encouraging coach. When the learner makes an error, restate the correct form naturally in your reply without explicitly saying "that was wrong". Praise effort frequently. Keep the learner motivated.`,
   strict: `Teaching style: Rigorous Gymnasium professor. Correct every grammatical error explicitly and immediately before continuing. Name the rule (e.g. "Akkusativ requires 'einen'"). Require precision in case, conjugation, and register.`,
@@ -92,7 +100,7 @@ const TEACHER_PERSONALITIES = {
   socratic: `Teaching style: Socratic guide. Never correct directly. Instead ask a question that leads the learner to notice and fix their own error. Example: "Welchen Artikel benutzt man hier?" or "Ist das Verb richtig konjugiert?". Only continue after they self-correct.`,
 };
 
-function buildConvoSystemPrompt(scenarioKey, teacherMode) {
+function buildConvoSystemPrompt(scenarioKey, teacherMode, languageLevel) {
   const SCENARIO_ROLES = {
     hirschsprach_cafe: "a friendly German native speaker at a language café",
     shopping:          "a helpful shop assistant in a German clothing store",
@@ -107,19 +115,20 @@ function buildConvoSystemPrompt(scenarioKey, teacherMode) {
     ? `You are playing the role of ${SCENARIO_ROLES[scenarioKey]}.\n`
     : "";
   const personalityCtx = TEACHER_PERSONALITIES[teacherMode] || TEACHER_PERSONALITIES.caring;
-  return `${roleCtx}You are a German conversation partner for a B1 learner.
+  const levelCtx = LEVEL_DESCRIPTIONS[languageLevel] || LEVEL_DESCRIPTIONS.b1;
+  return `${roleCtx}You are a German conversation partner.
 ${personalityCtx}
+Language level: ${levelCtx}
 
 RULES:
-1. Reply in natural German, B1 level, maximum 2-3 short sentences.
-2. Model these high-frequency structures: Perfekt, modal verbs, common subordinate clauses (dass/weil/wenn), polite Konjunktiv II.
-3. Check the learner's last message for ONE grammar or vocabulary error.
-4. Return ONLY valid JSON, no markdown, no extra text:
+1. Reply in German matching the language level above. Maximum 2-3 short sentences.
+2. Check the learner's last message for ONE grammar or vocabulary error.
+3. Return ONLY valid JSON, no markdown, no extra text:
    {"reply":"...","correction":null}
    or
    {"reply":"...","correction":{"original":"...","corrected":"...","explanation":"one sentence in English"}}
-5. Set correction to null if the learner's message had no errors.
-6. Keep the conversation flowing naturally.`;
+4. Set correction to null if the learner's message had no errors.
+5. Keep the conversation flowing naturally.`;
 }
 
 function stripMarkdown(text) {
@@ -137,7 +146,7 @@ module.exports = async function handler(req, res) {
   if (!GROQ_KEY) return res.status(500).json({ error: "GROQ_KEY not configured in Vercel environment variables" });
   if (!EL_KEY) return res.status(500).json({ error: "ELEVENLABS_API_KEY not configured in Vercel environment variables" });
 
-  const { mode, text, history, scenario, teacherMode } = req.body || {};
+  const { mode, text, history, scenario, teacherMode, languageLevel } = req.body || {};
 
   // hint mode doesn't require user text
   if (mode === "hint") {
@@ -154,7 +163,7 @@ module.exports = async function handler(req, res) {
   // greeting mode - AI opens the conversation, no learner text needed
   if (mode === "greeting") {
     try {
-      const basePrompt = buildConvoSystemPrompt(scenario, teacherMode);
+      const basePrompt = buildConvoSystemPrompt(scenario, teacherMode, languageLevel);
       const systemPrompt = basePrompt + "\n\nIMPORTANT: The conversation is just starting. The learner has not said anything yet. Open with a warm, natural German greeting. Set correction to null always.";
       const raw = await callGroqMessages([
         { role: "system", content: systemPrompt },
@@ -228,7 +237,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (mode === "convo") {
-      const systemPrompt = buildConvoSystemPrompt(scenario, teacherMode);
+      const systemPrompt = buildConvoSystemPrompt(scenario, teacherMode, languageLevel);
       const messages = [
         { role: "system", content: systemPrompt },
         ...(history || []).slice(-20),
@@ -257,3 +266,4 @@ module.exports = async function handler(req, res) {
 
 module.exports.buildConvoSystemPrompt = buildConvoSystemPrompt;
 module.exports.TEACHER_PERSONALITIES = TEACHER_PERSONALITIES;
+module.exports.LEVEL_DESCRIPTIONS = LEVEL_DESCRIPTIONS;

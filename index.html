@@ -154,58 +154,73 @@
       <div id="ai-panel" style="display:none">
 
         <div id="ai-sub-tabs">
-          <button class="ai-sub-btn active" data-aimode="translate">Translate</button>
-          <button class="ai-sub-btn" data-aimode="correct">Correct</button>
-          <button class="ai-sub-btn" data-aimode="chat">Chat</button>
+          <button class="ai-sub-btn active" data-aimode="translate">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>
+            Translate
+          </button>
+          <button class="ai-sub-btn" data-aimode="correct">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Correct
+          </button>
+          <button class="ai-sub-btn" data-aimode="chat">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            Conversation
+          </button>
         </div>
 
+        <!-- Translate / Correct shared panel -->
         <div id="ai-tc-panel">
 
-        <div id="ai-category-row">
-          <span class="ai-label">Save to island:</span>
-          <select id="ai-category-select"></select>
-        </div>
-
-        <div id="ai-mic-area">
-          <button id="ai-mic-btn" aria-label="Tap to speak">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-            </svg>
-          </button>
-          <div id="ai-lang-hint">Speak in English</div>
-          <div id="ai-mic-status">Tap mic to start</div>
-        </div>
-
-        <div id="ai-fallback-row">
-          <input id="ai-text-input" type="text" placeholder="Or type here and press Send">
-          <button id="ai-send-btn">Send</button>
-        </div>
-
-        <div id="ai-result-card" style="display:none">
-          <div id="ai-spinner" style="display:none">Thinking...</div>
-          <div id="ai-result-body"></div>
-          <div id="ai-result-actions">
-            <button id="ai-replay-btn">&#9654; Replay</button>
-            <button id="ai-save-btn">+ Save phrase</button>
+          <div id="ai-mode-header">
+            <div id="ai-mode-title">Translate to German</div>
+            <div id="ai-mode-desc">Speak or type in English — hear the German.</div>
           </div>
-        </div>
 
-        <div id="ai-saved-section">
-          <div id="ai-saved-header">
-            <span id="ai-saved-count">Saved: 0</span>
-            <button id="mini-practice-btn">&#9654; Practice</button>
-            <button id="ai-export-btn">Export</button>
-            <button id="ai-clear-btn">Clear</button>
+          <div id="ai-category-row">
+            <span class="ai-label">Save to:</span>
+            <select id="ai-category-select"></select>
           </div>
-          <div id="ai-saved-list"></div>
-        </div>
+
+          <div id="ai-mic-area">
+            <button id="ai-mic-btn" aria-label="Tap to speak">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            </button>
+            <div id="ai-lang-hint">Speak in English</div>
+            <div id="ai-mic-status">Tap mic to start</div>
+          </div>
+
+          <div id="ai-fallback-row">
+            <input id="ai-text-input" type="text" placeholder="Or type here and press Enter">
+            <button id="ai-send-btn">Send</button>
+          </div>
+
+          <div id="ai-result-card" style="display:none">
+            <div id="ai-spinner" style="display:none">Thinking...</div>
+            <div id="ai-result-body"></div>
+            <div id="ai-result-actions">
+              <button id="ai-replay-btn">&#9654; Play</button>
+              <button id="ai-save-btn">+ Save</button>
+            </div>
+          </div>
+
+          <div id="ai-saved-section">
+            <div id="ai-saved-header">
+              <span id="ai-saved-count">Saved: 0</span>
+              <button id="mini-practice-btn">&#9654; Practice</button>
+              <button id="ai-export-btn">Export</button>
+              <button id="ai-clear-btn">Clear</button>
+            </div>
+            <div id="ai-saved-list"></div>
+          </div>
 
         </div><!-- end #ai-tc-panel -->
 
-        <!-- Chat panel -->
+        <!-- Conversation panel -->
         <div id="ai-chat-panel" style="display:none">
 
-          <div id="chat-top-row">
+          <div id="chat-controls-bar">
             <select id="chat-scenario-select">
               <option value="">Free Chat</option>
               <option value="hirschsprach_cafe">Language Café</option>
@@ -217,11 +232,22 @@
               <option value="job_search">Job Interview</option>
               <option value="social">Planning Weekend</option>
               <option value="university_life">Study Session</option>
-              <option value="phone_digital">Phone &amp; Tech Chat</option>
+              <option value="phone_digital">Phone &amp; Tech</option>
               <option value="bureaucracy">Government Office</option>
             </select>
-            <button id="chat-new-btn">New</button>
-            <button id="chat-history-btn">History</button>
+            <select id="chat-level-select" title="Your German level">
+              <option value="a1">A1</option>
+              <option value="a2">A2</option>
+              <option value="b1" selected>B1</option>
+              <option value="b2">B2</option>
+              <option value="c1">C1</option>
+            </select>
+            <button id="chat-new-btn" title="New conversation">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+            <button id="chat-history-btn" title="Past conversations">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </button>
           </div>
 
           <div id="teacher-mode-row">
@@ -257,15 +283,19 @@
             <span id="chat-stt-mode"></span>
           </div>
 
-          <div id="chat-input-row">
-            <button id="chat-hint-btn" title="Get a hint in English">?</button>
-            <input id="chat-input" type="text" placeholder="Schreiben Sie auf Deutsch..." autocomplete="off" autocorrect="off" spellcheck="false">
-            <button id="chat-mic-btn" aria-label="Speak German">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <div id="chat-mic-area">
+            <button id="chat-mic-btn" aria-label="Start conversation">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
               </svg>
             </button>
-            <button id="chat-send-btn">Send</button>
+            <div id="chat-mic-label">Tap to start</div>
+          </div>
+
+          <div id="chat-input-row">
+            <button id="chat-hint-btn" title="Get a hint in English">?</button>
+            <input id="chat-input" type="text" placeholder="Or type in German..." autocomplete="off" autocorrect="off" spellcheck="false">
+            <button id="chat-send-btn">&#8593;</button>
           </div>
 
           <div id="chat-history-panel" style="display:none">
