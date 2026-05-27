@@ -593,6 +593,7 @@ let deepgramInterimEl = null;
 let chatSessionActive = false;
 let chatCurrentAudio = null;
 let audioContextUnlocked = false;
+let repetitionContext = null; // { corrected, original } when AI is waiting for learner to repeat
 
 // ---- DOM refs (player) ----
 const tabEls = document.querySelectorAll(".tab");
@@ -2277,6 +2278,7 @@ function startConversation(scenarioKey) {
   convoScenario = scenarioKey || null;
   convoHistory = [];
   convoMessages = [];
+  repetitionContext = null;
   convoSessionId = Date.now().toString();
   document.getElementById("chat-hint-area").style.display = "none";
   document.getElementById("chat-history-panel").style.display = "none";
@@ -2327,24 +2329,33 @@ async function sendConvoMessage(text) {
   const userMsg = { role: "user", text: text.trim(), correction: null, audio_base64: null, timestamp: new Date().toISOString() };
   convoMessages.push(userMsg);
   convoHistory.push({ role: "user", content: text.trim() });
+
+  const pendingRepetition = repetitionContext;
+  repetitionContext = null;
   renderChatMessages();
   scrollChatToBottom();
   showChatTyping(true);
   updateMicBtnState("processing");
 
   try {
+    const body = { mode: "convo", text: text.trim(), history: convoHistory.slice(-20), scenario: convoScenario, teacherMode, languageLevel };
+    if (pendingRepetition) body.awaitingRepetition = pendingRepetition;
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "convo", text: text.trim(), history: convoHistory.slice(-20), scenario: convoScenario, teacherMode, languageLevel }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Server error");
     showChatTyping(false);
 
     convoMessages[convoMessages.length - 1].correction = data.correction || null;
-    convoMessages.push({ role: "assistant", text: data.reply, correction: null, audio_base64: data.audio_base64 || null, timestamp: new Date().toISOString() });
+    convoMessages.push({ role: "assistant", text: data.reply, correction: null, needs_repetition: data.needs_repetition || false, audio_base64: data.audio_base64 || null, timestamp: new Date().toISOString() });
     convoHistory.push({ role: "assistant", content: data.reply });
+
+    if (data.needs_repetition && data.correction) {
+      repetitionContext = { corrected: data.correction.corrected, original: data.correction.original };
+    }
 
     renderChatMessages();
     scrollChatToBottom();
@@ -2353,7 +2364,7 @@ async function sendConvoMessage(text) {
   } catch (err) {
     showChatTyping(false);
     updateMicBtnState(chatSessionActive ? "session" : "idle");
-    convoMessages.push({ role: "assistant", text: `Error: ${err.message}`, correction: null, audio_base64: null, timestamp: new Date().toISOString() });
+    convoMessages.push({ role: "assistant", text: `Error: ${err.message}`, correction: null, needs_repetition: false, audio_base64: null, timestamp: new Date().toISOString() });
     renderChatMessages();
     scrollChatToBottom();
   }
@@ -2395,7 +2406,7 @@ function renderChatMessages() {
     container.innerHTML = `<div class="chat-empty">${hasScenario ? "Conversation started — reply in German below." : "Start chatting in German below."}</div>`;
     return;
   }
-  container.innerHTML = convoMessages.map((msg, idx) => {
+  const msgsHtml = convoMessages.map((msg, idx) => {
     const isUser = msg.role === "user";
     const corrHtml = msg.correction
       ? `<div class="chat-correction">
@@ -2414,11 +2425,37 @@ function renderChatMessages() {
       ${corrHtml}
     </div>`;
   }).join("");
+
+  const repeatCardHtml = repetitionContext
+    ? `<div class="chat-repeat-card">
+         <div class="repeat-label">Say it in German</div>
+         <div class="repeat-target">${repetitionContext.corrected}</div>
+         <div class="repeat-actions">
+           <button class="repeat-hear-btn" onclick="hearRepetitionTarget()">&#9654; Hear it</button>
+           <button class="repeat-skip-btn" onclick="skipRepetition()">Skip &rarr;</button>
+         </div>
+       </div>`
+    : "";
+
+  container.innerHTML = msgsHtml + repeatCardHtml;
 }
 
 function playChatAudio(idx) {
   const msg = convoMessages[idx];
   playBase64Audio(msg?.audio_base64, msg?.text);
+}
+
+function hearRepetitionTarget() {
+  if (repetitionContext?.corrected) speakGerman(repetitionContext.corrected);
+}
+
+function skipRepetition() {
+  if (!repetitionContext) return;
+  repetitionContext = null;
+  // Advance history context so the AI doesn't keep asking for the same repetition
+  convoHistory.push({ role: "user", content: "(skipping correction - let's continue)" });
+  convoHistory.push({ role: "assistant", content: "Kein Problem, lass uns weitermachen!" });
+  renderChatMessages();
 }
 
 function scrollChatToBottom() {

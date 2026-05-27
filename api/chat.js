@@ -101,7 +101,7 @@ const TEACHER_PERSONALITIES = {
   socratic: `Teaching style: Socratic guide. Never correct directly. Instead ask a question that leads the learner to notice and fix their own error. Example: "Welchen Artikel benutzt man hier?" or "Ist das Verb richtig konjugiert?". Only continue after they self-correct.`,
 };
 
-function buildConvoSystemPrompt(scenarioKey, teacherMode, languageLevel) {
+function buildConvoSystemPrompt(scenarioKey, teacherMode, languageLevel, awaitingRepetition) {
   const SCENARIO_ROLES = {
     hirschsprach_cafe: "a friendly German native speaker at a language café",
     shopping:          "a helpful shop assistant in a German clothing store",
@@ -117,19 +117,24 @@ function buildConvoSystemPrompt(scenarioKey, teacherMode, languageLevel) {
     : "";
   const personalityCtx = TEACHER_PERSONALITIES[teacherMode] || TEACHER_PERSONALITIES.caring;
   const levelCtx = LEVEL_DESCRIPTIONS[languageLevel] || LEVEL_DESCRIPTIONS.b1;
-  return `${roleCtx}You are a German conversation partner.
+
+  const repetitionCtx = awaitingRepetition
+    ? `\nREPETITION CHECK: The learner is now attempting to repeat the corrected form "${awaitingRepetition.corrected}". If their attempt is correct or very close, praise them briefly and advance the conversation (needs_repetition: false, correction: null). If still wrong, note the error kindly and ask once more (needs_repetition: true, fill correction).`
+    : "";
+
+  return `${roleCtx}You are a German conversation partner and language coach.
 ${personalityCtx}
 Language level: ${levelCtx}
-
+${repetitionCtx}
 RULES:
-1. Reply in German matching the language level above. Maximum 2-3 short sentences.
-2. Check the learner's last message for ONE grammar or vocabulary error.
-3. Return ONLY valid JSON, no markdown, no extra text:
-   {"reply":"...","correction":null}
+1. Reply in German matching the language level. Maximum 2-3 short sentences.
+2. If the learner's message is in English: translate it to German, present the German phrase, and ask them to say it. Set needs_repetition: true. Fill correction as {"original":"(their English)","corrected":"(German translation)","explanation":"Try saying this in German"}.
+3. If the learner made a German grammar or vocabulary error: correct it clearly, provide the correct form, ask them to repeat it. Set needs_repetition: true. Fill correction.
+4. If no error and no English input (or the repetition attempt was successful): advance the conversation naturally. Set needs_repetition: false. Set correction: null.
+5. Return ONLY valid JSON, no markdown:
+   {"reply":"...","correction":null,"needs_repetition":false}
    or
-   {"reply":"...","correction":{"original":"...","corrected":"...","explanation":"one sentence in English"}}
-4. Set correction to null if the learner's message had no errors.
-5. Keep the conversation flowing naturally.`;
+   {"reply":"...","correction":{"original":"...","corrected":"...","explanation":"one sentence in English"},"needs_repetition":true}`;
 }
 
 function stripMarkdown(text) {
@@ -155,7 +160,7 @@ module.exports = async function handler(req, res) {
   if (!GROQ_KEY) return res.status(500).json({ error: "GROQ_KEY not configured in Vercel environment variables" });
   if (!EL_KEY) return res.status(500).json({ error: "ELEVENLABS_API_KEY not configured in Vercel environment variables" });
 
-  const { mode, text, history, scenario, teacherMode, languageLevel } = req.body || {};
+  const { mode, text, history, scenario, teacherMode, languageLevel, awaitingRepetition } = req.body || {};
 
   // hint mode doesn't require user text
   if (mode === "hint") {
@@ -173,7 +178,7 @@ module.exports = async function handler(req, res) {
   if (mode === "greeting") {
     try {
       const basePrompt = buildConvoSystemPrompt(scenario, teacherMode, languageLevel);
-      const systemPrompt = basePrompt + "\n\nIMPORTANT: The conversation is just starting. The learner has not said anything yet. Open with a warm, natural German greeting. Set correction to null always.";
+      const systemPrompt = basePrompt + "\n\nIMPORTANT: The conversation is just starting. Open with a warm, natural German greeting. Set correction: null and needs_repetition: false always.";
       const raw = await callGroqMessages([
         { role: "system", content: systemPrompt },
         { role: "user", content: "[CONVERSATION_START]" },
@@ -181,7 +186,7 @@ module.exports = async function handler(req, res) {
       const parsed = parseJSON(raw);
       const reply = parsed?.reply || raw;
       const audio_base64 = await callElevenLabs(reply);
-      return res.json({ reply, correction: null, audio_base64 });
+      return res.json({ reply, correction: null, needs_repetition: false, audio_base64 });
     } catch (err) {
       console.error("[api/chat greeting]", err.message);
       return res.status(500).json({ error: err.message });
@@ -241,7 +246,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (mode === "convo") {
-      const systemPrompt = buildConvoSystemPrompt(scenario, teacherMode, languageLevel);
+      const systemPrompt = buildConvoSystemPrompt(scenario, teacherMode, languageLevel, awaitingRepetition);
       const messages = [
         { role: "system", content: systemPrompt },
         ...(history || []).slice(-20),
@@ -251,8 +256,9 @@ module.exports = async function handler(req, res) {
       const parsed = parseJSON(raw);
       const reply = parsed?.reply || raw;
       const correction = parsed?.correction || null;
+      const needs_repetition = parsed?.needs_repetition || false;
       const audio_base64 = await callElevenLabs(reply);
-      return res.json({ reply, correction, audio_base64 });
+      return res.json({ reply, correction, needs_repetition, audio_base64 });
     }
 
     return res.status(400).json({ error: "unknown mode" });
