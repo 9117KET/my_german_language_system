@@ -269,5 +269,6 @@ module.exports = async function handler(req, res) {
 };
 
 module.exports.buildConvoSystemPrompt = buildConvoSystemPrompt;
+module.exports.parseJSON = parseJSON;
 module.exports.TEACHER_PERSONALITIES = TEACHER_PERSONALITIES;
 module.exports.LEVEL_DESCRIPTIONS = LEVEL_DESCRIPTIONS;
