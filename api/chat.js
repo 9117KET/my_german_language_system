@@ -71,7 +71,7 @@ async function callGroqMessages(messages, maxTokens = 350, retried = false) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: GROQ_MODEL, messages, max_tokens: maxTokens, temperature: 0.7 }),
+    body: JSON.stringify({ model: GROQ_MODEL, messages, max_tokens: maxTokens, temperature: 0.7, response_format: { type: "json_object" } }),
     signal: AbortSignal.timeout(12000),
   });
   if (res.status === 429 && !retried) {
@@ -136,6 +136,14 @@ function stripMarkdown(text) {
   return text.trim().replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
 }
 
+function parseJSON(text) {
+  const s = stripMarkdown(text);
+  try { return JSON.parse(s); } catch {}
+  const m = s.match(/\{[\s\S]*\}/);
+  if (m) { try { return JSON.parse(m[0]); } catch {} }
+  return null;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -170,13 +178,8 @@ module.exports = async function handler(req, res) {
         { role: "system", content: systemPrompt },
         { role: "user", content: "[CONVERSATION_START]" },
       ], 150);
-      let reply;
-      try {
-        const parsed = JSON.parse(stripMarkdown(raw));
-        reply = parsed.reply || raw;
-      } catch {
-        reply = raw;
-      }
+      const parsed = parseJSON(raw);
+      const reply = parsed?.reply || raw;
       const audio_base64 = await callElevenLabs(reply);
       return res.json({ reply, correction: null, audio_base64 });
     } catch (err) {
@@ -245,15 +248,9 @@ module.exports = async function handler(req, res) {
         { role: "user", content: text },
       ];
       const raw = await callGroqMessages(messages, 350);
-      let reply, correction;
-      try {
-        const parsed = JSON.parse(stripMarkdown(raw));
-        reply = parsed.reply || raw;
-        correction = parsed.correction || null;
-      } catch {
-        reply = raw;
-        correction = null;
-      }
+      const parsed = parseJSON(raw);
+      const reply = parsed?.reply || raw;
+      const correction = parsed?.correction || null;
       const audio_base64 = await callElevenLabs(reply);
       return res.json({ reply, correction, audio_base64 });
     }
