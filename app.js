@@ -1276,7 +1276,10 @@ function setupAIEvents() {
   aiSendBtn.addEventListener("click", () => { cancelCountdown(); sendToAI(aiTextInput.value.trim()); });
   aiTextInput.addEventListener("keydown", e => { if (e.key === "Enter") { cancelCountdown(); sendToAI(aiTextInput.value.trim()); } });
   aiTextInput.addEventListener("input", () => { if (countdownTimer) { cancelCountdown(); aiMicStatus.textContent = "Tap Send or mic"; } });
-  aiReplayBtn.addEventListener("click", () => { if (lastAIResult?.audio_base64) playBase64Audio(lastAIResult.audio_base64); });
+  aiReplayBtn.addEventListener("click", () => {
+    const text = lastAIResult ? (aiMode === "translate" ? lastAIResult.german : lastAIResult.corrected) : null;
+    playBase64Audio(lastAIResult?.audio_base64, text);
+  });
   aiSaveBtn.addEventListener("click", saveCurrentPhrase);
   aiExportBtn.addEventListener("click", exportAIPhrases);
   aiClearBtn.addEventListener("click", () => {
@@ -1300,7 +1303,7 @@ function setupAIEvents() {
   document.getElementById("mini-skip-btn").addEventListener("click", () => miniAdvance());
   document.getElementById("mini-replay-btn").addEventListener("click", () => {
     const p = miniPhrases[miniIndex];
-    if (p?.audio_base64) playBase64Audio(p.audio_base64);
+    playBase64Audio(p?.audio_base64, p?.german);
   });
 }
 
@@ -1388,7 +1391,8 @@ async function sendToAI(text) {
     lastAIResult = result;
     aiSpinner.style.display = "none";
     renderAIResult(result);
-    playBase64Audio(result.audio_base64);
+    const ttsText = aiMode === "translate" ? result.german : result.corrected;
+    playBase64Audio(result.audio_base64, ttsText);
     aiMicStatus.textContent = "Done";
     aiTextInput.value = "";
   } catch (err) {
@@ -1421,11 +1425,24 @@ function renderAIResult(result) {
   }
 }
 
-function playBase64Audio(base64) {
-  if (!base64) return;
-  if (aiAudio) aiAudio.pause();
-  aiAudio = new Audio(`data:audio/mp3;base64,${base64}`);
-  aiAudio.play().catch(() => {});
+function speakGerman(text) {
+  if (!text || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "de-DE";
+  utter.rate = 0.9;
+  window.speechSynthesis.speak(utter);
+  return utter;
+}
+
+function playBase64Audio(base64, text) {
+  if (base64) {
+    if (aiAudio) aiAudio.pause();
+    aiAudio = new Audio(`data:audio/mp3;base64,${base64}`);
+    aiAudio.play().catch(() => {});
+  } else if (text) {
+    speakGerman(text);
+  }
 }
 
 function clearAIResult() {
@@ -1463,7 +1480,7 @@ function renderAISavedList() {
         <div class="saved-english">${p.english}</div>
         <div class="ai-saved-meta">
           <span class="saved-category">${CATEGORIES[p.category] || p.category}</span>
-          ${p.audio_base64 ? `<button class="ai-saved-play-btn" onclick="playAISavedPhrase(${idx})">▶ Play</button>` : ""}
+          <button class="ai-saved-play-btn" onclick="playAISavedPhrase(${idx})">▶ Play</button>
         </div>
       </div>
     `;
@@ -1473,7 +1490,7 @@ function renderAISavedList() {
 function playAISavedPhrase(idx) {
   const saved = JSON.parse(localStorage.getItem("ai_phrases") || "[]");
   const p = saved[idx];
-  if (p?.audio_base64) playBase64Audio(p.audio_base64);
+  playBase64Audio(p?.audio_base64, p?.german);
 }
 
 function exportAIPhrases() {
@@ -2085,9 +2102,23 @@ function updateMicBtnState(state) {
   }
 }
 
-function playChatResponse(base64) {
+function playChatResponse(base64, text) {
   if (!base64) {
-    if (chatSessionActive) startListening();
+    if (text && window.speechSynthesis) {
+      updateMicBtnState("speaking");
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "de-DE";
+      utter.rate = 0.9;
+      utter.onend = () => {
+        setChatVoiceStatus("");
+        if (chatSessionActive) startListening();
+        else updateMicBtnState("idle");
+      };
+      window.speechSynthesis.speak(utter);
+    } else {
+      if (chatSessionActive) startListening();
+    }
     return;
   }
   updateMicBtnState("speaking");
@@ -2251,6 +2282,8 @@ async function fetchAIGreeting() {
     if (data.audio_base64) {
       const audio = new Audio(`data:audio/mp3;base64,${data.audio_base64}`);
       audio.play().catch(() => {});
+    } else {
+      speakGerman(data.reply);
     }
   } catch {
     showChatTyping(false);
@@ -2290,7 +2323,7 @@ async function sendConvoMessage(text) {
 
     renderChatMessages();
     scrollChatToBottom();
-    playChatResponse(data.audio_base64 || null);
+    playChatResponse(data.audio_base64 || null, data.reply);
     saveConvoSession();
   } catch (err) {
     showChatTyping(false);
@@ -2360,7 +2393,7 @@ function renderChatMessages() {
 
 function playChatAudio(idx) {
   const msg = convoMessages[idx];
-  if (msg?.audio_base64) playBase64Audio(msg.audio_base64);
+  playBase64Audio(msg?.audio_base64, msg?.text);
 }
 
 function scrollChatToBottom() {
@@ -2474,12 +2507,8 @@ function miniRevealCard() {
   document.getElementById("mini-hint").style.display = "none";
   document.getElementById("mini-player-btns").style.display = "flex";
 
-  if (p.audio_base64) {
-    document.getElementById("mini-replay-btn").style.display = "inline-flex";
-    playBase64Audio(p.audio_base64);
-  } else {
-    document.getElementById("mini-no-audio").style.display = "block";
-  }
+  document.getElementById("mini-replay-btn").style.display = "inline-flex";
+  playBase64Audio(p.audio_base64, p.german);
 }
 
 function miniAdvance() {

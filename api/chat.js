@@ -42,28 +42,29 @@ async function callGroq(prompt, retried = false) {
 }
 
 async function callElevenLabs(text) {
-  const res = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-    {
-      method: "POST",
-      headers: {
-        "xi-api-key": EL_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_turbo_v2_5",
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-      }),
-      signal: AbortSignal.timeout(15000),
-    }
-  );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`ElevenLabs ${res.status}: ${err}`);
+  try {
+    const res = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": EL_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_turbo_v2_5",
+          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+        }),
+        signal: AbortSignal.timeout(15000),
+      }
+    );
+    if (!res.ok) return null;
+    const buf = await res.arrayBuffer();
+    return Buffer.from(buf).toString("base64");
+  } catch {
+    return null;
   }
-  const buf = await res.arrayBuffer();
-  return Buffer.from(buf).toString("base64");
 }
 
 async function callGroqMessages(messages, maxTokens = 350, retried = false) {
