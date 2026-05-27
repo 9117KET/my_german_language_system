@@ -771,10 +771,6 @@ function buildQueue() {
 
   source = source.filter(p => !getSrsRecord(p.id).archived);
 
-  if (mode === "listen" || mode === "shadow") {
-    source = source.filter(p => p.audio);
-  }
-
   if (grammarFilter !== "all") {
     source = source.filter(p => (GRAMMAR_TAGS[p.id] || []).some(t => t.startsWith(grammarFilter)));
   }
@@ -951,7 +947,30 @@ function renderCard() {
 
 function loadAndPlay(p) {
   if (!p.audio) {
-    statusText.textContent = "No audio yet - run generate_audio.py";
+    const text = p.example_de || p.german;
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = "de-DE";
+    utt.rate = 0.88;
+    utt.onend = () => {
+      currentRepeat++;
+      if (currentRepeat < repeatCount) {
+        if (mode === "listen") {
+          statusText.textContent = `Again (${currentRepeat + 1}/${repeatCount})`;
+          autoTimer = setTimeout(() => loadAndPlay(p), 1500);
+        } else if (mode === "shadow") {
+          statusText.textContent = `Repeat aloud! (${currentRepeat}/${repeatCount})`;
+          autoTimer = setTimeout(() => loadAndPlay(p), 4000);
+        }
+      } else {
+        currentRepeat = 0;
+        statusText.textContent = "Done";
+        if (mode === "listen") scheduleAutoAdvance(3000);
+        else if (mode === "shadow") { statusText.textContent = "Done"; scheduleAutoAdvance(5000); }
+      }
+    };
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utt);
+    statusText.textContent = "Playing...";
     return;
   }
   audio.src = p.audio;
@@ -1091,8 +1110,14 @@ function setupEvents() {
   playBtn.addEventListener("click", () => {
     const p = queue[queueIndex];
     if (!p) return;
+    if (!p.audio) {
+      clearAutoTimer();
+      currentRepeat = 0;
+      loadAndPlay(p);
+      return;
+    }
     if (audio.paused) {
-      const audioFile = p.audio ? p.audio.split('/').pop() : '';
+      const audioFile = p.audio.split('/').pop();
       if (!audio.src || audio.src === window.location.href || !audio.src.endsWith(audioFile)) loadAndPlay(p);
       else audio.play();
     } else {
@@ -1992,7 +2017,7 @@ function setupChatSpeech() {
   chatRecognition = new SR();
   chatRecognition.continuous = true;
   chatRecognition.interimResults = true;
-  chatRecognition.lang = "de-DE";
+  chatRecognition.lang = "en-US";
 
   let silenceTimer = null;
   let finalTranscript = "";
@@ -2157,7 +2182,7 @@ async function startDeepgramRecording() {
     const { key } = await tokenRes.json();
 
     deepgramStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const url = `wss://api.deepgram.com/v1/listen?language=de&model=nova-2&interim_results=true&utterance_end_ms=1500&endpointing=600&vad_events=true&encoding=linear16&sample_rate=16000`;
+    const url = `wss://api.deepgram.com/v1/listen?detect_language=true&model=nova-2&interim_results=true&utterance_end_ms=1500&endpointing=600&vad_events=true&encoding=linear16&sample_rate=16000`;
     deepgramWS = new WebSocket(url, ["token", key]);
 
     deepgramWS.onopen = () => {
