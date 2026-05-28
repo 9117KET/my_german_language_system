@@ -909,6 +909,11 @@ let chatCurrentAudio = null;
 let audioContextUnlocked = false;
 let repetitionContext = null; // { corrected, original } when AI is waiting for learner to repeat
 
+// Drill modal state
+let drillQueue = [];
+let drillIdx = 0;
+let drillTag = null;
+
 // ---- DOM refs (player) ----
 const tabEls = document.querySelectorAll(".tab");
 const categorySelect = document.getElementById("category-select");
@@ -1570,6 +1575,8 @@ function setupEvents() {
     if (e.key === "g" || e.key === "G") gotItBtn.click();
     if (e.key === "m" || e.key === "M") missedBtn.click();
   });
+
+  setupDrillModal();
 }
 
 // ---- AI Chat ----
@@ -1610,9 +1617,16 @@ function setupAIEvents() {
         if (aiMode === "translate") {
           if (modeTitle) modeTitle.textContent = "Translate to German";
           if (modeDesc) modeDesc.textContent = "Speak or type in English — hear the German.";
+          aiTextInput.placeholder = "Or type here and press Enter";
+        } else if (aiMode === "write") {
+          if (modeTitle) modeTitle.textContent = "Check my Writing";
+          if (modeDesc) modeDesc.textContent = "Type a German sentence and get case and preposition feedback.";
+          aiLangHint.textContent = "Type in German";
+          aiTextInput.placeholder = "Write any German sentence...";
         } else {
           if (modeTitle) modeTitle.textContent = "Check my German";
           if (modeDesc) modeDesc.textContent = "Say or type a German sentence — get it corrected.";
+          aiTextInput.placeholder = "Or type here and press Enter";
         }
         clearAIResult();
         if (recognition) recognition.lang = aiMode === "translate" ? "en-US" : "de-DE";
@@ -1731,7 +1745,7 @@ async function sendToAI(text) {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: aiMode, text }),
+      body: JSON.stringify({ mode: aiMode === "write" ? "write-check" : aiMode, text }),
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || "Server error");
@@ -1739,8 +1753,10 @@ async function sendToAI(text) {
     lastAIResult = result;
     aiSpinner.style.display = "none";
     renderAIResult(result);
-    const ttsText = aiMode === "translate" ? result.german : result.corrected;
-    playBase64Audio(result.audio_base64, ttsText);
+    if (aiMode !== "write") {
+      const ttsText = aiMode === "translate" ? result.german : result.corrected;
+      playBase64Audio(result.audio_base64, ttsText);
+    }
     aiMicStatus.textContent = "Done";
     aiTextInput.value = "";
   } catch (err) {
@@ -1761,6 +1777,19 @@ function renderAIResult(result) {
       <div class="ai-english">You: "${result.english}"</div>
       <div class="ai-german">${result.german}</div>
       ${hint}
+    `;
+  } else if (aiMode === "write") {
+    const badge = result.is_correct ? `<div class="ai-correct-badge">✓ Correct German!</div>` : "";
+    const autoChips = getAutoTags(result.corrected);
+    const chipsHtml = autoChips.length
+      ? `<div class="ai-write-chips">${autoChips.map(t => `<span class="grammar-chip" onclick="openGrammarTopic('${t}')">${t}</span>`).join("")}</div>`
+      : "";
+    aiResultBody.innerHTML = `
+      <div class="ai-original">You wrote: "${result.original}"</div>
+      ${badge}
+      <div class="ai-corrected">${result.corrected}</div>
+      <div class="ai-explanation">${result.explanation}</div>
+      ${chipsHtml}
     `;
   } else {
     const badge = result.is_correct ? `<div class="ai-correct-badge">✓ Perfect German!</div>` : "";
@@ -1974,6 +2003,59 @@ function renderRecallModeHeader() {
 
 // ---- Progress Tab ----
 
+function computeGrammarStats() {
+  const stats = {};
+  for (const p of PHRASES) {
+    const tags = getTagsForCard(p.id, p.german);
+    const rec = getSrsRecord(p.id);
+    for (const tag of tags) {
+      if (!CASE_TAG_PRIORITY.includes(tag)) continue;
+      if (!stats[tag]) stats[tag] = { total: 0, totalReviews: 0, totalCorrect: 0 };
+      stats[tag].total++;
+      stats[tag].totalReviews += rec.totalReviews || 0;
+      stats[tag].totalCorrect += rec.totalCorrect || 0;
+    }
+  }
+  return stats;
+}
+
+function renderWeakSpots() {
+  const el = document.getElementById("grammar-weak-spots");
+  if (!el) return;
+  const stats = computeGrammarStats();
+  const entries = Object.entries(stats).filter(([, s]) => s.total > 0);
+  if (!entries.length) { el.innerHTML = ""; return; }
+  entries.sort(([, a], [, b]) => {
+    const aAcc = a.totalReviews > 0 ? a.totalCorrect / a.totalReviews : null;
+    const bAcc = b.totalReviews > 0 ? b.totalCorrect / b.totalReviews : null;
+    if (aAcc === null && bAcc === null) return 0;
+    if (aAcc === null) return 1;
+    if (bAcc === null) return -1;
+    return aAcc - bAcc;
+  });
+  el.innerHTML = `<div class="ws-section">
+    <div class="ws-title">Grammar Weak Spots</div>
+    ${entries.map(([tag, s]) => {
+      const pct = s.totalReviews > 0 ? Math.round((s.totalCorrect / s.totalReviews) * 100) : null;
+      const clr = pct === null ? "var(--text-dim)" : pct < 50 ? "var(--red)" : pct < 75 ? "var(--yellow)" : "var(--green)";
+      const fill = pct === null ? "var(--surface3)" : pct < 50 ? "var(--red)" : pct < 75 ? "var(--yellow)" : "var(--green)";
+      const label = pct === null ? "not reviewed yet" : `${pct}% accurate`;
+      const reviewed = s.totalReviews > 0 ? `${s.totalCorrect}/${s.totalReviews} correct` : `0 of ${s.total} reviewed`;
+      return `<div class="ws-row">
+        <div class="ws-left">
+          <span class="grammar-chip ws-chip" onclick="openGrammarTopic('${tag}')">${tag}</span>
+          <span class="ws-reviewed">${reviewed}</span>
+        </div>
+        <div class="ws-right">
+          <span class="ws-pct" style="color:${clr}">${label}</span>
+          <div class="ws-bar-wrap"><div class="ws-fill" style="width:${pct ?? 0}%;background:${fill}"></div></div>
+          <button class="ws-drill-btn" onclick="openDrillMode('${tag}')">Drill</button>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
 function showProgressPanel() {
   document.getElementById("controls-bar").style.display = "none";
   playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
@@ -1994,6 +2076,7 @@ function paginationHTML(page, total, pageSize, prevFn, nextFn) {
 }
 
 function renderProgressTab() {
+  renderWeakSpots();
   const counts = { new: 0, due: 0, upcoming: 0, mastered: 0, archived: 0 };
   for (const p of PHRASES) { const s = getStatus(p.id); if (counts[s] !== undefined) counts[s]++; }
   document.getElementById("prog-due-val").textContent = counts.due + counts.new;
@@ -2071,6 +2154,99 @@ function restorePhrase(phraseId) {
   srsData[String(phraseId)] = { ...getSrsRecord(phraseId), archived: false };
   saveSrsData();
   renderProgressTab();
+}
+
+// ---- Drill Modal ----
+
+const DRILL_BLANKABLE_RX = /\b(der|die|das|dem|den|des|ein|eine|einem|einen|einer|eines|im|am|ins|ans|zum|zur)\b/;
+const DRILL_DISTRACTORS = {
+  "dem": ["den","der","die"], "den": ["dem","der","einen"], "der": ["dem","den","die"],
+  "die": ["das","der","dem"], "das": ["die","dem","den"], "des": ["dem","der","eines"],
+  "ein": ["eine","einen","einem"], "eine": ["ein","einen","einer"], "einem": ["einen","einer","ein"],
+  "einen": ["einem","einer","ein"], "einer": ["eine","einem","ein"], "eines": ["einem","einer","ein"],
+  "im": ["am","zum","ins"], "am": ["im","zum","zur"], "ins": ["ans","im","die"],
+  "ans": ["ins","am","die"], "zum": ["zur","am","im"], "zur": ["zum","am","der"],
+};
+
+function generateGapFill(phrase) {
+  const match = DRILL_BLANKABLE_RX.exec(phrase.german);
+  if (!match) return null;
+  const blank = match[1];
+  const display = phrase.german.slice(0, match.index) +
+    '<span class="drill-blank">___</span>' +
+    phrase.german.slice(match.index + blank.length);
+  const distractors = (DRILL_DISTRACTORS[blank.toLowerCase()] || ["dem","die","den"]).slice(0, 3);
+  const options = [blank, ...distractors].sort(() => Math.random() - 0.5);
+  return { display, blank, options, phraseId: phrase.id, german: phrase.german };
+}
+
+function openDrillMode(tag) {
+  drillTag = tag;
+  const tagged = PHRASES.filter(p => getTagsForCard(p.id, p.german).includes(tag));
+  drillQueue = tagged.map(p => generateGapFill(p)).filter(Boolean).sort(() => Math.random() - 0.5);
+  if (!drillQueue.length) {
+    alert(`No drillable phrases found for "${tag}". Try a different topic.`);
+    return;
+  }
+  drillIdx = 0;
+  document.getElementById("drill-modal").style.display = "flex";
+  renderDrillCard();
+}
+
+function renderDrillCard() {
+  if (drillIdx >= drillQueue.length) {
+    document.getElementById("drill-sentence").innerHTML = '<div class="drill-done">Done! All phrases completed.</div>';
+    document.getElementById("drill-choices").innerHTML = "";
+    document.getElementById("drill-feedback").style.display = "none";
+    document.getElementById("drill-next").style.display = "none";
+    document.getElementById("drill-progress-label").textContent = "Complete!";
+    return;
+  }
+  const item = drillQueue[drillIdx];
+  document.getElementById("drill-tag-chip").innerHTML = `<span class="grammar-chip">${drillTag}</span>`;
+  document.getElementById("drill-progress-label").textContent = `${drillIdx + 1} / ${drillQueue.length}`;
+  document.getElementById("drill-sentence").innerHTML = `<div class="drill-phrase">${item.display}</div>`;
+  document.getElementById("drill-feedback").style.display = "none";
+  document.getElementById("drill-next").style.display = "none";
+  document.getElementById("drill-choices").innerHTML = item.options.map(opt =>
+    `<button class="drill-choice" onclick="answerDrill('${opt}')">${opt}</button>`
+  ).join("");
+}
+
+function answerDrill(chosen) {
+  const item = drillQueue[drillIdx];
+  const correct = item.blank;
+  const isCorrect = chosen.toLowerCase() === correct.toLowerCase();
+  document.querySelectorAll(".drill-choice").forEach(btn => {
+    btn.disabled = true;
+    if (btn.textContent === correct) btn.classList.add("drill-correct");
+    else if (btn.textContent === chosen && !isCorrect) btn.classList.add("drill-wrong");
+  });
+  document.getElementById("drill-sentence").innerHTML = `<div class="drill-phrase">${item.german}</div>`;
+  if (isCorrect) updateOnGotIt(item.phraseId);
+  else updateOnMissed(item.phraseId);
+  speakGerman(item.german);
+  const fb = document.getElementById("drill-feedback");
+  fb.style.display = "block";
+  fb.innerHTML = isCorrect
+    ? `<span style="color:var(--green)">✓ Correct!</span>`
+    : `<span style="color:var(--red)">✗ Correct answer: <strong>${correct}</strong></span>`;
+  document.getElementById("drill-next").style.display = "block";
+  drillIdx++;
+}
+
+function setupDrillModal() {
+  document.getElementById("drill-close").addEventListener("click", () => {
+    document.getElementById("drill-modal").style.display = "none";
+    window.speechSynthesis && window.speechSynthesis.cancel();
+  });
+  document.getElementById("drill-modal").addEventListener("click", e => {
+    if (e.target === document.getElementById("drill-modal")) {
+      document.getElementById("drill-modal").style.display = "none";
+      window.speechSynthesis && window.speechSynthesis.cancel();
+    }
+  });
+  document.getElementById("drill-next").addEventListener("click", renderDrillCard);
 }
 
 // ---- Vocab Popup ----
@@ -2240,7 +2416,10 @@ function renderGrammarTab(filterTag = null) {
             </div>`;
           }).join("")}
         </div>
-        <button class="prog-btn gt-explain-btn" data-topic-id="${topic.id}" data-topic-title="${topic.title}">Ask AI to explain deeper ›</button>
+        <div class="gt-footer-btns">
+          <button class="prog-btn gt-explain-btn" data-topic-id="${topic.id}" data-topic-title="${topic.title}">Ask AI to explain deeper ›</button>
+          <button class="prog-btn gt-drill-btn" onclick="openDrillMode('${topic.id}')">Drill this rule</button>
+        </div>
       </div>`;
   }).join("") + paginationHTML(grammarPage, topics.length, GRAM_PAGE_SIZE, "prevGrammarPage", "nextGrammarPage");
 

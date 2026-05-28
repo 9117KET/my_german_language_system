@@ -166,6 +166,10 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
             Conversation
           </button>
+          <button class="ai-sub-btn" data-aimode="write">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Write
+          </button>
         </div>
 
         <!-- Translate / Correct shared panel -->
@@ -351,6 +355,8 @@
           <button class="prog-filter" data-filter="all">All</button>
         </div>
 
+        <div id="grammar-weak-spots"></div>
+
         <div id="progress-list"></div>
 
       </div>
@@ -444,6 +450,21 @@
   </main>
 
 </div><!-- end .app-layout -->
+
+<!-- Gap-fill drill modal (outside .app-layout) -->
+<div id="drill-modal" style="display:none">
+  <div id="drill-modal-inner">
+    <button id="drill-close">✕</button>
+    <div id="drill-header">
+      <div id="drill-tag-chip"></div>
+      <div id="drill-progress-label"></div>
+    </div>
+    <div id="drill-sentence"></div>
+    <div id="drill-choices"></div>
+    <div id="drill-feedback" style="display:none"></div>
+    <button id="drill-next" style="display:none">Next →</button>
+  </div>
+</div>
 
 <!-- Vocab popup modal (outside .app-layout) -->
 <div id="vocab-modal" style="display:none">

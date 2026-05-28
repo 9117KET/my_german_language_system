@@ -254,6 +254,24 @@ module.exports = async function handler(req, res) {
       return res.json({ ...result, original: text, audio_base64 });
     }
 
+    if (mode === "write-check") {
+      const raw = await callGroq(
+        `A German B1 learner wrote:\n"${text}"\n\n` +
+        `Check ONLY for case/preposition errors (Akkusativ, Dativ, Genitiv article or preposition choice). ` +
+        `Ignore minor spelling. If the sentence is grammatically correct, say so.\n\n` +
+        `GERMAN CASE RULES:\n` +
+        `- Akkusativ (wen?/was? direct object): masc. der→den, ein→einen\n` +
+        `- Dativ (wem? indirect/recipient): dem/der/dem/den; einem/einer/einem\n` +
+        `- Akkusativ prepositions: durch, für, gegen, ohne, um, bis, entlang\n` +
+        `- Dativ prepositions: mit, aus, bei, nach, seit, von, zu/zum/zur, außer, gegenüber\n` +
+        `- Wechselpräpositionen (an/auf/hinter/in/neben/über/unter/vor/zwischen): Wo?=Dativ, Wohin?=Akkusativ\n\n` +
+        `Reply with ONLY this JSON (no markdown):\n` +
+        `{"corrected":"the corrected sentence","is_correct":true/false,"explanation":"one sentence naming the specific rule broken, or 'Correct!'"}`
+      );
+      const result = JSON.parse(stripMarkdown(raw));
+      return res.json({ ...result, original: text });
+    }
+
     if (mode === "vocab") {
       const raw = await callGroq(
         `Explain this German word for a B1 learner.\n` +

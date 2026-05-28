@@ -1592,3 +1592,214 @@ select option {
     max-width: 680px;
   }
 }
+
+/* ====================================================
+   GAP-FILL DRILL MODAL
+   ==================================================== */
+#drill-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.78);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+}
+#drill-modal-inner {
+  background: rgba(15,15,25,0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-bright);
+  border-radius: 22px 22px 0 0;
+  padding: 24px 24px calc(28px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  max-width: 700px;
+  position: relative;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+}
+#drill-modal-inner::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 0 auto 18px;
+}
+#drill-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  background: var(--surface2);
+  border: none;
+  color: var(--text-dim);
+  font-size: 1rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+#drill-close:active { opacity: 0.7; }
+#drill-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+#drill-progress-label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.drill-phrase {
+  font-size: 1.2rem;
+  line-height: 1.7;
+  margin: 16px 0;
+  color: var(--text);
+}
+.drill-blank {
+  display: inline-block;
+  min-width: 48px;
+  border-bottom: 2px solid var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+  padding: 0 4px;
+}
+#drill-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0;
+}
+.drill-choice {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 12px 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s, border-color 0.15s;
+}
+.drill-choice:hover:not(:disabled) { background: var(--surface3); border-color: var(--accent); }
+.drill-choice.drill-correct { background: rgba(74,222,128,0.15); border-color: var(--green); color: var(--green); }
+.drill-choice.drill-wrong { background: rgba(248,113,113,0.15); border-color: var(--red); color: var(--red); }
+.drill-choice:disabled { opacity: 0.75; cursor: default; }
+#drill-feedback {
+  font-size: 0.95rem;
+  padding: 10px 0 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+#drill-next {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#drill-next:active { opacity: 0.8; }
+.drill-done {
+  text-align: center;
+  color: var(--green);
+  font-size: 1.1rem;
+  padding: 24px 0;
+  font-weight: 600;
+}
+
+/* ====================================================
+   GRAMMAR TAB - DRILL BUTTON
+   ==================================================== */
+.gt-footer-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.gt-drill-btn {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: transparent;
+}
+.gt-drill-btn:hover { background: var(--accent); color: #fff; }
+
+/* ====================================================
+   GRAMMAR WEAK SPOTS DASHBOARD
+   ==================================================== */
+.ws-section {
+  padding: 12px 0 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.ws-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.ws-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.ws-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 160px;
+}
+.ws-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.ws-chip { cursor: pointer; }
+.ws-reviewed { font-size: 0.7rem; color: var(--text-dim); }
+.ws-pct { font-size: 0.72rem; font-weight: 600; white-space: nowrap; flex: 0 0 auto; }
+.ws-bar-wrap { flex: 1; height: 4px; background: var(--surface3); border-radius: 2px; min-width: 40px; }
+.ws-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+.ws-drill-btn {
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ws-drill-btn:hover { background: var(--accent); color: #fff; }
+
+/* ====================================================
+   WRITE MODE - AI RESULT CHIPS
+   ==================================================== */
+.ai-write-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
