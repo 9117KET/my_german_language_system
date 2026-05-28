@@ -831,7 +831,7 @@ function init() {
 }
 
 // ---- Render (player) ----
-function renderCard() {
+function renderCard(autoPlay = false) {
   if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words") return;
 
   if (!queue.length) {
@@ -868,8 +868,12 @@ function renderCard() {
     revealHint.style.display = "none";
     recallButtons.classList.remove("visible");
     statsBar.style.display = "none";
-    statusText.textContent = "Playing...";
-    loadAndPlay(p);
+    if (autoPlay) {
+      statusText.textContent = "Playing...";
+      loadAndPlay(p);
+    } else {
+      statusText.textContent = "Press Play to start";
+    }
   } else if (mode === "shadow") {
     germanEl.classList.remove("hidden");
     englishEl.classList.add("hidden");
@@ -877,8 +881,12 @@ function renderCard() {
     revealHint.textContent = "Tap card to see translation";
     recallButtons.classList.remove("visible");
     statsBar.style.display = "none";
-    statusText.textContent = "Listen and repeat aloud";
-    loadAndPlay(p);
+    if (autoPlay) {
+      statusText.textContent = "Listen and repeat aloud";
+      loadAndPlay(p);
+    } else {
+      statusText.textContent = "Press Play to start";
+    }
   } else if (mode === "recall") {
     recallButtons.classList.remove("visible");
     statsBar.style.display = "flex";
@@ -997,7 +1005,7 @@ function advance(delta) {
   } else {
     queueIndex = Math.max(0, next);
   }
-  renderCard();
+  renderCard(true);
 }
 
 // ---- Show/hide panels when switching tabs ----
