@@ -352,43 +352,43 @@ const SCENARIOS = {
 
 // ---- Grammar Topics (for Grammar tab) ----
 const GRAMMAR_TOPICS = [
-  { id:"Perfekt", title:"Perfekt (Present Perfect)",
+  { id:"Perfekt", level:"a2", title:"Perfekt (Present Perfect)",
     rule:"haben/sein + Partizip II. Used for past events in spoken German.",
     ids:[1,5,8,12,17,34,66,69,90,173,175,179,184,191] },
-  { id:"Präteritum", title:"Präteritum (Simple Past)",
+  { id:"Präteritum", level:"b1", title:"Präteritum (Simple Past)",
     rule:"Common in writing and narratives. Key forms: war, hatte, ging, kam, sprach, sah, stand.",
     ids:[14,62,85,130,141,142,143,144,145,170] },
-  { id:"Modal", title:"Modal Verbs (können, müssen, wollen...)",
+  { id:"Modal", level:"a2", title:"Modal Verbs (können, müssen, wollen...)",
     rule:"Modal verb in position 2, infinitive goes to the end. Konjunktiv II: könnte, müsste, etc.",
     ids:[2,9,21,25,28,63,64,104,150,168,169,171,174,178,181,185,188,190,193] },
-  { id:"Relativsatz", title:"Relative Clauses (Relativsätze)",
+  { id:"Relativsatz", level:"b1", title:"Relative Clauses (Relativsätze)",
     rule:"der/die/das matches the noun's gender. Verb goes to the end of the relative clause.",
     ids:[146,147,148,149,150] },
-  { id:"Konjunktiv-II", title:"Konjunktiv II (Conditional)",
+  { id:"Konjunktiv-II", level:"b2", title:"Konjunktiv II (Conditional)",
     rule:"würde + infinitive for hypotheticals. Polite requests. hätte/wäre for haben/sein.",
     ids:[38,82,86,129,155,156,157,158] },
-  { id:"Passiv", title:"Passive Voice (Passiv)",
+  { id:"Passiv", level:"b2", title:"Passive Voice (Passiv)",
     rule:"werden + Partizip II. The focus shifts to the action, not the person doing it.",
     ids:[151,152,153,154] },
-  { id:"Nebensatz", title:"Subordinate Clauses (weil, obwohl, nachdem, damit, dass, wenn)",
+  { id:"Nebensatz", level:"b1", title:"Subordinate Clauses (weil, obwohl, nachdem, damit, dass, wenn)",
     rule:"The conjunction sends the verb to the very end of the clause. Main clause can come first or second.",
     ids:[15,20,37,39,52,54,97,159,160,161,162] },
-  { id:"Futur-I", title:"Future Tense (Futur I)",
+  { id:"Futur-I", level:"a2", title:"Future Tense (Futur I)",
     rule:"werden + infinitive. Present tense + time expression also works (very common in spoken German).",
     ids:[163,164] },
-  { id:"Plusquamperfekt", title:"Past Perfect (Plusquamperfekt)",
+  { id:"Plusquamperfekt", level:"b1", title:"Past Perfect (Plusquamperfekt)",
     rule:"hatte/war + Partizip II. Used for events that happened before another past event.",
     ids:[165,172] },
-  { id:"Fragewort", title:"Question Words (Fragewörter)",
+  { id:"Fragewort", level:"a1", title:"Question Words (Fragewörter)",
     rule:"Wer/Was/Wo/Woher/Wann/Wie/Warum — verb comes directly after the question word.",
     ids:[3,23,24,64,74,78,79,81,94,111,119,125,126,131,135,174,182,188,190,195] },
-  { id:"Separierbar", title:"Separable Verbs (Trennbare Verben)",
+  { id:"Separierbar", level:"a2", title:"Separable Verbs (Trennbare Verben)",
     rule:"The prefix splits off to the end of the main clause. Common prefixes: ab-, an-, auf-, aus-, ein-, mit-, nach-, vor-, zurück-, aus-. In subordinate clauses the verb stays together.",
     ids:[117,171,175,176,180,181,183,184,187,190,193] },
-  { id:"Reflexiv", title:"Reflexive Verbs (Reflexivverben)",
+  { id:"Reflexiv", level:"a2", title:"Reflexive Verbs (Reflexivverben)",
     rule:"Use a reflexive pronoun (mich/dich/sich/uns/euch) that refers back to the subject. Common verbs: sich anmelden, sich aufteilen, sich beeilen, sich fühlen, sich vorstellen.",
     ids:[57,127,136,169,171,188] },
-  { id:"SatzbauAussage", title:"Satzbau: Aussagen — Verb always at Position 2",
+  { id:"SatzbauAussage", level:"a1", title:"Satzbau: Aussagen — Verb always at Position 2",
     rule:"In statements the verb is ALWAYS at position 2. Any element (time, location, manner) can move to position 1, which pushes the subject to position 3. This is called Inversion — the verb never moves!",
     ids:[196,222,223,197,198,199,200,221,230,231,232,263,264,265],
     breakdown:[
@@ -421,7 +421,7 @@ const GRAMMAR_TOPICS = [
         {text:"zum Sprachcafé",label:"Lokal",pos:"local"}
       ]}
     ]},
-  { id:"SatzbauWFrage", title:"Satzbau: W-Fragen — Question Word at Position 1",
+  { id:"SatzbauWFrage", level:"a1", title:"Satzbau: W-Fragen — Question Word at Position 1",
     rule:"W-questions: question word (Fragewort) at position 1, verb at position 2, subject at position 3. The verb stays at position 2 — same rule as statements!",
     ids:[201,202,203,204,205,224,225,226],
     breakdown:[
@@ -446,7 +446,7 @@ const GRAMMAR_TOPICS = [
         {text:"Deutsch",label:"Erg.",pos:"erg"}
       ]}
     ]},
-  { id:"SatzbauJaNein", title:"Satzbau: Ja/Nein-Fragen — Verb at Position 1",
+  { id:"SatzbauJaNein", level:"a1", title:"Satzbau: Ja/Nein-Fragen — Verb at Position 1",
     rule:"Yes/no questions: the verb jumps to position 1, the subject moves to position 2. There is no question word — the inverted structure itself signals a question!",
     ids:[206,207,208,209,210,227,228,229,246],
     breakdown:[
@@ -469,7 +469,7 @@ const GRAMMAR_TOPICS = [
         {text:"heute",label:"Temporal",pos:"temp"},{text:"mit dem Fahrrad",label:"Modal",pos:"manner"}
       ]}
     ]},
-  { id:"TeKaMoLo", title:"TeKaMoLo — Time, Manner, Location Order",
+  { id:"TeKaMoLo", level:"a2", title:"TeKaMoLo — Time, Manner, Location Order",
     rule:"When stacking adverbs after the verb, use TeKaMoLo order: Temporal (wann?) → Kausal (warum?) → Modal (wie?) → Lokal (wo/wohin?). Memory aid: Te-Ka-Mo-Lo!",
     ids:[230,231,269,218,219,220,199,1,232,265,270,271,272,273],
     breakdown:[
@@ -505,7 +505,7 @@ const GRAMMAR_TOPICS = [
         {text:"zum Sprachcafé",label:"Lo (wohin?)",pos:"local"}
       ]}
     ]},
-  { id:"NebensatzVerb", title:"Nebensatz — Verb always at the End (7 Types)",
+  { id:"NebensatzVerb", level:"b1", title:"Nebensatz — Verb always at the End (7 Types)",
     rule:"In ALL subordinate clauses the conjugated verb goes to the VERY END. Types: weil/da (causal), wenn/falls (conditional), seitdem/während/bis (temporal), damit (final), dass, indirect questions (wo/was/wann), relative clauses (der/die/das).",
     ids:[233,234,211,212,213,214,215,216,217,159,162,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251],
     breakdown:[
@@ -541,7 +541,7 @@ const GRAMMAR_TOPICS = [
         {text:",",label:"",pos:"erg"},{text:"kann ich mich für mehr Masterprogramme bewerben",label:"Hauptsatz",pos:"erg"}
       ]}
     ]},
-  { id:"DativAkkusativ", title:"Dativ & Akkusativ — Two Noun Objects (Dat. before Akk.)",
+  { id:"DativAkkusativ", level:"b1", title:"Dativ & Akkusativ — Two Noun Objects (Dat. before Akk.)",
     rule:"Rule 1: When a verb has TWO noun objects, the Dativ (wem?) comes BEFORE the Akkusativ (was?/wen?). Exception: if the Akkusativ noun has a definite article, it can come before an indefinite Dativ.",
     ids:[252,253,254,255,256,274,276],
     breakdown:[
@@ -562,7 +562,7 @@ const GRAMMAR_TOPICS = [
         {text:"den Teddy",label:"Akk. (best. - Ausnahme!)",pos:"akk"},{text:"einem Kind",label:"Dat. (unbest.)",pos:"dativ"}
       ]}
     ]},
-  { id:"PronomStellung", title:"Pronomen vor Nomen — Pronoun before Noun, Akk. before Dat.",
+  { id:"PronomStellung", level:"b1", title:"Pronomen vor Nomen — Pronoun before Noun, Akk. before Dat.",
     rule:"Rule 2: When one object is a PRONOUN, the pronoun always comes before the noun (regardless of case). Rule 3: When BOTH objects are pronouns, the Akkusativ pronoun comes BEFORE the Dativ pronoun.",
     ids:[257,258,259,260,261,262,275,277],
     breakdown:[
@@ -583,7 +583,7 @@ const GRAMMAR_TOPICS = [
         {text:"es",label:"Pron. Akk (1.!)",pos:"akk"},{text:"ihr",label:"Pron. Dat (2.)",pos:"dativ"}
       ]}
     ]},
-  { id:"AltVorNeu", title:"Alt vor Neu — Old Information before New",
+  { id:"AltVorNeu", level:"b2", title:"Alt vor Neu — Old Information before New",
     rule:"Known/old information (pronouns, definite articles) comes BEFORE new/unknown information (indefinite articles, no article). Important new information tends to land at the END of the sentence. This principle works together with TeKaMoLo.",
     ids:[267,268,266,263,264],
     breakdown:[
@@ -604,7 +604,7 @@ const GRAMMAR_TOPICS = [
         {text:"ich",label:"Subj.",pos:"subj"},{text:"einen Computer",label:"Neu (unbekannt)",pos:"akk"}
       ]}
     ]},
-  { id:"KasusAkkusativ", title:"Akkusativ — The Direct Object (wen? / was?)",
+  { id:"KasusAkkusativ", level:"a2", title:"Akkusativ — The Direct Object (wen? / was?)",
     rule:"The accusative marks the DIRECT object — the thing or person directly receiving the action. Ask: Wen? (who?) or Was? (what?). Only masculine changes: der → den, ein → einen. Feminine, neuter, and plural stay the same as nominative.",
     ids:[41,91,100,113,166,279,280],
     table:{
@@ -615,7 +615,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"KasusDativ", title:"Dativ — The Indirect Object (wem?)",
+  { id:"KasusDativ", level:"a2", title:"Dativ — The Indirect Object (wem?)",
     rule:"The dative marks the INDIRECT object — the recipient or person affected. Ask: Wem? (to/for whom?). Key verbs that ALWAYS take dative: helfen, danken, gefallen, gehören, antworten, vertrauen, folgen, gratulieren, fehlen, passen, schaden, schmecken.",
     ids:[4,32,107,178,252,286,287],
     table:{
@@ -627,7 +627,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"PräpAkk", title:"Präpositionen mit Akkusativ (durch / für / gegen / ohne / um)",
+  { id:"PräpAkk", level:"b1", title:"Präpositionen mit Akkusativ (durch / für / gegen / ohne / um)",
     rule:"These 7 prepositions ALWAYS take accusative — no exceptions: durch (through), für (for), gegen (against/around), ohne (without), um (around/at), bis (until/to), entlang (along — comes AFTER the noun). Memory tip: durch-für-gegen-ohne-um are the 5 core ones.",
     ids:[279,280,281,282,283,284,285],
     table:{
@@ -643,7 +643,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"PräpDat", title:"Präpositionen mit Dativ (aus / bei / mit / nach / seit / von / zu)",
+  { id:"PräpDat", level:"b1", title:"Präpositionen mit Dativ (aus / bei / mit / nach / seit / von / zu)",
     rule:"These prepositions ALWAYS take dative — no exceptions: aus (from/out of), bei (at/near), mit (with/by), nach (after/to — cities & home), seit (since/for), von (from/of), zu (to/at). Also: außer (except), gegenüber (opposite). Memory tip: aus-bei-mit-nach-seit-von-zu.",
     ids:[286,287,288,289,290,291,292,293,294],
     table:{
@@ -661,7 +661,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"Wechselpräp", title:"Wechselpräpositionen — Wo? (Dativ) vs. Wohin? (Akkusativ)",
+  { id:"Wechselpräp", level:"b1", title:"Wechselpräpositionen — Wo? (Dativ) vs. Wohin? (Akkusativ)",
     rule:"9 prepositions switch case: an, auf, hinter, in, neben, über, unter, vor, zwischen. Wo? (location) → Dativ. Wohin? (direction/destination) → Akkusativ. Contrast: Ich bin IN DER Schule (Wo? Dat) vs. Ich gehe IN DIE Schule (Wohin? Akk).",
     ids:[295,296,297,298,299,300,301,302,303],
     table:{
@@ -679,7 +679,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"VerbAkk", title:"Verben mit Akkusativ — Wen? / Was?",
+  { id:"VerbAkk", level:"b1", title:"Verben mit Akkusativ — Wen? / Was?",
     rule:"These verbs ALWAYS take an accusative object (wen? was?): kaufen, haben, sehen, brauchen, kennen, verstehen, lesen, hören, nehmen, essen, trinken, lieben, machen, suchen, finden, besuchen, öffnen, schließen, benutzen, lernen, fragen, bestellen, bezahlen, bringen, schreiben, studieren, treffen, vergessen, waschen. Ask yourself: Wen oder was? — the answer is Akkusativ.",
     ids:[41,91,100,166,304,305,306,307,308],
     table:{
@@ -698,7 +698,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"VerbDat", title:"Verben mit Dativ — Wem?",
+  { id:"VerbDat", level:"b1", title:"Verben mit Dativ — Wem?",
     rule:"These verbs ALWAYS take a dative object (wem?): helfen, danken, gefallen, gehören, antworten, vertrauen, folgen, gratulieren, fehlen, passen, schaden, schmecken, glauben, zuhören, zustimmen, widersprechen, begegnen, ähneln, imponieren, nützen. Ask yourself: Wem? — the answer is Dativ.",
     ids:[4,32,107,178,309,310,311,312,313],
     table:{
@@ -717,7 +717,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"VerbDatAkk", title:"Verben mit Dativ + Akkusativ — Wem? Was?",
+  { id:"VerbDatAkk", level:"b1", title:"Verben mit Dativ + Akkusativ — Wem? Was?",
     rule:"These verbs take TWO objects: a Dativ (wem? — the person) AND an Akkusativ (was? — the thing): geben, schenken, zeigen, erklären, bringen, schicken, wünschen, empfehlen, verkaufen, versprechen, vorlesen, leihen, erzählen, senden. Word order: Dativ before Akkusativ (unless Akkusativ has a definite article — see DativAkkusativ topic).",
     ids:[252,253,254,314,315,316,317,318],
     table:{
@@ -734,7 +734,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"Genitiv", title:"Genitiv — Possession and Belonging (wessen?)",
+  { id:"Genitiv", level:"b2", title:"Genitiv — Possession and Belonging (wessen?)",
     rule:"The genitive shows possession or belonging. Ask: Wessen? (whose?). Masculine and neuter nouns add -s or -es (des Mannes, des Kindes). Feminine and plural nouns add nothing (der Frau, der Kinder). Adjective endings in genitive are ALWAYS -en (des kleinen Hundes, einer schönen Frau). Tip: in everyday speech, von + Dativ is often used instead (das Auto von meinem Vater).",
     ids:[49,324,325,326,327,328],
     table:{
@@ -747,7 +747,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"GenitPräp", title:"Genitivpräpositionen — Prepositions with Genitive",
+  { id:"GenitPräp", level:"b2", title:"Genitivpräpositionen — Prepositions with Genitive",
     rule:"These prepositions always take genitive. Common ones: wegen (because of), trotz (despite), während (during), außerhalb (outside), innerhalb (within), aufgrund (due to), statt/anstatt (instead of), laut (according to), oberhalb (above), unterhalb (below). Note: wegen + Dativ is increasingly accepted in spoken German.",
     ids:[329,330,331,332,333,334,335,336,337],
     table:{
@@ -766,7 +766,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"AdjektivEndungen", title:"Adjektivendungen — After Definite & Indefinite Articles",
+  { id:"AdjektivEndungen", level:"b2", title:"Adjektivendungen — After Definite & Indefinite Articles",
     rule:"After a definite article (der/die/das) adjectives take WEAK endings — mostly -en, with only -e in Nom. singular and Nom/Akk. neuter. After an indefinite article (ein/eine) adjectives take MIXED endings — same -e for Nom. Fem. & Nom/Akk. Neut., but strong -er/-es for Nom. Masc. (ein alter Mann, ein altes Haus). Key insight: the ending is weak (-en) wherever the article already shows the gender clearly.",
     ids:[338,339,340,341,342,343,346,347],
     table:{
@@ -781,7 +781,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"AdjektivStark", title:"Adjektivendungen ohne Artikel — Strong Endings",
+  { id:"AdjektivStark", level:"b2", title:"Adjektivendungen ohne Artikel — Strong Endings",
     rule:"When there is NO article before the adjective, the adjective itself must show the gender — it takes STRONG endings that mirror the definite article forms (der→-er, die→-e, das→-es, den→-en). This applies after numbers, kein in plural, and when no determiner is used at all. Examples: kalter Kaffee, frisches Brot, guter Schlaf, gute Menschen.",
     ids:[344,345,348,349],
     table:{
@@ -794,7 +794,7 @@ const GRAMMAR_TOPICS = [
       ]
     }
   },
-  { id:"FestAusdrücke", title:"Feste Ausdrücke — Verb + Präposition + Kasus",
+  { id:"FestAusdrücke", level:"b2", title:"Feste Ausdrücke — Verb + Präposition + Kasus",
     rule:"Many common expressions are verb + fixed preposition + fixed case. You must memorize both the preposition AND the case it requires. Key ones: sich interessieren für (Akk), warten auf (Akk), denken an (Akk), sich freuen auf (Akk), träumen von (Dat), sprechen mit (Dat), sich beschäftigen mit (Dat), Angst haben vor (Dat), abhängen von (Dat).",
     ids:[319,320,321,322,323],
     table:{
@@ -854,6 +854,8 @@ let phraseMode = "flashcard";  // "flashcard" | "mc"
 
 // Grammar + Vocab state
 let grammarFilter = "all";
+let cefrFilter = localStorage.getItem("cefrFilter") || "all";
+const TIER_TO_CEFR = { 1: "a1", 2: "a2", 3: "b1", 4: "b2" };
 let grammarTopicFilter = null;
 const vocabCache = {};
 
@@ -1095,6 +1097,10 @@ function buildQueue() {
     source = source.filter(p => (GRAMMAR_TAGS[p.id] || []).some(t => t.startsWith(grammarFilter)));
   }
 
+  if (cefrFilter !== "all") {
+    source = source.filter(p => p.level === cefrFilter);
+  }
+
   if (mode === "recall") {
     if (shuffle) {
       // Shuffle within due/new group and upcoming group separately to keep SRS priority
@@ -1141,6 +1147,9 @@ function init() {
   repeatBtn.classList.toggle("active", repeatCount > 1);
 
   buildCategorySelect();
+  document.querySelectorAll(".level-chip").forEach(c => {
+    c.classList.toggle("active", c.dataset.level === cefrFilter);
+  });
   buildQueue();
   renderCard();
   setupEvents();
@@ -1405,6 +1414,19 @@ function setupEvents() {
     grammarFilter = e.target.value;
     buildQueue();
     renderCard();
+  });
+
+  document.querySelectorAll(".level-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      cefrFilter = chip.dataset.level;
+      localStorage.setItem("cefrFilter", cefrFilter);
+      document.querySelectorAll(".level-chip").forEach(c => c.classList.toggle("active", c === chip));
+      buildQueue();
+      renderCard();
+      if (mode === "words") { buildWordsQueue(); renderWordCard(); }
+      if (mode === "vocab") renderVocabPanel(document.getElementById("vocab-panel-search")?.value || "");
+      if (mode === "grammar") renderGrammarTab(grammarTopicFilter);
+    });
   });
 
   shuffleBtn.addEventListener("click", () => {
@@ -2303,9 +2325,9 @@ const STOP_WORDS = new Set([
   "wann","wie","warum","woher","wohin","welche","welchen","welchem","welches","mal"
 ]);
 
-function extractVocabWords() {
+function extractVocabWords(phrases = PHRASES) {
   const map = new Map();
-  for (const p of PHRASES) {
+  for (const p of phrases) {
     const tokens = p.german.replace(/[.,!?;:]/g, "").split(/\s+/).filter(Boolean);
     for (const tok of tokens) {
       const key = tok.toLowerCase();
@@ -2322,7 +2344,8 @@ function extractVocabWords() {
 }
 
 function renderVocabPanel(search = "") {
-  const words = extractVocabWords();
+  const sourcePhrases = cefrFilter !== "all" ? PHRASES.filter(p => p.level === cefrFilter) : PHRASES;
+  const words = extractVocabWords(sourcePhrases);
   const filtered = search
     ? words.filter(w => w.key.includes(search.toLowerCase()))
     : words;
@@ -2389,9 +2412,12 @@ function renderGrammarTable({ headers, rows }) {
 }
 
 function renderGrammarTab(filterTag = null) {
-  const topics = filterTag
+  let topics = filterTag
     ? GRAMMAR_TOPICS.filter(t => filterTag.startsWith(t.id) || t.id === filterTag)
     : GRAMMAR_TOPICS;
+  if (cefrFilter !== "all") {
+    topics = topics.filter(t => t.level === cefrFilter);
+  }
   const list = document.getElementById("grammar-list");
   if (!topics.length) {
     list.innerHTML = `<div class="prog-empty">No grammar topic found for "${filterTag}".</div>`;
@@ -3188,6 +3214,7 @@ function buildWordsQueue() {
   let source = (typeof WORDS !== "undefined" ? WORDS : []);
   if (tierVal !== "all") source = source.filter(w => w.tier === parseInt(tierVal));
   if (posVal !== "all") source = source.filter(w => w.pos === posVal);
+  if (cefrFilter !== "all") source = source.filter(w => TIER_TO_CEFR[w.tier] === cefrFilter);
 
   if (wordsShuffled) {
     // Shuffle within due/new and upcoming groups separately to keep priority

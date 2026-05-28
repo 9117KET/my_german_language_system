@@ -137,6 +137,50 @@ body {
   flex: 1;
 }
 
+/* ---- Sidebar Level Filter ---- */
+.sidebar-level {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sidebar-level-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 7px;
+  padding-left: 2px;
+}
+.level-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.level-chip {
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--surface2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+  letter-spacing: 0.02em;
+}
+.level-chip.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent-glow);
+}
+.level-chip:hover:not(.active) {
+  background: var(--surface3, rgba(255,255,255,0.08));
+  color: var(--text);
+}
+
 /* ---- Sidebar Footer ---- */
 .sidebar-footer {
   padding: 14px 20px;
@@ -1503,6 +1547,10 @@ select option {
   }
 
   .sidebar-footer {
+    display: none;
+  }
+
+  .sidebar-level {
     display: none;
   }
 
