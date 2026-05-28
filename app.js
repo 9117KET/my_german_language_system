@@ -2026,7 +2026,7 @@ function setupChatSpeech() {
   chatRecognition = new SR();
   chatRecognition.continuous = true;
   chatRecognition.interimResults = true;
-  chatRecognition.lang = "en-US";
+  chatRecognition.lang = "de-DE";
 
   let silenceTimer = null;
   let finalTranscript = "";
@@ -2191,7 +2191,7 @@ async function startDeepgramRecording() {
     const { key } = await tokenRes.json();
 
     deepgramStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const url = `wss://api.deepgram.com/v1/listen?detect_language=true&model=nova-2&interim_results=true&utterance_end_ms=1500&endpointing=600&vad_events=true&encoding=linear16&sample_rate=16000`;
+    const url = `wss://api.deepgram.com/v1/listen?language=multi&model=nova-2-general&interim_results=true&utterance_end_ms=1500&endpointing=600&vad_events=true&encoding=linear16&sample_rate=16000`;
     deepgramWS = new WebSocket(url, ["token", key]);
 
     deepgramWS.onopen = () => {
