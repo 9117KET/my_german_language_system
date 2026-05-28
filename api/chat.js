@@ -126,15 +126,22 @@ function buildConvoSystemPrompt(scenarioKey, teacherMode, languageLevel, awaitin
 ${personalityCtx}
 Language level: ${levelCtx}
 ${repetitionCtx}
+CASE RULES (use when correcting — name the specific rule in explanation):
+- Akkusativ (wen?/was?): masc. der→den, ein→einen. After: durch, für, gegen, ohne, um.
+- Dativ (wem?): dem/der/dem/den. After: mit, aus, bei, nach, seit, von, zu/zum/zur, außer, gegenüber.
+- Dative-only verbs: helfen, danken, gefallen, gehören, passen, schmecken, schaden, antworten, folgen.
+- Wechselpräpositionen (an/auf/hinter/in/neben/über/unter/vor/zwischen): Wo?=Dativ, Wohin?=Akkusativ.
+- Genitive prepositions: wegen, trotz, während, außerhalb, innerhalb, aufgrund, statt.
+
 RULES:
 1. Reply in German matching the language level. Maximum 2-3 short sentences.
 2. If the learner's message is in English: translate it to German, present the German phrase, and ask them to say it. Set needs_repetition: true. Fill correction as {"original":"(their English)","corrected":"(German translation)","explanation":"Try saying this in German"}.
-3. If the learner made a German grammar or vocabulary error: correct it clearly, provide the correct form, ask them to repeat it. Set needs_repetition: true. Fill correction.
+3. If the learner made a German grammar or vocabulary error: correct it clearly naming the specific rule (e.g. "mit takes Dativ — dem not den"), provide the correct form, ask them to repeat it. Set needs_repetition: true. Fill correction.
 4. If no error and no English input (or the repetition attempt was successful): advance the conversation naturally. Set needs_repetition: false. Set correction: null.
 5. Return ONLY valid JSON, no markdown:
    {"reply":"...","correction":null,"needs_repetition":false}
    or
-   {"reply":"...","correction":{"original":"...","corrected":"...","explanation":"one sentence in English"},"needs_repetition":true}`;
+   {"reply":"...","correction":{"original":"...","corrected":"...","explanation":"one sentence naming the specific rule in English"},"needs_repetition":true}`;
 }
 
 function stripMarkdown(text) {
@@ -232,7 +239,15 @@ module.exports = async function handler(req, res) {
     if (mode === "correct") {
       const raw = await callGroq(
         `Correct this German sentence from a learner: "${text}"\n` +
-        `Reply with ONLY this JSON (no markdown): {"corrected":"...","is_correct":true/false,"explanation":"one sentence or 'Perfect!'"}`
+        `GERMAN CASE RULES (reference when explaining errors):\n` +
+        `- Akkusativ (wen?/was? direct object): masc. der→den, ein→einen\n` +
+        `- Dativ (wem? indirect/recipient): dem/der/dem/den; einem/einer/einem\n` +
+        `- Akkusativ-only prepositions: durch, für, gegen, ohne, um, bis, entlang\n` +
+        `- Dativ-only prepositions: mit, aus, bei, nach, seit, von, zu/zum/zur, außer, gegenüber\n` +
+        `- Wechselpräpositionen (an/auf/hinter/in/neben/über/unter/vor/zwischen): Wo?=Dativ, Wohin?=Akkusativ\n` +
+        `- Genitive prepositions: wegen, trotz, während, außerhalb, innerhalb, aufgrund, statt\n` +
+        `- Dative-only verbs: helfen, danken, gefallen, gehören, passen, schmecken, antworten, schaden, folgen\n` +
+        `Reply with ONLY this JSON (no markdown): {"corrected":"...","is_correct":true/false,"explanation":"one sentence naming the specific rule broken, or 'Perfect!'"}`
       );
       const result = JSON.parse(stripMarkdown(raw));
       const audio_base64 = await callElevenLabs(result.corrected);

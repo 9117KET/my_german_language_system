@@ -813,6 +813,20 @@ select option {
 }
 .grammar-chip:active { opacity: 0.7; }
 
+/* Grammar chips inside chat messages */
+.chat-grammar-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+  padding-left: 4px;
+}
+.grammar-chip.chat-chip {
+  font-size: 0.62rem;
+  padding: 2px 7px;
+  opacity: 0.85;
+}
+
 /* ---- Tappable Words ---- */
 .tap-word {
   cursor: pointer;
@@ -969,6 +983,38 @@ select option {
 .gt-example:active { border-color: var(--accent); opacity: 0.8; }
 .gt-german { font-weight: 600; font-size: 0.92rem; line-height: 1.4; }
 .gt-english { font-size: 0.82rem; color: var(--text-dim); margin-top: 3px; }
+.gt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin: 2px 0 4px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.gt-table thead tr {
+  background: var(--accent-dim);
+}
+.gt-table th {
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+.gt-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  line-height: 1.4;
+}
+.gt-table td.gt-table-label {
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.gt-table tbody tr:last-child td { border-bottom: none; }
+.gt-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.03); }
 .gt-ai-explanation {
   font-size: 0.88rem;
   color: var(--text);

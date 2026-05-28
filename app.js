@@ -186,7 +186,110 @@ const GRAMMAR_TAGS = {
   276:["DativAkkusativ","Perfekt","TeKaMoLo","Dativ","Akkusativ"],
   277:["DativAkkusativ","Pronomen","Dativ","Akkusativ","TeKaMoLo"],
   278:["NebensatzVerb","Nebensatz-seitdem","DativAkkusativ","Dativ","Akkusativ"],
+  279:["PräpAkk","KasusAkkusativ"], 280:["PräpAkk","KasusAkkusativ"],
+  281:["PräpAkk","KasusAkkusativ"], 282:["PräpAkk","KasusAkkusativ"],
+  283:["PräpAkk","KasusAkkusativ"], 284:["PräpAkk","KasusAkkusativ"],
+  285:["PräpAkk","KasusAkkusativ"],
+  286:["PräpDat","KasusDativ"], 287:["PräpDat","KasusDativ"],
+  288:["PräpDat","KasusDativ"], 289:["PräpDat","KasusDativ"],
+  290:["PräpDat","KasusDativ"], 291:["PräpDat","KasusDativ"],
+  292:["PräpDat","KasusDativ"], 293:["PräpDat","KasusDativ"],
+  294:["PräpDat","KasusDativ"],
+  295:["Wechselpräp","KasusDativ"], 296:["Wechselpräp","KasusAkkusativ"],
+  297:["Wechselpräp","KasusDativ"], 298:["Wechselpräp","KasusAkkusativ"],
+  299:["Wechselpräp","KasusDativ"], 300:["Wechselpräp","KasusAkkusativ"],
+  301:["Wechselpräp","KasusDativ"], 302:["Wechselpräp","KasusAkkusativ"],
+  303:["Wechselpräp","KasusDativ"],
+  304:["VerbAkk","KasusAkkusativ"], 305:["VerbAkk","KasusAkkusativ"],
+  306:["VerbAkk","KasusAkkusativ"], 307:["VerbAkk","KasusAkkusativ"],
+  308:["VerbAkk","KasusAkkusativ"],
+  309:["VerbDat","KasusDativ"], 310:["VerbDat","KasusDativ"],
+  311:["VerbDat","KasusDativ"], 312:["VerbDat","KasusDativ"],
+  313:["VerbDat","KasusDativ"],
+  314:["VerbDatAkk","KasusDativ","KasusAkkusativ"], 315:["VerbDatAkk","KasusDativ","KasusAkkusativ"],
+  316:["VerbDatAkk","KasusDativ","KasusAkkusativ"], 317:["VerbDatAkk","KasusDativ","KasusAkkusativ"],
+  318:["VerbDatAkk","KasusDativ","KasusAkkusativ"],
+  319:["FestAusdrücke","PräpAkk","KasusAkkusativ"],
+  320:["FestAusdrücke","PräpAkk","KasusAkkusativ"],
+  321:["FestAusdrücke","PräpDat","KasusDativ"],
+  322:["FestAusdrücke","PräpAkk","KasusAkkusativ"],
+  323:["FestAusdrücke","PräpDat","KasusDativ"],
+  324:["Genitiv"], 325:["Genitiv"], 326:["Genitiv"],
+  327:["Genitiv"], 328:["Genitiv"],
+  329:["GenitPräp","Genitiv"], 330:["GenitPräp","Genitiv"],
+  331:["GenitPräp","Genitiv"], 332:["GenitPräp","Genitiv"],
+  333:["GenitPräp","Genitiv"], 334:["GenitPräp","Genitiv"],
+  335:["GenitPräp","Genitiv"], 336:["GenitPräp","Genitiv"],
+  337:["GenitPräp","Genitiv"],
+  338:["AdjektivEndungen"], 339:["AdjektivEndungen"], 340:["AdjektivEndungen"],
+  341:["AdjektivEndungen"], 342:["AdjektivEndungen"], 343:["AdjektivEndungen"],
+  344:["AdjektivEndungen","AdjektivStark"], 345:["AdjektivEndungen","AdjektivStark"],
+  346:["AdjektivEndungen"], 347:["AdjektivEndungen"],
+  348:["AdjektivEndungen","AdjektivStark"], 349:["AdjektivEndungen","AdjektivStark"],
 };
+
+// ---- Auto Grammar Tag Detection ----
+// Scans any German text and returns additional grammar tags based on preposition/case patterns.
+const CASE_TAG_PRIORITY = ['KasusAkkusativ','KasusDativ','PräpAkk','PräpDat','Wechselpräp','GenitPräp','Genitiv','VerbAkk','VerbDat','VerbDatAkk','FestAusdrücke','AdjektivEndungen','AdjektivStark'];
+
+function getAutoTags(german) {
+  const tags = new Set();
+  const t = german;
+  // Shorthand: matches any article/possessive in accusative or dative form
+  const AKK_ART = /d(?:en|ie|as)|ein(?:en|e)?|(?:m|d|s|ihr|unser|euer|kein)\w+/i;
+  const DAT_ART = /d(?:em|er)|ein(?:em|er)|(?:m|d|s|ihr|unser|euer|kein)\w+|mir|dir|ihm|ihr|uns|euch|ihnen|Ihnen/i;
+  const GEN_ART = /d(?:es|er)|ein(?:es|er)|(?:m|d|s|ihr|unser|euer|kein)\w+/i;
+
+  // Accusative-only prepositions + any accusative/possessive form
+  const akkPrepRx = new RegExp(`\\b(durch|für|gegen|ohne|um)\\s+(${AKK_ART.source})\\b`, 'i');
+  if (akkPrepRx.test(t) || /\b(für|ohne)\s+(mich|dich|ihn|uns|euch|Sie)\b/i.test(t)) {
+    tags.add('PräpAkk');
+  }
+
+  // Dative-only prepositions + any dative/pronoun form
+  const datPrepRx = new RegExp(`\\b(mit|aus|bei|nach|seit|von|zu|außer|gegenüber)\\s+(${DAT_ART.source})\\b`, 'i');
+  if (datPrepRx.test(t) || /\b(zum|zur)\b/i.test(t)) {
+    tags.add('PräpDat');
+  }
+
+  // Genitive prepositions + any genitive article/possessive form
+  const genitPrepRx = new RegExp(`\\b(wegen|trotz|während|außerhalb|innerhalb|aufgrund|statt|anstatt|laut|oberhalb|unterhalb|ungeachtet|diesseits|jenseits|bezüglich|hinsichtlich|infolge)\\s+(${GEN_ART.source})\\b`, 'i');
+  if (genitPrepRx.test(t)) {
+    tags.add('GenitPräp');
+    tags.add('Genitiv');
+  }
+
+  // Genitive possession: des + noun with -s/-es ending
+  if (/\bdes\s+\w+(?:es|s)\b/i.test(t)) tags.add('Genitiv');
+
+  // Wechselpräpositionen + any article (either case)
+  const wechselRx = new RegExp(`\\b(an|auf|in|hinter|neben|über|unter|vor|zwischen)\\s+(d(?:em|er|en|as|ie)|ein\\w*|(?:m|d|s|ihr|unser|euer|kein)\\w+)\\b`, 'i');
+  if (wechselRx.test(t) || /\b(im|am|ins|ans|aufs)\b/i.test(t)) {
+    tags.add('Wechselpräp');
+  }
+
+  return [...tags];
+}
+
+// Returns the full enriched tag list for a phrase, combining static GRAMMAR_TAGS with auto-detected ones.
+// Priority tags (case/preposition) surface first so the most educational chips appear in the card.
+function getTagsForCard(phraseId, german) {
+  const staticTags = [].concat(GRAMMAR_TAGS[phraseId] || []);
+  const tagSet = new Set(staticTags);
+
+  // Map legacy generic tags to new specific case topics
+  if (tagSet.has('Akkusativ')) tagSet.add('KasusAkkusativ');
+  if (tagSet.has('Dativ'))     tagSet.add('KasusDativ');
+
+  // Auto-detect additional tags from phrase text
+  getAutoTags(german).forEach(t => tagSet.add(t));
+
+  // Build result with priority tags first, then everything else
+  const result = [];
+  CASE_TAG_PRIORITY.forEach(t => { if (tagSet.has(t)) result.push(t); });
+  [...tagSet].forEach(t => { if (!CASE_TAG_PRIORITY.includes(t)) result.push(t); });
+  return result;
+}
 
 // ---- Conversation Scenarios ----
 const SCENARIOS = {
@@ -501,6 +604,217 @@ const GRAMMAR_TOPICS = [
         {text:"ich",label:"Subj.",pos:"subj"},{text:"einen Computer",label:"Neu (unbekannt)",pos:"akk"}
       ]}
     ]},
+  { id:"KasusAkkusativ", title:"Akkusativ — The Direct Object (wen? / was?)",
+    rule:"The accusative marks the DIRECT object — the thing or person directly receiving the action. Ask: Wen? (who?) or Was? (what?). Only masculine changes: der → den, ein → einen. Feminine, neuter, and plural stay the same as nominative.",
+    ids:[41,91,100,113,166,279,280],
+    table:{
+      headers:["Fall","Maskulin","Feminin","Neutral","Plural"],
+      rows:[
+        ["Nominativ","der / ein","die / eine","das / ein","die / -"],
+        ["Akkusativ","den / einen","die / eine","das / ein","die / -"],
+      ]
+    }
+  },
+  { id:"KasusDativ", title:"Dativ — The Indirect Object (wem?)",
+    rule:"The dative marks the INDIRECT object — the recipient or person affected. Ask: Wem? (to/for whom?). Key verbs that ALWAYS take dative: helfen, danken, gefallen, gehören, antworten, vertrauen, folgen, gratulieren, fehlen, passen, schaden, schmecken.",
+    ids:[4,32,107,178,252,286,287],
+    table:{
+      headers:["Artikel","Maskulin","Feminin","Neutral","Plural"],
+      rows:[
+        ["bestimmt","dem","der","dem","den"],
+        ["unbestimmt","einem","einer","einem","—"],
+        ["Pronomen","ihm","ihr","ihm","ihnen"],
+      ]
+    }
+  },
+  { id:"PräpAkk", title:"Präpositionen mit Akkusativ (durch / für / gegen / ohne / um)",
+    rule:"These 7 prepositions ALWAYS take accusative — no exceptions: durch (through), für (for), gegen (against/around), ohne (without), um (around/at), bis (until/to), entlang (along — comes AFTER the noun). Memory tip: durch-für-gegen-ohne-um are the 5 core ones.",
+    ids:[279,280,281,282,283,284,285],
+    table:{
+      headers:["Präposition","Bedeutung","Beispiel"],
+      rows:[
+        ["durch","through","durch den Park"],
+        ["für","for","für meinen Freund"],
+        ["gegen","against / around","gegen den Wind"],
+        ["ohne","without","ohne meinen Schlüssel"],
+        ["um","around / at (time)","um den Tisch"],
+        ["bis","until / up to","bis nächste Woche"],
+        ["entlang","along (after noun)","den Fluss entlang"],
+      ]
+    }
+  },
+  { id:"PräpDat", title:"Präpositionen mit Dativ (aus / bei / mit / nach / seit / von / zu)",
+    rule:"These prepositions ALWAYS take dative — no exceptions: aus (from/out of), bei (at/near), mit (with/by), nach (after/to — cities & home), seit (since/for), von (from/of), zu (to/at). Also: außer (except), gegenüber (opposite). Memory tip: aus-bei-mit-nach-seit-von-zu.",
+    ids:[286,287,288,289,290,291,292,293,294],
+    table:{
+      headers:["Präposition","Bedeutung","Beispiel"],
+      rows:[
+        ["aus","from / out of","aus dem Haus"],
+        ["bei","at / near","bei meiner Freundin"],
+        ["mit","with / by","mit dem Bus"],
+        ["nach","after / to (cities)","nach Berlin / nach Hause"],
+        ["seit","since / for (duration)","seit einem Jahr"],
+        ["von","from / of","von meinem Vater"],
+        ["zu","to / at","zur Schule (zu + der)"],
+        ["außer","except","außer mir"],
+        ["gegenüber","opposite","gegenüber dem Bahnhof"],
+      ]
+    }
+  },
+  { id:"Wechselpräp", title:"Wechselpräpositionen — Wo? (Dativ) vs. Wohin? (Akkusativ)",
+    rule:"9 prepositions switch case: an, auf, hinter, in, neben, über, unter, vor, zwischen. Wo? (location) → Dativ. Wohin? (direction/destination) → Akkusativ. Contrast: Ich bin IN DER Schule (Wo? Dat) vs. Ich gehe IN DIE Schule (Wohin? Akk).",
+    ids:[295,296,297,298,299,300,301,302,303],
+    table:{
+      headers:["Präp.","Wo? (Dativ)","Wohin? (Akkusativ)"],
+      rows:[
+        ["an","an der Wand","an die Wand"],
+        ["auf","auf dem Tisch","auf den Tisch"],
+        ["hinter","hinter dem Haus","hinter das Haus"],
+        ["in","in der Schule","in die Schule"],
+        ["neben","neben dem Stuhl","neben den Stuhl"],
+        ["über","über dem Bett","über das Bett"],
+        ["unter","unter dem Tisch","unter den Tisch"],
+        ["vor","vor dem Kino","vor das Kino"],
+        ["zwischen","zwischen den Häusern","zwischen die Häuser"],
+      ]
+    }
+  },
+  { id:"VerbAkk", title:"Verben mit Akkusativ — Wen? / Was?",
+    rule:"These verbs ALWAYS take an accusative object (wen? was?): kaufen, haben, sehen, brauchen, kennen, verstehen, lesen, hören, nehmen, essen, trinken, lieben, machen, suchen, finden, besuchen, öffnen, schließen, benutzen, lernen, fragen, bestellen, bezahlen, bringen, schreiben, studieren, treffen, vergessen, waschen. Ask yourself: Wen oder was? — the answer is Akkusativ.",
+    ids:[41,91,100,166,304,305,306,307,308],
+    table:{
+      headers:["Verb","Beispiel (+ Akkusativ)"],
+      rows:[
+        ["kaufen","Ich kaufe einen Kaffee."],
+        ["sehen","Ich sehe den Mann."],
+        ["lesen","Er liest ein Buch."],
+        ["brauchen","Wir brauchen Hilfe."],
+        ["kennen","Ich kenne die Stadt."],
+        ["verstehen","Ich verstehe das nicht."],
+        ["besuchen","Wir besuchen die Oma."],
+        ["hören","Sie hört die Musik."],
+        ["nehmen","Ich nehme den Bus."],
+        ["fragen","Ich frage den Lehrer."],
+      ]
+    }
+  },
+  { id:"VerbDat", title:"Verben mit Dativ — Wem?",
+    rule:"These verbs ALWAYS take a dative object (wem?): helfen, danken, gefallen, gehören, antworten, vertrauen, folgen, gratulieren, fehlen, passen, schaden, schmecken, glauben, zuhören, zustimmen, widersprechen, begegnen, ähneln, imponieren, nützen. Ask yourself: Wem? — the answer is Dativ.",
+    ids:[4,32,107,178,309,310,311,312,313],
+    table:{
+      headers:["Verb","Beispiel (+ Dativ)"],
+      rows:[
+        ["helfen","Ich helfe meiner Freundin."],
+        ["danken","Er dankt dem Lehrer."],
+        ["gefallen","Das Buch gefällt mir."],
+        ["gehören","Das Auto gehört meinem Vater."],
+        ["passen","Die Schuhe passen mir."],
+        ["schmecken","Die Suppe schmeckt dem Kind."],
+        ["schaden","Rauchen schadet der Gesundheit."],
+        ["antworten","Er antwortet dem Lehrer."],
+        ["glauben","Ich glaube dir."],
+        ["zuhören","Wir hören dem Lehrer zu."],
+      ]
+    }
+  },
+  { id:"VerbDatAkk", title:"Verben mit Dativ + Akkusativ — Wem? Was?",
+    rule:"These verbs take TWO objects: a Dativ (wem? — the person) AND an Akkusativ (was? — the thing): geben, schenken, zeigen, erklären, bringen, schicken, wünschen, empfehlen, verkaufen, versprechen, vorlesen, leihen, erzählen, senden. Word order: Dativ before Akkusativ (unless Akkusativ has a definite article — see DativAkkusativ topic).",
+    ids:[252,253,254,314,315,316,317,318],
+    table:{
+      headers:["Verb","Dativ (wem?)","Akkusativ (was?)"],
+      rows:[
+        ["geben","dem Kind","ein Buch"],
+        ["schenken","meiner Mutter","Blumen"],
+        ["zeigen","dem Freund","den Weg"],
+        ["erklären","den Schülern","die Regel"],
+        ["schicken","meiner Familie","ein Paket"],
+        ["bringen","der Lehrerin","einen Kaffee"],
+        ["wünschen","dir","viel Glück"],
+        ["empfehlen","dem Patienten","eine Therapie"],
+      ]
+    }
+  },
+  { id:"Genitiv", title:"Genitiv — Possession and Belonging (wessen?)",
+    rule:"The genitive shows possession or belonging. Ask: Wessen? (whose?). Masculine and neuter nouns add -s or -es (des Mannes, des Kindes). Feminine and plural nouns add nothing (der Frau, der Kinder). Adjective endings in genitive are ALWAYS -en (des kleinen Hundes, einer schönen Frau). Tip: in everyday speech, von + Dativ is often used instead (das Auto von meinem Vater).",
+    ids:[49,324,325,326,327,328],
+    table:{
+      headers:["","Maskulin","Feminin","Neutral","Plural"],
+      rows:[
+        ["bestimmt","des Mannes","der Frau","des Kindes","der Kinder"],
+        ["unbestimmt","eines Mannes","einer Frau","eines Kindes","— (kein Plural)"],
+        ["Nomenendung","-s / -es","keine","-s / -es","keine"],
+        ["Adjektiv","-en (des kleinen)","-en (der schönen)","-en (des alten)","-en (der netten)"],
+      ]
+    }
+  },
+  { id:"GenitPräp", title:"Genitivpräpositionen — Prepositions with Genitive",
+    rule:"These prepositions always take genitive. Common ones: wegen (because of), trotz (despite), während (during), außerhalb (outside), innerhalb (within), aufgrund (due to), statt/anstatt (instead of), laut (according to), oberhalb (above), unterhalb (below). Note: wegen + Dativ is increasingly accepted in spoken German.",
+    ids:[329,330,331,332,333,334,335,336,337],
+    table:{
+      headers:["Präposition","Bedeutung","Beispiel"],
+      rows:[
+        ["wegen","because of","wegen des Regens"],
+        ["trotz","despite","trotz der Probleme"],
+        ["während","during","während des Unterrichts"],
+        ["außerhalb","outside of","außerhalb der Stadt"],
+        ["innerhalb","within / inside","innerhalb eines Monats"],
+        ["aufgrund","due to / because of","aufgrund des Problems"],
+        ["statt / anstatt","instead of","statt eines Autos"],
+        ["laut","according to","laut des Berichts"],
+        ["oberhalb","above","oberhalb des Dorfes"],
+        ["unterhalb","below","unterhalb der Brücke"],
+      ]
+    }
+  },
+  { id:"AdjektivEndungen", title:"Adjektivendungen — After Definite & Indefinite Articles",
+    rule:"After a definite article (der/die/das) adjectives take WEAK endings — mostly -en, with only -e in Nom. singular and Nom/Akk. neuter. After an indefinite article (ein/eine) adjectives take MIXED endings — same -e for Nom. Fem. & Nom/Akk. Neut., but strong -er/-es for Nom. Masc. (ein alter Mann, ein altes Haus). Key insight: the ending is weak (-en) wherever the article already shows the gender clearly.",
+    ids:[338,339,340,341,342,343,346,347],
+    table:{
+      headers:["Fall","Maskulin","Feminin","Neutral","Plural"],
+      rows:[
+        ["Nom (def.)","der alte Mann","die alte Frau","das alte Haus","die alten Kinder"],
+        ["Akk (def.)","den alten Mann","die alte Frau","das alte Haus","die alten Kinder"],
+        ["Dat (def.)","dem alten Mann","der alten Frau","dem alten Haus","den alten Kindern"],
+        ["Nom (indef.)","ein alter Mann","eine alte Frau","ein altes Haus","— alte Kinder"],
+        ["Akk (indef.)","einen alten Mann","eine alte Frau","ein altes Haus","— alte Kinder"],
+        ["Dat (indef.)","einem alten Mann","einer alten Frau","einem alten Haus","— alten Kindern"],
+      ]
+    }
+  },
+  { id:"AdjektivStark", title:"Adjektivendungen ohne Artikel — Strong Endings",
+    rule:"When there is NO article before the adjective, the adjective itself must show the gender — it takes STRONG endings that mirror the definite article forms (der→-er, die→-e, das→-es, den→-en). This applies after numbers, kein in plural, and when no determiner is used at all. Examples: kalter Kaffee, frisches Brot, guter Schlaf, gute Menschen.",
+    ids:[344,345,348,349],
+    table:{
+      headers:["Fall","Maskulin","Feminin","Neutral","Plural"],
+      rows:[
+        ["Nominativ","kalter Kaffee","frische Milch","frisches Brot","gute Menschen"],
+        ["Akkusativ","kalten Kaffee","frische Milch","frisches Brot","gute Menschen"],
+        ["Dativ","kaltem Kaffee","frischer Milch","frischem Brot","guten Menschen"],
+        ["Genitiv","kalten Kaffees","frischer Milch","frischen Brotes","guter Menschen"],
+      ]
+    }
+  },
+  { id:"FestAusdrücke", title:"Feste Ausdrücke — Verb + Präposition + Kasus",
+    rule:"Many common expressions are verb + fixed preposition + fixed case. You must memorize both the preposition AND the case it requires. Key ones: sich interessieren für (Akk), warten auf (Akk), denken an (Akk), sich freuen auf (Akk), träumen von (Dat), sprechen mit (Dat), sich beschäftigen mit (Dat), Angst haben vor (Dat), abhängen von (Dat).",
+    ids:[319,320,321,322,323],
+    table:{
+      headers:["Ausdruck","Kasus","Beispiel"],
+      rows:[
+        ["sich interessieren für","Akkusativ","für Deutsch"],
+        ["warten auf","Akkusativ","auf den Bus"],
+        ["denken an","Akkusativ","an die Prüfung"],
+        ["sich freuen auf","Akkusativ","auf das Wochenende"],
+        ["sich erinnern an","Akkusativ","an den Urlaub"],
+        ["bitten um","Akkusativ","um Hilfe"],
+        ["träumen von","Dativ","von einem Urlaub"],
+        ["sprechen mit","Dativ","mit dem Lehrer"],
+        ["sich beschäftigen mit","Dativ","mit Deutsch"],
+        ["Angst haben vor","Dativ","vor der Prüfung"],
+        ["abhängen von","Dativ","von der Zeit"],
+        ["leiden an","Dativ","an Stress"],
+      ]
+    }
+  },
 ];
 
 // ---- State ----
@@ -938,10 +1252,10 @@ function renderCard(autoPlay = false) {
     }
   }
 
-  // Grammar tag chips
+  // Grammar tag chips (enriched: static + auto-detected, case tags first)
   const tagContainer = document.getElementById("grammar-tag-container");
-  const tags = GRAMMAR_TAGS[p.id] || [];
-  tagContainer.innerHTML = tags.slice(0, 3).map(t =>
+  const tags = getTagsForCard(p.id, p.german);
+  tagContainer.innerHTML = tags.slice(0, 4).map(t =>
     `<span class="grammar-chip" onclick="openGrammarTopic('${t}')">${t}</span>`
   ).join("");
   tagContainer.style.display = tags.length ? "flex" : "none";
@@ -1890,6 +2204,14 @@ function renderSatzbauBreakdown(parts) {
   ).join("")}</div>`;
 }
 
+function renderGrammarTable({ headers, rows }) {
+  const headerCells = headers.map(h => `<th>${h}</th>`).join("");
+  const bodyRows = rows.map(row =>
+    `<tr>${row.map((cell, i) => i === 0 ? `<td class="gt-table-label">${cell}</td>` : `<td>${cell}</td>`).join("")}</tr>`
+  ).join("");
+  return `<table class="gt-table"><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+}
+
 function renderGrammarTab(filterTag = null) {
   const topics = filterTag
     ? GRAMMAR_TOPICS.filter(t => filterTag.startsWith(t.id) || t.id === filterTag)
@@ -1908,6 +2230,7 @@ function renderGrammarTab(filterTag = null) {
       <div class="grammar-topic">
         <div class="gt-header">${topic.title}</div>
         <div class="gt-rule">${topic.rule}</div>
+        ${topic.table ? renderGrammarTable(topic.table) : ""}
         <div class="gt-examples">
           ${examples.slice(0, 4).map(p => {
             const bd = topic.breakdown && topic.breakdown.find(b => b.phraseId === p.id);
@@ -2435,12 +2758,17 @@ function renderChatMessages() {
     const audioBtn = !isUser && msg.audio_base64
       ? `<button class="chat-play-btn" onclick="playChatAudio(${idx})">&#9654;</button>`
       : "";
+    const autoTags = !isUser ? getAutoTags(msg.text) : [];
+    const grammarChipsHtml = autoTags.length
+      ? `<div class="chat-grammar-chips">${autoTags.map(t => `<span class="grammar-chip chat-chip" onclick="openGrammarTopic('${t}')">${t}</span>`).join("")}</div>`
+      : "";
     return `<div class="chat-row ${isUser ? "user-row" : "ai-row"}">
       <div class="chat-bubble ${isUser ? "user-bubble" : "ai-bubble"}">
         <div class="chat-text">${msg.text}</div>
         ${audioBtn}
       </div>
       ${corrHtml}
+      ${grammarChipsHtml}
     </div>`;
   }).join("");
 
