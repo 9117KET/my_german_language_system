@@ -350,11 +350,17 @@ describe("convo mode - needs_repetition", () => {
   test("returns needs_repetition: true when AI detects English input", async () => {
     const h = loadChatHandler({ GROQ_API_KEY: "fake", ELEVENLABS_API_KEY: "fake" });
     global._chatFetchOrig = global.fetch;
-    global.fetch = groqFetch(JSON.stringify({
-      reply: "Du meinst: 'Ich möchte ins Kino gehen.' Versuch es auf Deutsch!",
-      correction: { original: "I want to go to the cinema", corrected: "Ich möchte ins Kino gehen.", explanation: "Try saying this in German" },
-      needs_repetition: true,
-    }));
+    // English intercept calls callGroq() for translation (returns plain string),
+    // then returns early without calling callGroqMessages().
+    global.fetch = async (url) => {
+      if (url.includes("groq")) {
+        return { ok: true, json: async () => ({ choices: [{ message: { content: "Ich möchte ins Kino gehen." } }] }) };
+      }
+      if (url.includes("elevenlabs")) {
+        return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) };
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    };
 
     const res = mockRes();
     await h({ method: "POST", body: { mode: "convo", text: "I want to go to the cinema", teacherMode: "caring" } }, res);

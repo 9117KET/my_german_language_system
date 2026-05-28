@@ -149,6 +149,19 @@ function parseJSON(text) {
   return null;
 }
 
+function isEnglish(text) {
+  const s = " " + text.toLowerCase().trim() + " ";
+  // German-specific characters = not English
+  if (/[äöüß]/.test(s)) return false;
+  // Common German words = not English
+  if (/\b(ich|sie|du|wir|ihr|er|es|ist|sind|war|waren|haben|sein|und|oder|aber|auch|noch|schon|jetzt|hier|da|wie|was|wer|wenn|weil|dass|mit|für|auf|von|bei|nach|über|unter|nein|ja|bitte|danke|gerne|sehr|viel|gut|nicht)\b/.test(s)) return false;
+  // Strong English markers = definitely English
+  if (/\b(the|is|are|was|were|have|has|don't|doesn't|i'm|i'd|i'll|i've|you're|they're|we're|it's|there's|because|although|however|therefore|would|could|should|might|must|shall|going to|want to|need to)\b/.test(s)) return true;
+  // Two or more moderate English markers = likely English
+  const moderate = [' i ', ' you ', ' he ', ' she ', ' they ', ' we ', ' my ', ' your ', ' his ', ' her ', ' our ', ' their ', ' to ', ' of ', ' for ', ' on ', ' at ', ' by ', ' an '];
+  return moderate.filter(w => s.includes(w)).length >= 2;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -246,6 +259,18 @@ module.exports = async function handler(req, res) {
     }
 
     if (mode === "convo") {
+      // Intercept English input before handing off to the conversation model
+      if (isEnglish(text) && !awaitingRepetition) {
+        const translationRaw = await callGroq(
+          `Translate to natural German (one sentence only): "${text}"\nReturn ONLY the German translation, no explanation, no quotes.`
+        );
+        const german = translationRaw.trim().replace(/^["']+|["']+$/g, "");
+        const reply = `Du meinst: "${german}". Kannst du das auf Deutsch sagen?`;
+        const correction = { original: text, corrected: german, explanation: "Try saying this in German" };
+        const audio_base64 = await callElevenLabs(reply);
+        return res.json({ reply, correction, needs_repetition: true, audio_base64 });
+      }
+
       const systemPrompt = buildConvoSystemPrompt(scenario, teacherMode, languageLevel, awaitingRepetition);
       const messages = [
         { role: "system", content: systemPrompt },

@@ -1079,6 +1079,27 @@ select option {
 }
 .repeat-skip-btn:hover { background: rgba(255,255,255,0.1); }
 
+/* Conversation start prompt */
+.chat-start-prompt {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px;
+  padding: 48px 24px; text-align: center;
+}
+.chat-start-title {
+  font-size: 1.15rem; font-weight: 700; color: var(--text);
+}
+.chat-start-sub {
+  font-size: 0.85rem; color: var(--text-dim);
+}
+.chat-start-btn {
+  margin-top: 8px; padding: 12px 28px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: 24px;
+  font-size: 0.95rem; font-weight: 600; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.chat-start-btn:hover { opacity: 0.85; }
+
 /* Typing indicator */
 .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 12px 16px; }
 .typing-indicator span {

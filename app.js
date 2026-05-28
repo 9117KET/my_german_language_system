@@ -1974,7 +1974,7 @@ function initChat() {
   }
 
   checkDeepgramAvailability().then(() => setupChatSpeech());
-  startConversation(null);
+  renderChatMessages(); // show start prompt, no greeting fired yet
 
   document.getElementById("chat-scenario-select").addEventListener("change", (e) => {
     stopChatSession();
@@ -2274,6 +2274,10 @@ function setChatMicEnabled(enabled) {
   if (btn) btn.disabled = !enabled;
 }
 
+function beginConversation() {
+  startConversation(document.getElementById("chat-scenario-select")?.value || null);
+}
+
 function startConversation(scenarioKey) {
   convoScenario = scenarioKey || null;
   convoHistory = [];
@@ -2403,7 +2407,13 @@ function renderChatMessages() {
   const container = document.getElementById("chat-messages");
   if (!convoMessages.length) {
     const hasScenario = convoScenario && SCENARIOS[convoScenario];
-    container.innerHTML = `<div class="chat-empty">${hasScenario ? "Conversation started — reply in German below." : "Start chatting in German below."}</div>`;
+    const scenarioLabel = hasScenario ? SCENARIOS[convoScenario].title : null;
+    container.innerHTML = `
+      <div class="chat-start-prompt">
+        <div class="chat-start-title">Ready to practice German?</div>
+        <div class="chat-start-sub">${scenarioLabel ? `Scenario: ${scenarioLabel}` : "Free conversation with your AI teacher"}</div>
+        <button class="chat-start-btn" onclick="beginConversation()">Start Conversation</button>
+      </div>`;
     return;
   }
   const msgsHtml = convoMessages.map((msg, idx) => {
