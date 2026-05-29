@@ -2876,6 +2876,8 @@ function initSpeakPanel() {
   renderSpeakPrompt();
   updateSpeakStreak();
   document.getElementById("speak-feedback-area").style.display = "none";
+  document.getElementById("speak-improve-area").style.display = "none";
+  document.getElementById("speak-improve-btn").style.display = "none";
   document.getElementById("speak-transcript-area").style.display = "none";
   document.getElementById("speak-actions").style.display = "flex";
   document.getElementById("speak-start-btn").disabled = false;
@@ -3038,6 +3040,8 @@ async function speakTimeUp() {
   const prompt = SPEAK_PROMPTS[speakPromptIndex].prompt;
 
   document.getElementById("speak-feedback-area").style.display = "flex";
+  document.getElementById("speak-improve-area").style.display = "none";
+  document.getElementById("speak-improve-btn").style.display = "none";
   document.getElementById("speak-feedback-text").textContent = "Getting feedback…";
   document.getElementById("speak-next-btn").disabled = true;
 
@@ -3051,6 +3055,7 @@ async function speakTimeUp() {
       const data = await res.json();
       document.getElementById("speak-feedback-text").textContent =
         data.feedback || "Good effort! Keep practicing.";
+      document.getElementById("speak-improve-btn").style.display = "block";
     } catch {
       document.getElementById("speak-feedback-text").textContent =
         "Could not get feedback right now - but great job speaking!";
@@ -3063,12 +3068,95 @@ async function speakTimeUp() {
   document.getElementById("speak-next-btn").disabled = false;
 }
 
+async function speakGetImproved() {
+  const transcript = speakTranscriptChunks.join(" ").trim();
+  const prompt = SPEAK_PROMPTS[speakPromptIndex].prompt;
+  const btn = document.getElementById("speak-improve-btn");
+  btn.disabled = true;
+  btn.textContent = "Loading…";
+
+  document.getElementById("speak-improve-area").style.display = "flex";
+  document.getElementById("speak-improve-text").textContent = "Generating polished version…";
+  document.getElementById("speak-improve-notes-wrap").style.display = "none";
+  document.getElementById("speak-improve-add-prompt").style.display = "none";
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "speak-improve", text: transcript, prompt }),
+    });
+    const data = await res.json();
+
+    document.getElementById("speak-improve-text").textContent = data.improved || transcript;
+
+    if (data.notes && data.notes.length > 0) {
+      const ul = document.getElementById("speak-improve-notes");
+      ul.innerHTML = data.notes.map(n => `<li>${n}</li>`).join("");
+      document.getElementById("speak-improve-notes-wrap").style.display = "flex";
+    }
+
+    if (data.new_phrases && data.new_phrases.length > 0) {
+      document.getElementById("speak-improve-add-text").textContent =
+        `${data.new_phrases.length} phrase${data.new_phrases.length > 1 ? "s" : ""} here could go in your Starters library.`;
+      document.getElementById("speak-improve-add-prompt").style.display = "flex";
+      document.getElementById("speak-add-phrases-btn").onclick = () =>
+        speakAddPhrasesToStarters(data.new_phrases);
+    }
+  } catch {
+    document.getElementById("speak-improve-text").textContent =
+      "Could not generate the polished version right now. Try again.";
+  }
+
+  btn.disabled = false;
+  btn.textContent = "✨ Show me a polished version";
+}
+
+function speakCopyImproved() {
+  const text = document.getElementById("speak-improve-text").textContent;
+  if (!text || text.includes("Generating")) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById("speak-copy-btn");
+    btn.textContent = "✓ Copied";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = "📋 Copy";
+      btn.classList.remove("copied");
+    }, 2000);
+  }).catch(() => {});
+}
+
+function speakAddPhrasesToStarters(phrases) {
+  const btn = document.getElementById("speak-add-phrases-btn");
+  btn.disabled = true;
+  let added = 0;
+  const maxId = STARTERS.reduce((m, s) => Math.max(m, s.id), 0);
+  phrases.forEach((p, i) => {
+    if (p.german && p.english) {
+      STARTERS.push({
+        id: maxId + i + 1,
+        cat: "classroom",
+        german: p.german,
+        english: p.english,
+        example: p.example || "",
+        level: p.level || "b1",
+      });
+      added++;
+    }
+  });
+  document.getElementById("speak-improve-add-text").textContent =
+    `${added} phrase${added !== 1 ? "s" : ""} added to your Starters tab.`;
+  btn.textContent = "✓ Added";
+}
+
 function speakSkip() {
   speakClearTimer();
   speakStopRecording();
   speakPromptIndex = (speakPromptIndex + 1) % SPEAK_PROMPTS.length;
   renderSpeakPrompt();
   document.getElementById("speak-feedback-area").style.display = "none";
+  document.getElementById("speak-improve-area").style.display = "none";
+  document.getElementById("speak-improve-btn").style.display = "none";
   document.getElementById("speak-transcript-area").style.display = "none";
   document.getElementById("speak-actions").style.display = "flex";
   document.getElementById("speak-start-btn").disabled = false;
@@ -3087,6 +3175,8 @@ function setupSpeakPanel() {
     speakPromptIndex = (speakPromptIndex + 1) % SPEAK_PROMPTS.length;
     initSpeakPanel();
   });
+  document.getElementById("speak-improve-btn").addEventListener("click", speakGetImproved);
+  document.getElementById("speak-copy-btn").addEventListener("click", speakCopyImproved);
 }
 
 // ---- Think in German (Inner Monologue) ----

@@ -904,6 +904,30 @@ describe("just say it — HTML structure", () => {
   test("#speak-next-btn exists", () => {
     assert.ok(html.includes('id="speak-next-btn"'), "#speak-next-btn missing");
   });
+
+  test("#speak-improve-btn exists (hidden initially)", () => {
+    assert.ok(html.includes('id="speak-improve-btn"'), "#speak-improve-btn missing");
+  });
+
+  test("#speak-improve-area exists (hidden initially)", () => {
+    assert.ok(html.includes('id="speak-improve-area"'), "#speak-improve-area missing");
+  });
+
+  test("#speak-improve-text element exists", () => {
+    assert.ok(html.includes('id="speak-improve-text"'), "#speak-improve-text missing");
+  });
+
+  test("#speak-improve-notes element exists", () => {
+    assert.ok(html.includes('id="speak-improve-notes"'), "#speak-improve-notes missing");
+  });
+
+  test("#speak-copy-btn exists", () => {
+    assert.ok(html.includes('id="speak-copy-btn"'), "#speak-copy-btn missing");
+  });
+
+  test("#speak-add-phrases-btn exists", () => {
+    assert.ok(html.includes('id="speak-add-phrases-btn"'), "#speak-add-phrases-btn missing");
+  });
 });
 
 describe("just say it — CSS", () => {
@@ -927,6 +951,26 @@ describe("just say it — CSS", () => {
 
   test("#speak-scenario-card styles present", () => {
     assert.ok(css.includes("#speak-scenario-card"), "#speak-scenario-card CSS missing");
+  });
+
+  test("#speak-improve-area styles present", () => {
+    assert.ok(css.includes("#speak-improve-area"), "#speak-improve-area CSS missing");
+  });
+
+  test("#speak-improve-btn styles present", () => {
+    assert.ok(css.includes("#speak-improve-btn"), "#speak-improve-btn CSS missing");
+  });
+
+  test("#speak-copy-btn styles present", () => {
+    assert.ok(css.includes("#speak-copy-btn"), "#speak-copy-btn CSS missing");
+  });
+
+  test("#speak-copy-btn.copied state styled", () => {
+    assert.ok(css.includes("#speak-copy-btn.copied"), "#speak-copy-btn.copied CSS missing");
+  });
+
+  test("#speak-improve-notes list styles present", () => {
+    assert.ok(css.includes("#speak-improve-notes"), "#speak-improve-notes CSS missing");
   });
 });
 
@@ -995,6 +1039,63 @@ describe("just say it — app.js functions", () => {
       assert.ok(body.includes('"speak-panel"'), `${fn} does not hide #speak-panel`);
     }
   });
+
+  test("speakGetImproved function is defined", () => {
+    assert.ok(appJs.includes("async function speakGetImproved("), "speakGetImproved missing");
+  });
+
+  test("speakGetImproved posts to speak-improve API mode", () => {
+    const start = appJs.indexOf("async function speakGetImproved(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes('"speak-improve"'), "speakGetImproved must POST to speak-improve mode");
+  });
+
+  test("speakGetImproved shows notes when returned", () => {
+    const start = appJs.indexOf("async function speakGetImproved(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes("speak-improve-notes"), "speakGetImproved must render notes");
+  });
+
+  test("speakCopyImproved copies to clipboard", () => {
+    assert.ok(appJs.includes("function speakCopyImproved("), "speakCopyImproved missing");
+    const start = appJs.indexOf("function speakCopyImproved(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes("navigator.clipboard.writeText"), "speakCopyImproved must use clipboard API");
+  });
+
+  test("speakAddPhrasesToStarters adds to STARTERS array", () => {
+    assert.ok(appJs.includes("function speakAddPhrasesToStarters("), "speakAddPhrasesToStarters missing");
+    const start = appJs.indexOf("function speakAddPhrasesToStarters(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes("STARTERS.push"), "speakAddPhrasesToStarters must push to STARTERS");
+  });
+
+  test("improve-btn click is wired up in setupSpeakPanel", () => {
+    const start = appJs.indexOf("function setupSpeakPanel(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes("speak-improve-btn"), "speak-improve-btn not wired in setupSpeakPanel");
+    assert.ok(body.includes("speakGetImproved"), "speakGetImproved not wired in setupSpeakPanel");
+  });
+
+  test("copy-btn click is wired up in setupSpeakPanel", () => {
+    const start = appJs.indexOf("function setupSpeakPanel(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes("speak-copy-btn"), "speak-copy-btn not wired in setupSpeakPanel");
+    assert.ok(body.includes("speakCopyImproved"), "speakCopyImproved not wired in setupSpeakPanel");
+  });
+
+  test("speakTimeUp shows improve-btn when transcript is present", () => {
+    const start = appJs.indexOf("async function speakTimeUp(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes("speak-improve-btn"), "speakTimeUp must show/hide speak-improve-btn");
+  });
 });
 
 describe("just say it — api/chat.js", () => {
@@ -1023,6 +1124,34 @@ describe("just say it — api/chat.js", () => {
     const end = chatJs.indexOf("\n    if (mode", start + 1);
     const body = chatJs.slice(start, end);
     assert.ok(body.includes("catch"), "speak-check must have error fallback");
+  });
+
+  test("speak-improve mode exists in api/chat.js", () => {
+    assert.ok(chatJs.includes('"speak-improve"'), "speak-improve mode missing from api/chat.js");
+  });
+
+  test("speak-improve returns improved, notes, and new_phrases", () => {
+    const start = chatJs.indexOf('"speak-improve"');
+    const end = chatJs.indexOf("\n    if (mode", start + 1);
+    const body = chatJs.slice(start, end);
+    assert.ok(body.includes("improved"), "speak-improve must return improved field");
+    assert.ok(body.includes("notes"), "speak-improve must return notes field");
+    assert.ok(body.includes("new_phrases"), "speak-improve must return new_phrases field");
+  });
+
+  test("speak-improve prompt instructs AI to write a natural response and notes", () => {
+    const start = chatJs.indexOf('"speak-improve"');
+    const end = chatJs.indexOf("\n    if (mode", start + 1);
+    const body = chatJs.slice(start, end);
+    assert.ok(body.includes("notes"), "prompt must ask for change notes");
+    assert.ok(body.includes("new_phrases") || body.includes("phrases"), "prompt must ask for reusable phrases");
+  });
+
+  test("speak-improve has error fallback", () => {
+    const start = chatJs.indexOf('"speak-improve"');
+    const end = chatJs.indexOf("\n    if (mode", start + 1);
+    const body = chatJs.slice(start, end);
+    assert.ok(body.includes("catch"), "speak-improve must have error fallback");
   });
 });
 

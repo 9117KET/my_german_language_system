@@ -2572,6 +2572,28 @@ select option {
   line-height: 1.65;
 }
 
+#speak-feedback-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#speak-improve-btn {
+  padding: 10px 0;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.12s;
+  touch-action: manipulation;
+}
+#speak-improve-btn:hover { opacity: 0.8; }
+#speak-improve-btn:disabled { opacity: 0.45; cursor: default; }
+
 #speak-next-btn {
   padding: 10px 0;
   background: var(--surface2);
@@ -2586,6 +2608,122 @@ select option {
   touch-action: manipulation;
 }
 #speak-next-btn:hover { background: var(--surface3); }
+
+/* ---- Polished version area ---- */
+
+#speak-improve-area {
+  width: 100%;
+  background: var(--surface1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#speak-improve-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#speak-improve-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+#speak-copy-btn {
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+  touch-action: manipulation;
+}
+#speak-copy-btn:hover { background: var(--surface3); color: var(--text); }
+#speak-copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+#speak-improve-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+}
+
+#speak-improve-notes-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#speak-improve-notes-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+#speak-improve-notes {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+#speak-improve-notes li {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+
+#speak-improve-notes li strong {
+  color: var(--text);
+}
+
+#speak-improve-add-prompt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+#speak-improve-add-text {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  flex: 1;
+}
+
+#speak-add-phrases-btn {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--green);
+  background: rgba(74,222,128,0.1);
+  color: var(--green);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.12s;
+  touch-action: manipulation;
+}
+#speak-add-phrases-btn:hover { opacity: 0.8; }
+#speak-add-phrases-btn:disabled { opacity: 0.45; cursor: default; }
 
 @media (max-width: 767px) {
   #speak-panel { padding: 14px 14px 100px; }

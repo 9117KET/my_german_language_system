@@ -307,6 +307,30 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    if (mode === "speak-improve") {
+      const { prompt: scenario } = req.body;
+      try {
+        const raw = await callGroq(
+          `A German learner was given this speaking scenario:\n"${scenario}"\n\n` +
+          `They said (transcribed):\n"${text}"\n\n` +
+          `Your task:\n` +
+          `1. Write a natural, complete German response to the scenario that a B1-B2 learner could realistically say. Keep it conversational, not textbook-perfect.\n` +
+          `2. Give 2-3 short notes (one sentence each) explaining what you changed or added vs the learner's attempt. Be specific: name the phrase or structure. Use bold for the key phrase in each note.\n` +
+          `3. Identify up to 2 short phrases from the improved version that would be useful as standalone conversation starters. For each, give the German phrase, its English meaning, and the CEFR level (a1/a2/b1/b2).\n\n` +
+          `Reply with ONLY this JSON, no markdown fences:\n` +
+          `{"improved":"the full natural German response","notes":["note 1","note 2","note 3"],"new_phrases":[{"german":"...","english":"...","level":"b1"},{"german":"...","english":"...","level":"a2"}]}`
+        );
+        const result = JSON.parse(stripMarkdown(raw));
+        return res.json({
+          improved: result.improved,
+          notes: result.notes || [],
+          new_phrases: result.new_phrases || [],
+        });
+      } catch {
+        return res.json({ improved: text, notes: [], new_phrases: [] });
+      }
+    }
+
     if (mode === "monologue-reflect") {
       const { prompt: thoughtPrompt } = req.body;
       try {
