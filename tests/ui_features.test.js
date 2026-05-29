@@ -464,3 +464,104 @@ describe("recall attempt system — api/chat.js", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Recall MCQ: read correct phrase aloud before auto-advancing
+// ---------------------------------------------------------------------------
+
+describe("recall MCQ audio-before-advance — app.js", () => {
+  const appJs = readFile("app.js");
+
+  function getHandlePhraseMCBody() {
+    const fnStart = appJs.indexOf("function handlePhraseMC(");
+    assert.ok(fnStart !== -1, "handlePhraseMC function not found");
+    const fnEnd = appJs.indexOf("\nfunction ", fnStart + 1);
+    return appJs.slice(fnStart, fnEnd);
+  }
+
+  test("handlePhraseMC exists", () => {
+    assert.ok(appJs.includes("function handlePhraseMC("), "handlePhraseMC must exist");
+  });
+
+  test("handlePhraseMC highlights mc-correct and mc-wrong buttons", () => {
+    const body = getHandlePhraseMCBody();
+    assert.ok(body.includes("mc-correct"), "must add mc-correct class to correct button");
+    assert.ok(body.includes("mc-wrong"), "must add mc-wrong class to wrong button");
+    assert.ok(body.includes("btn.disabled = true"), "must disable buttons after selection");
+  });
+
+  test("handlePhraseMC plays audio file when available via ended event", () => {
+    const body = getHandlePhraseMCBody();
+    assert.ok(
+      body.includes(`addEventListener("ended"`),
+      "must listen to audio ended event to advance after playback"
+    );
+    assert.ok(
+      body.includes(`removeEventListener("ended"`),
+      "must remove ended listener after it fires to prevent stacking"
+    );
+  });
+
+  test("handlePhraseMC removes error listener alongside ended listener", () => {
+    const body = getHandlePhraseMCBody();
+    assert.ok(
+      body.includes(`addEventListener("error"`),
+      "must listen to audio error event as fallback"
+    );
+    assert.ok(
+      body.includes(`removeEventListener("error"`),
+      "must clean up error listener"
+    );
+  });
+
+  test("handlePhraseMC falls back to speakGerman TTS when no audio file", () => {
+    const body = getHandlePhraseMCBody();
+    assert.ok(
+      body.includes("speakGerman("),
+      "must call speakGerman as TTS fallback when no audio file"
+    );
+  });
+
+  test("handlePhraseMC advances via utter.onend when using TTS fallback", () => {
+    const body = getHandlePhraseMCBody();
+    assert.ok(
+      body.includes("utter.onend"),
+      "TTS fallback must advance on utter.onend, not a fixed timeout"
+    );
+  });
+
+  test("handlePhraseMC has a safety timeout on audio.play() failure", () => {
+    const body = getHandlePhraseMCBody();
+    assert.ok(
+      body.includes(".catch("),
+      "must handle audio.play() promise rejection with a fallback timeout"
+    );
+  });
+
+  test("handlePhraseMC does NOT use a single unconditional setTimeout for advance", () => {
+    const body = getHandlePhraseMCBody();
+    // Old code: setTimeout(() => advance(1), isCorrect ? 900 : 1600)
+    // New code should not have advance(1) called from a top-level fixed timeout
+    assert.ok(
+      !body.includes("setTimeout(() => advance(1), isCorrect"),
+      "must not use a single unconditional fixed timeout to advance (timing must follow audio)"
+    );
+  });
+
+  test("handlePhraseMC updates SRS and session stats before playing audio", () => {
+    const body = getHandlePhraseMCBody();
+    const srsPos = body.indexOf("updateOnGotIt");
+    const audioPos = body.indexOf("correctPhrase?.audio");
+    assert.ok(srsPos !== -1, "updateOnGotIt must be present");
+    assert.ok(audioPos !== -1, "audio playback block must be present");
+    assert.ok(srsPos < audioPos, "SRS update must happen before audio playback");
+  });
+
+  test("handlePhraseMC finds correctPhrase from PHRASES array", () => {
+    const body = getHandlePhraseMCBody();
+    assert.ok(
+      body.includes("PHRASES.find(p => p.id === correctId)"),
+      "must look up correctPhrase from PHRASES by correctId"
+    );
+  });
+});

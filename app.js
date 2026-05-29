@@ -2097,14 +2097,29 @@ function handlePhraseMC(selectedId, correctId) {
   renderRecallModeHeader();
   renderSessionStats();
 
-  // Play German audio of correct phrase as audio feedback
   const correctPhrase = PHRASES.find(p => p.id === correctId);
+  const postAudioDelay = isCorrect ? 350 : 550;
+
   if (correctPhrase?.audio) {
     audio.src = correctPhrase.audio;
-    audio.play().catch(() => {});
+    const onDone = () => {
+      audio.removeEventListener("ended", onDone);
+      audio.removeEventListener("error", onDone);
+      setTimeout(() => advance(1), postAudioDelay);
+    };
+    audio.addEventListener("ended", onDone);
+    audio.addEventListener("error", onDone);
+    audio.play().catch(() => setTimeout(() => advance(1), 1800));
+  } else if (correctPhrase) {
+    const utter = speakGerman(correctPhrase.german);
+    if (utter) {
+      utter.onend = () => setTimeout(() => advance(1), postAudioDelay);
+    } else {
+      setTimeout(() => advance(1), 1800);
+    }
+  } else {
+    setTimeout(() => advance(1), 1800);
   }
-
-  setTimeout(() => advance(1), isCorrect ? 900 : 1600);
 }
 
 function renderSessionStats() {
