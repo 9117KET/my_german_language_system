@@ -565,3 +565,244 @@ describe("recall MCQ audio-before-advance — app.js", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Feature 1: Conversation Starters
+// ---------------------------------------------------------------------------
+
+function loadStarters() {
+  const content = readFile("app.js");
+  const start = content.indexOf("const STARTER_CATEGORIES = {");
+  const end = content.indexOf("// ---- State ----");
+  assert.ok(start !== -1, "STARTER_CATEGORIES not found in app.js");
+  assert.ok(end !== -1, "State section marker not found in app.js");
+  const snippet = content.slice(start, end).trim()
+    .replace(/\bconst\s+/g, "");
+  const ctx = {};
+  vm.runInNewContext(snippet, ctx);
+  return { categories: ctx.STARTER_CATEGORIES, starters: ctx.STARTERS };
+}
+
+describe("conversation starters — data integrity", () => {
+  const { categories, starters } = loadStarters();
+
+  test("STARTER_CATEGORIES has the 5 expected keys", () => {
+    const keys = Object.keys(categories);
+    for (const k of ["classroom", "clarification", "answering", "social", "escape"]) {
+      assert.ok(keys.includes(k), `Missing category: ${k}`);
+    }
+  });
+
+  test("STARTERS array has at least 40 entries", () => {
+    assert.ok(starters.length >= 40, `Expected >= 40 starters, got ${starters.length}`);
+  });
+
+  test("every starter has required fields: id, cat, german, english, level", () => {
+    const missing = starters.filter(s =>
+      !s.id || !s.cat || !s.german || !s.english || !s.level
+    );
+    assert.equal(missing.length, 0,
+      `Starters missing fields: ${missing.map(s => s.id).join(", ")}`
+    );
+  });
+
+  test("every starter cat is a valid STARTER_CATEGORIES key", () => {
+    const validCats = Object.keys(categories);
+    const bad = starters.filter(s => !validCats.includes(s.cat));
+    assert.equal(bad.length, 0,
+      `Starters with invalid cat: ${bad.map(s => s.id).join(", ")}`
+    );
+  });
+
+  test("every starter level is a valid CEFR level", () => {
+    const validLevels = ["a1", "a2", "b1", "b2", "c1", "c2"];
+    const bad = starters.filter(s => !validLevels.includes(s.level));
+    assert.equal(bad.length, 0,
+      `Starters with invalid level: ${bad.map(s => s.id).join(", ")}`
+    );
+  });
+
+  test("starter ids are unique", () => {
+    const ids = starters.map(s => s.id);
+    const unique = new Set(ids);
+    assert.equal(unique.size, ids.length, "Duplicate starter ids found");
+  });
+
+  test("all 5 categories are represented", () => {
+    const cats = new Set(starters.map(s => s.cat));
+    for (const k of ["classroom", "clarification", "answering", "social", "escape"]) {
+      assert.ok(cats.has(k), `Category '${k}' has no starters`);
+    }
+  });
+
+  test("classroom has at least 8 starters", () => {
+    const n = starters.filter(s => s.cat === "classroom").length;
+    assert.ok(n >= 8, `Expected >= 8 classroom starters, got ${n}`);
+  });
+
+  test("escape/buy-time has at least 5 starters", () => {
+    const n = starters.filter(s => s.cat === "escape").length;
+    assert.ok(n >= 5, `Expected >= 5 escape starters, got ${n}`);
+  });
+
+  test("german phrases are non-empty strings", () => {
+    const bad = starters.filter(s => typeof s.german !== "string" || s.german.trim() === "");
+    assert.equal(bad.length, 0, "Some starters have empty german field");
+  });
+});
+
+describe("conversation starters — HTML structure", () => {
+  const html = readFile("index.html");
+
+  test("starters tab exists in sidebar nav", () => {
+    assert.ok(html.includes('data-mode="starters"'), "Starters tab not found");
+  });
+
+  test("#starters-panel element exists", () => {
+    assert.ok(html.includes('id="starters-panel"'), "#starters-panel missing");
+  });
+
+  test("#starters-list element exists", () => {
+    assert.ok(html.includes('id="starters-list"'), "#starters-list missing");
+  });
+
+  test("#starters-filter-bar exists", () => {
+    assert.ok(html.includes('id="starters-filter-bar"'), "#starters-filter-bar missing");
+  });
+
+  test("filter chips cover all 5 categories", () => {
+    for (const cat of ["classroom", "clarification", "answering", "social", "escape"]) {
+      assert.ok(html.includes(`data-cat="${cat}"`), `Filter chip for '${cat}' missing`);
+    }
+  });
+
+  test("#starter-practice-modal exists", () => {
+    assert.ok(html.includes('id="starter-practice-modal"'), "#starter-practice-modal missing");
+  });
+
+  test("#starter-practice-german element exists", () => {
+    assert.ok(html.includes('id="starter-practice-german"'), "#starter-practice-german missing");
+  });
+
+  test("#starter-mic-btn exists", () => {
+    assert.ok(html.includes('id="starter-mic-btn"'), "#starter-mic-btn missing");
+  });
+
+  test("#starter-mark-done-btn exists", () => {
+    assert.ok(html.includes('id="starter-mark-done-btn"'), "#starter-mark-done-btn missing");
+  });
+
+  test("#starters-progress-count exists", () => {
+    assert.ok(html.includes('id="starters-progress-count"'), "#starters-progress-count missing");
+  });
+});
+
+describe("conversation starters — CSS", () => {
+  const css = readFile("style.css");
+
+  test(".starter-card styles present", () => {
+    assert.ok(css.includes(".starter-card"), ".starter-card CSS missing");
+  });
+
+  test(".practiced-today styles present", () => {
+    assert.ok(css.includes(".practiced-today"), ".practiced-today CSS missing");
+  });
+
+  test(".starter-cat-badge styles present", () => {
+    assert.ok(css.includes(".starter-cat-badge"), ".starter-cat-badge CSS missing");
+  });
+
+  test("#starter-practice-modal styles present", () => {
+    assert.ok(css.includes("#starter-practice-modal"), "#starter-practice-modal CSS missing");
+  });
+
+  test(".starter-hear-btn styles present", () => {
+    assert.ok(css.includes(".starter-hear-btn"), ".starter-hear-btn CSS missing");
+  });
+
+  test("#starter-mic-btn recording state styled", () => {
+    assert.ok(css.includes("#starter-mic-btn.recording"), "#starter-mic-btn.recording CSS missing");
+  });
+});
+
+describe("conversation starters — app.js functions", () => {
+  const appJs = readFile("app.js");
+
+  test("showStartersPanel function is defined", () => {
+    assert.ok(appJs.includes("function showStartersPanel("), "showStartersPanel missing");
+  });
+
+  test("renderStartersPanel function is defined", () => {
+    assert.ok(appJs.includes("function renderStartersPanel("), "renderStartersPanel missing");
+  });
+
+  test("openStarterPractice function is defined", () => {
+    assert.ok(appJs.includes("function openStarterPractice("), "openStarterPractice missing");
+  });
+
+  test("closeStarterPractice function is defined", () => {
+    assert.ok(appJs.includes("function closeStarterPractice("), "closeStarterPractice missing");
+  });
+
+  test("starterMarkDone function is defined", () => {
+    assert.ok(appJs.includes("function starterMarkDone("), "starterMarkDone missing");
+  });
+
+  test("setupStarterPracticeModal is called in init()", () => {
+    assert.ok(appJs.includes("setupStarterPracticeModal()"), "setupStarterPracticeModal() not called");
+  });
+
+  test("starters mode included in renderCard guard", () => {
+    const guardMatch = appJs.match(/if \(mode === "ai"[^)]+\) return;/g);
+    assert.ok(guardMatch && guardMatch.length > 0, "renderCard guard not found");
+    assert.ok(guardMatch.some(g => g.includes('"starters"')), "starters not in renderCard guard");
+  });
+
+  test("starters mode handled in setupEvents tab click", () => {
+    assert.ok(
+      appJs.includes('newMode === "starters"'),
+      "starters mode not handled in setupEvents"
+    );
+  });
+
+  test("getStartersPracticedToday uses daily localStorage key", () => {
+    assert.ok(
+      appJs.includes("starters_practiced_"),
+      "localStorage key pattern missing"
+    );
+  });
+
+  test("markStarterPracticed updates localStorage set", () => {
+    assert.ok(
+      appJs.includes("function markStarterPracticed("),
+      "markStarterPracticed function missing"
+    );
+    const fnStart = appJs.indexOf("function markStarterPracticed(");
+    const fnEnd = appJs.indexOf("\nfunction ", fnStart + 1);
+    const body = appJs.slice(fnStart, fnEnd);
+    assert.ok(body.includes("localStorage.setItem"), "markStarterPracticed must call setItem");
+  });
+
+  test("startStarterMic attempts Deepgram token then falls back to SpeechRecognition", () => {
+    const fnStart = appJs.indexOf("async function startStarterMic(");
+    const fnEnd = appJs.indexOf("\nfunction ", fnStart + 1);
+    const body = appJs.slice(fnStart, fnEnd);
+    assert.ok(body.includes("/api/deepgram-token"), "Deepgram token fetch missing");
+    assert.ok(body.includes("SpeechRecognition"), "SpeechRecognition fallback missing");
+  });
+
+  test("all show*Panel functions hide #starters-panel", () => {
+    const panels = ["showPlayerPanel", "showAIPanel", "showProgressPanel",
+                    "showVocabPanel", "showGrammarPanel", "showWordsPanel"];
+    for (const fn of panels) {
+      const start = appJs.indexOf(`function ${fn}(`);
+      assert.ok(start !== -1, `${fn} not found`);
+      const end = appJs.indexOf("\nfunction ", start + 1);
+      const body = appJs.slice(start, end);
+      assert.ok(
+        body.includes('"starters-panel"'),
+        `${fn} does not hide #starters-panel`
+      );
+    }
+  });
+});

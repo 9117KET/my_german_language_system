@@ -50,6 +50,10 @@
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
         <span class="tab-label">Words</span>
       </div>
+      <div class="tab" data-mode="starters">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="tab-label">Starters</span>
+      </div>
     </nav>
     <div class="sidebar-level">
       <span class="sidebar-level-label">Level</span>
@@ -483,11 +487,55 @@
         </div>
       </div>
 
+      <div id="starters-panel" style="display:none">
+        <div id="starters-header">
+          <div id="starters-title-row">
+            <h2 class="starters-title">Conversation Starters</h2>
+            <div id="starters-progress-count"></div>
+          </div>
+          <p class="starters-subtitle">Phrases to start, maintain, and escape German conversations - especially in your online course.</p>
+        </div>
+        <div id="starters-filter-bar">
+          <button class="starter-cat-chip active" data-cat="all">All</button>
+          <button class="starter-cat-chip" data-cat="classroom">Classroom</button>
+          <button class="starter-cat-chip" data-cat="clarification">Clarification</button>
+          <button class="starter-cat-chip" data-cat="answering">Answering</button>
+          <button class="starter-cat-chip" data-cat="social">Social</button>
+          <button class="starter-cat-chip" data-cat="escape">Buy Time</button>
+        </div>
+        <div id="starters-list"></div>
+      </div>
+
     </div><!-- end #card-area -->
 
   </main>
 
 </div><!-- end .app-layout -->
+
+<div id="starter-practice-modal" style="display:none">
+  <div id="starter-practice-inner">
+    <button id="starter-practice-close">&#x2715;</button>
+    <div id="starter-practice-cat"></div>
+    <div id="starter-practice-german"></div>
+    <div id="starter-practice-english"></div>
+    <div id="starter-practice-example"></div>
+    <div id="starter-practice-controls">
+      <button id="starter-hear-slow-btn" class="starter-hear-btn">&#9654; Slow</button>
+      <button id="starter-hear-btn" class="starter-hear-btn">&#9654; Normal</button>
+      <button id="starter-mic-btn" aria-label="Record your attempt">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+    </div>
+    <div id="starter-practice-status"></div>
+    <div id="starter-practice-transcript"></div>
+    <button id="starter-mark-done-btn">&#10003; Mark as Practiced</button>
+  </div>
+</div>
 
 <!-- Gap-fill drill modal (outside .app-layout) -->
 <div id="drill-modal" style="display:none">

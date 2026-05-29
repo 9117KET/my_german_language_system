@@ -817,6 +817,69 @@ const GRAMMAR_TOPICS = [
   },
 ];
 
+const STARTER_CATEGORIES = {
+  all: "All", classroom: "Classroom", clarification: "Clarification",
+  answering: "Answering", social: "Social", escape: "Buy Time",
+};
+
+const STARTERS = [
+  // Classroom
+  { id:1,  cat:"classroom",     german:"Darf ich eine Frage stellen?",                              english:"May I ask a question?",                               example:"Darf ich eine Frage zur letzten Aufgabe stellen?",              level:"a2" },
+  { id:2,  cat:"classroom",     german:"Ich hätte eine Frage zu...",                                english:"I have a question about...",                           example:"Ich hätte eine Frage zu dem Text aus Lektion 3.",               level:"b1" },
+  { id:3,  cat:"classroom",     german:"Könnten Sie das bitte erklären?",                           english:"Could you please explain that?",                        example:"Könnten Sie das bitte noch einmal erklären?",                  level:"a2" },
+  { id:4,  cat:"classroom",     german:"Was meinen Sie genau mit...?",                              english:"What exactly do you mean by...?",                       example:"Was meinen Sie genau mit 'Dativ-Ergänzung'?",                  level:"b1" },
+  { id:5,  cat:"classroom",     german:"Darf ich kurz nachfragen?",                                english:"May I quickly follow up?",                             example:"",                                                            level:"b1" },
+  { id:6,  cat:"classroom",     german:"Gilt das auch für...?",                                    english:"Does that also apply to...?",                          example:"Gilt das auch für trennbare Verben?",                          level:"b1" },
+  { id:7,  cat:"classroom",     german:"Ich bin nicht sicher, ob ich das richtig verstanden habe.", english:"I'm not sure if I understood that correctly.",         example:"",                                                            level:"b1" },
+  { id:8,  cat:"classroom",     german:"Können wir kurz bei diesem Punkt bleiben?",                english:"Can we stay on this point for a moment?",              example:"",                                                            level:"b2" },
+  { id:9,  cat:"classroom",     german:"Wie lautet die Aufgabenstellung?",                         english:"What is the task?",                                    example:"",                                                            level:"a2" },
+  { id:10, cat:"classroom",     german:"Ich verstehe die Aufgabe nicht ganz.",                     english:"I don't quite understand the task.",                    example:"",                                                            level:"a2" },
+  { id:11, cat:"classroom",     german:"Könnte ich bitte ein Beispiel haben?",                     english:"Could I please have an example?",                       example:"",                                                            level:"a2" },
+  { id:12, cat:"classroom",     german:"Ich habe eine kurze Anmerkung dazu.",                      english:"I have a brief comment on that.",                       example:"",                                                            level:"b2" },
+  // Clarification
+  { id:20, cat:"clarification", german:"Könnten Sie das bitte wiederholen?",                       english:"Could you please repeat that?",                         example:"",                                                            level:"a1" },
+  { id:21, cat:"clarification", german:"Ich habe das nicht ganz verstanden.",                      english:"I didn't quite understand that.",                       example:"",                                                            level:"a1" },
+  { id:22, cat:"clarification", german:"Entschuldigung, was bedeutet...?",                         english:"Excuse me, what does ... mean?",                        example:"Entschuldigung, was bedeutet 'Wechselpräposition'?",           level:"a1" },
+  { id:23, cat:"clarification", german:"Könnten Sie das bitte langsamer sagen?",                   english:"Could you please say that more slowly?",                example:"",                                                            level:"a1" },
+  { id:24, cat:"clarification", german:"Wie schreibt man das?",                                    english:"How do you write/spell that?",                          example:"",                                                            level:"a1" },
+  { id:25, cat:"clarification", german:"Was ist der Unterschied zwischen ... und ...?",            english:"What is the difference between ... and ...?",          example:"Was ist der Unterschied zwischen 'weil' und 'denn'?",          level:"a2" },
+  { id:26, cat:"clarification", german:"Ich glaube, ich habe das falsch verstanden.",              english:"I think I misunderstood that.",                         example:"",                                                            level:"b1" },
+  { id:27, cat:"clarification", german:"Meinen Sie damit, dass...?",                               english:"Do you mean that...?",                                 example:"Meinen Sie damit, dass das Verb immer an zweiter Stelle steht?", level:"b1" },
+  { id:28, cat:"clarification", german:"Könnten Sie das bitte an einem Beispiel zeigen?",          english:"Could you show that with an example?",                  example:"",                                                            level:"b1" },
+  { id:29, cat:"clarification", german:"Ich bin ein bisschen verloren. Könnten Sie zusammenfassen?", english:"I'm a bit lost. Could you summarize?",               example:"",                                                            level:"b1" },
+  // Answering
+  { id:40, cat:"answering",     german:"Ich glaube, dass...",                                      english:"I believe that...",                                     example:"Ich glaube, dass das Verb am Ende des Satzes steht.",          level:"a2" },
+  { id:41, cat:"answering",     german:"Meiner Meinung nach...",                                   english:"In my opinion...",                                      example:"Meiner Meinung nach ist das die einfachste Lösung.",           level:"b1" },
+  { id:42, cat:"answering",     german:"Ich würde sagen, dass...",                                 english:"I would say that...",                                   example:"",                                                            level:"b1" },
+  { id:43, cat:"answering",     german:"Wenn ich das richtig verstanden habe...",                  english:"If I understood that correctly...",                     example:"Wenn ich das richtig verstanden habe, brauchen wir hier den Akkusativ.", level:"b1" },
+  { id:44, cat:"answering",     german:"Ich bin nicht sicher, aber...",                            english:"I'm not sure, but...",                                  example:"Ich bin nicht sicher, aber ich denke, es ist 'dem' hier.",     level:"a2" },
+  { id:45, cat:"answering",     german:"Ich stimme zu, weil...",                                   english:"I agree, because...",                                   example:"",                                                            level:"b1" },
+  { id:46, cat:"answering",     german:"Das sehe ich ein bisschen anders, weil...",                english:"I see that a little differently, because...",           example:"",                                                            level:"b2" },
+  { id:47, cat:"answering",     german:"Ich möchte hinzufügen, dass...",                           english:"I'd like to add that...",                               example:"",                                                            level:"b1" },
+  { id:48, cat:"answering",     german:"Dazu wollte ich sagen...",                                 english:"I wanted to say about that...",                         example:"",                                                            level:"b1" },
+  { id:49, cat:"answering",     german:"Das ist ein guter Punkt. Ich denke auch, dass...",         english:"That's a good point. I also think that...",             example:"",                                                            level:"b1" },
+  { id:50, cat:"answering",     german:"Ich kann das so bestätigen.",                              english:"I can confirm that.",                                   example:"",                                                            level:"b2" },
+  { id:51, cat:"answering",     german:"Ich würde das ein bisschen anders formulieren.",           english:"I would phrase that a little differently.",             example:"",                                                            level:"b2" },
+  // Social
+  { id:60, cat:"social",        german:"Entschuldigung, könnten Sie mir helfen?",                  english:"Excuse me, could you help me?",                         example:"",                                                            level:"a1" },
+  { id:61, cat:"social",        german:"Darf ich mich kurz vorstellen?",                           english:"May I briefly introduce myself?",                       example:"",                                                            level:"a1" },
+  { id:62, cat:"social",        german:"Ich bin neu hier und...",                                  english:"I'm new here and...",                                   example:"Ich bin neu hier und kenne mich noch nicht so gut aus.",        level:"a1" },
+  { id:63, cat:"social",        german:"Über welches Thema sprechen wir heute?",                   english:"What topic are we discussing today?",                   example:"",                                                            level:"a2" },
+  { id:64, cat:"social",        german:"Schön, Sie kennenzulernen.",                               english:"Nice to meet you.",                                     example:"",                                                            level:"a1" },
+  { id:65, cat:"social",        german:"Ich lerne seit ... Deutsch.",                              english:"I have been learning German for ...",                   example:"Ich lerne seit sechs Monaten Deutsch.",                        level:"a2" },
+  { id:66, cat:"social",        german:"Mein Deutsch ist noch nicht so gut, aber ich versuche es.", english:"My German isn't that good yet, but I'm trying.",       example:"",                                                            level:"a2" },
+  { id:67, cat:"social",        german:"Könnten wir das auf Deutsch besprechen?",                  english:"Could we discuss that in German?",                      example:"",                                                            level:"b1" },
+  // Escape / Buy Time
+  { id:80, cat:"escape",        german:"Einen Moment bitte.",                                      english:"One moment please.",                                    example:"",                                                            level:"a1" },
+  { id:81, cat:"escape",        german:"Ich muss kurz nachdenken.",                                english:"I need to think for a moment.",                         example:"",                                                            level:"a1" },
+  { id:82, cat:"escape",        german:"Wie sagt man ... auf Deutsch?",                            english:"How do you say ... in German?",                         example:"Wie sagt man 'furthermore' auf Deutsch?",                      level:"a1" },
+  { id:83, cat:"escape",        german:"Ich weiß das Wort gerade nicht.",                          english:"I don't know the word right now.",                      example:"",                                                            level:"a1" },
+  { id:84, cat:"escape",        german:"Entschuldigung, ich habe das Wort vergessen.",             english:"Sorry, I forgot the word.",                             example:"",                                                            level:"a1" },
+  { id:85, cat:"escape",        german:"Das ist schwer zu erklären, aber ich versuche es.",        english:"That's hard to explain, but I'll try.",                 example:"",                                                            level:"b1" },
+  { id:86, cat:"escape",        german:"Ich suche das richtige Wort...",                           english:"I'm looking for the right word...",                     example:"",                                                            level:"a2" },
+  { id:87, cat:"escape",        german:"Also... ich meine...",                                     english:"Well... I mean...",                                     example:"",                                                            level:"a1" },
+];
+
 // ---- State ----
 let mode = "listen";
 let category = "all";
@@ -1138,11 +1201,12 @@ function init() {
   initAI();
   setupRecallSpeech();
   initWordsPanel();
+  setupStarterPracticeModal();
 }
 
 // ---- Render (player) ----
 function renderCard(autoPlay = false) {
-  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words") return;
+  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters") return;
 
   if (!queue.length) {
     audio.pause();
@@ -1334,6 +1398,7 @@ function showPlayerPanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
   playerEls.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
@@ -1348,6 +1413,7 @@ function showAIPanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
   aiPanel.style.display = "flex";
   renderAISavedList();
 }
@@ -1375,6 +1441,9 @@ function setupEvents() {
       } else if (newMode === "words") {
         mode = "words";
         showWordsPanel();
+      } else if (newMode === "starters") {
+        mode = "starters";
+        showStartersPanel();
       } else {
         mode = newMode;
         showPlayerPanel();
@@ -1572,7 +1641,7 @@ function setupEvents() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words") return;
+    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters") return;
     if (e.key === "Escape") { document.getElementById("vocab-modal").style.display = "none"; return; }
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
@@ -2207,6 +2276,10 @@ function showProgressPanel() {
   playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
   hideRecallSpecificEls();
   aiPanel.style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
   document.getElementById("progress-panel").style.display = "flex";
   renderProgressTab();
 }
@@ -2498,10 +2571,226 @@ function showVocabPanel() {
   aiPanel.style.display = "none";
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "flex";
   document.getElementById("vocab-panel-search").value = "";
   vocabPage = 0;
   renderVocabPanel();
+}
+
+// ---- Conversation Starters ----
+
+function showStartersPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "flex";
+  renderStartersPanel("all");
+}
+
+let startersCatFilter = "all";
+
+function getStartersPracticedToday() {
+  const key = "starters_practiced_" + new Date().toISOString().slice(0, 10);
+  try { return new Set(JSON.parse(localStorage.getItem(key) || "[]")); } catch { return new Set(); }
+}
+
+function markStarterPracticed(id) {
+  const key = "starters_practiced_" + new Date().toISOString().slice(0, 10);
+  const set = getStartersPracticedToday();
+  set.add(id);
+  localStorage.setItem(key, JSON.stringify([...set]));
+}
+
+function renderStartersPanel(catFilter) {
+  startersCatFilter = catFilter || "all";
+  const practiced = getStartersPracticedToday();
+
+  document.querySelectorAll(".starter-cat-chip").forEach(c =>
+    c.classList.toggle("active", c.dataset.cat === startersCatFilter)
+  );
+
+  const list = catFilter === "all" ? STARTERS : STARTERS.filter(s => s.cat === catFilter);
+  const progressEl = document.getElementById("starters-progress-count");
+  progressEl.textContent = `${practiced.size} / ${STARTERS.length} practiced today`;
+
+  document.getElementById("starters-list").innerHTML = list.map(s => `
+    <div class="starter-card${practiced.has(s.id) ? " practiced-today" : ""}" id="starter-card-${s.id}">
+      <div class="starter-card-top">
+        <span class="starter-cat-badge ${s.cat}">${STARTER_CATEGORIES[s.cat]}</span>
+        <span class="starter-level-badge">${s.level.toUpperCase()}</span>
+        <span class="starter-practiced-badge">&#10003; Practiced</span>
+      </div>
+      <div class="starter-german">${s.german}</div>
+      <div class="starter-english">${s.english}</div>
+      ${s.example ? `<div class="starter-example">&rarr; ${s.example}</div>` : ""}
+      <div class="starter-card-actions">
+        <button class="starter-hear-card-btn" onclick="starterHear(${s.id})">&#9654; Hear it</button>
+        <button class="starter-practice-card-btn" onclick="openStarterPractice(${s.id})">Practice</button>
+      </div>
+    </div>
+  `).join("");
+
+  document.querySelectorAll(".starter-cat-chip").forEach(chip => {
+    chip.addEventListener("click", () => renderStartersPanel(chip.dataset.cat));
+  });
+}
+
+function starterHear(id) {
+  const s = STARTERS.find(x => x.id === id);
+  if (!s) return;
+  const utt = new SpeechSynthesisUtterance(s.german);
+  utt.lang = "de-DE";
+  utt.rate = 0.88;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+}
+
+let starterPracticeId = null;
+let starterMicRecording = false;
+let starterMicStream = null;
+let starterMicWS = null;
+let starterMicRecorder = null;
+
+function openStarterPractice(id) {
+  const s = STARTERS.find(x => x.id === id);
+  if (!s) return;
+  starterPracticeId = id;
+
+  document.getElementById("starter-practice-cat").innerHTML =
+    `<span class="starter-cat-badge ${s.cat}">${STARTER_CATEGORIES[s.cat]}</span>`;
+  document.getElementById("starter-practice-german").textContent = s.german;
+  document.getElementById("starter-practice-english").textContent = s.english;
+  const exEl = document.getElementById("starter-practice-example");
+  if (s.example) { exEl.textContent = "→ " + s.example; exEl.style.display = "block"; }
+  else { exEl.style.display = "none"; }
+  document.getElementById("starter-practice-transcript").style.display = "none";
+  document.getElementById("starter-practice-transcript").textContent = "";
+  document.getElementById("starter-practice-status").textContent = "";
+  document.getElementById("starter-mic-btn").classList.remove("recording");
+  document.getElementById("starter-practice-modal").style.display = "flex";
+}
+
+function closeStarterPractice() {
+  stopStarterMic();
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  document.getElementById("starter-practice-modal").style.display = "none";
+  starterPracticeId = null;
+}
+
+function starterSpeak(rate) {
+  const s = STARTERS.find(x => x.id === starterPracticeId);
+  if (!s) return;
+  const utt = new SpeechSynthesisUtterance(s.german);
+  utt.lang = "de-DE";
+  utt.rate = rate;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+}
+
+async function startStarterMic() {
+  if (starterMicRecording) { stopStarterMic(); return; }
+  const statusEl = document.getElementById("starter-practice-status");
+  const micBtn = document.getElementById("starter-mic-btn");
+  statusEl.textContent = "Connecting...";
+
+  try {
+    const tokenRes = await fetch("/api/deepgram-token", { method: "POST" });
+    if (!tokenRes.ok) throw new Error("token");
+    const { key } = await tokenRes.json();
+
+    starterMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const wsUrl = "wss://api.deepgram.com/v1/listen?language=de&model=nova-2-general&interim_results=true&utterance_end_ms=1200&endpointing=500&vad_events=true&encoding=linear16&sample_rate=16000";
+    starterMicWS = new WebSocket(wsUrl, ["token", key]);
+
+    starterMicWS.onopen = () => {
+      starterMicRecording = true;
+      micBtn.classList.add("recording");
+      statusEl.textContent = "Listening...";
+      starterMicRecorder = new MediaRecorder(starterMicStream, { mimeType: "audio/webm;codecs=opus" });
+      starterMicRecorder.ondataavailable = (e) => {
+        if (starterMicWS && starterMicWS.readyState === WebSocket.OPEN && e.data.size > 0) starterMicWS.send(e.data);
+      };
+      starterMicRecorder.start(100);
+    };
+
+    let interim = "";
+    starterMicWS.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "Results") {
+        const t = msg.channel?.alternatives?.[0]?.transcript || "";
+        if (msg.is_final) {
+          interim = "";
+          if (t.trim()) stopStarterMic(t.trim());
+        } else {
+          interim = t;
+          statusEl.textContent = interim;
+        }
+      } else if (msg.type === "UtteranceEnd" && interim.trim()) {
+        stopStarterMic(interim.trim());
+      }
+    };
+
+    starterMicWS.onerror = () => stopStarterMic();
+    starterMicWS.onclose = () => { if (starterMicRecording) stopStarterMic(); };
+
+  } catch {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { statusEl.textContent = "Mic not available"; return; }
+    const sr = new SR();
+    sr.lang = "de-DE";
+    sr.interimResults = false;
+    sr.onresult = (ev) => stopStarterMic(ev.results[0][0].transcript.trim());
+    sr.onerror = () => { statusEl.textContent = ""; micBtn.classList.remove("recording"); };
+    starterMicRecording = true;
+    micBtn.classList.add("recording");
+    statusEl.textContent = "Listening...";
+    sr.start();
+  }
+}
+
+function stopStarterMic(transcript) {
+  starterMicRecording = false;
+  document.getElementById("starter-mic-btn").classList.remove("recording");
+  if (starterMicRecorder && starterMicRecorder.state !== "inactive") starterMicRecorder.stop();
+  if (starterMicWS) { starterMicWS.close(); starterMicWS = null; }
+  if (starterMicStream) { starterMicStream.getTracks().forEach(t => t.stop()); starterMicStream = null; }
+
+  if (transcript) {
+    const transcriptEl = document.getElementById("starter-practice-transcript");
+    transcriptEl.textContent = `"${transcript}"`;
+    transcriptEl.style.display = "block";
+    document.getElementById("starter-practice-status").textContent = "";
+  } else {
+    document.getElementById("starter-practice-status").textContent = "";
+  }
+}
+
+function starterMarkDone() {
+  if (!starterPracticeId) return;
+  markStarterPracticed(starterPracticeId);
+  const card = document.getElementById("starter-card-" + starterPracticeId);
+  if (card) card.classList.add("practiced-today");
+  const practiced = getStartersPracticedToday();
+  document.getElementById("starters-progress-count").textContent = `${practiced.size} / ${STARTERS.length} practiced today`;
+  closeStarterPractice();
+}
+
+function setupStarterPracticeModal() {
+  document.getElementById("starter-practice-close").addEventListener("click", closeStarterPractice);
+  document.getElementById("starter-practice-modal").addEventListener("click", e => {
+    if (e.target === document.getElementById("starter-practice-modal")) closeStarterPractice();
+  });
+  document.getElementById("starter-hear-slow-btn").addEventListener("click", () => starterSpeak(0.6));
+  document.getElementById("starter-hear-btn").addEventListener("click", () => starterSpeak(0.9));
+  document.getElementById("starter-mic-btn").addEventListener("click", startStarterMic);
+  document.getElementById("starter-mark-done-btn").addEventListener("click", starterMarkDone);
 }
 
 // ---- Grammar Tab ----
@@ -2515,6 +2804,8 @@ function showGrammarPanel(filterTag = null) {
   aiPanel.style.display = "none";
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "flex";
   renderGrammarTab(filterTag);
 }
@@ -3562,6 +3853,7 @@ function showWordsPanel() {
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "flex";
   wordsSessionCorrect = 0;
   wordsSessionTotal = 0;
