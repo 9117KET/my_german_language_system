@@ -143,18 +143,32 @@
         <div id="phrase-mc-choices"></div>
       </div>
 
+    <div id="recall-attempt-area" style="display:none">
+      <div class="recall-attempt-input-wrap">
+        <textarea id="recall-text-input" class="recall-text-input" placeholder="Type your German here..." rows="2" maxlength="500"></textarea>
+        <button id="recall-attempt-mic-btn" class="recall-attempt-mic-btn" aria-label="Record your attempt" title="Record voice attempt">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+      </div>
+      <div id="recall-attempt-status" class="recall-attempt-status"></div>
+      <button id="recall-check-btn" class="recall-check-btn" disabled>Check</button>
+    </div>
+    <div id="recall-ai-feedback" style="display:none">
+      <div id="recall-ai-feedback-body"></div>
+      <div id="recall-ai-feedback-actions">
+        <button id="recall-try-again-btn" class="recall-action-btn">Try Again</button>
+        <button id="recall-reveal-btn" class="recall-action-btn recall-reveal-btn">Reveal Answer</button>
+      </div>
+    </div>
+
       <div id="recall-buttons">
         <button class="recall-btn got-it" id="got-it-btn">Got it (G)</button>
         <button class="recall-btn missed" id="missed-btn">Missed (M)</button>
-      </div>
-
-      <div id="recall-voice-area" style="display:none">
-        <button id="recall-mic-btn" aria-label="Speak German">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-          </svg>
-        </button>
-        <div id="recall-transcript"></div>
       </div>
 
       <div id="stats-bar" style="display:none">

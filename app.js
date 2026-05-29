@@ -870,9 +870,7 @@ let wordsMode = "flashcard";  // "flashcard" | "mc"
 let wordsSessionCorrect = 0;
 let wordsSessionTotal = 0;
 
-// Recall voice state
-let recallRecognition = null;
-let recallIsRecording = false;
+// Recall attempt state (managed inside setupRecallSpeech closure)
 
 // AI state
 let aiMode = "translate";
@@ -947,11 +945,10 @@ const statTotal = document.getElementById("stat-total");
 const playerEls = ["card", "audio-bar", "recall-buttons", "stats-bar", "nav-buttons", "empty-state"];
 
 function hideRecallSpecificEls() {
-  ["recall-srs-bar", "phrase-mc-area", "recall-voice-area"].forEach(id => {
+  ["recall-srs-bar", "phrase-mc-area", "recall-attempt-area", "recall-ai-feedback"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "none";
   });
-  if (recallIsRecording && recallRecognition) recallRecognition.stop();
 }
 
 // ---- DOM refs (AI panel) ----
@@ -1061,21 +1058,6 @@ function migrateMissedWeights() {
 
 // ---- Voice Matching ----
 
-function normalizeGerman(text) {
-  return text.toLowerCase()
-    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
-    .replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
-}
-
-function isVoiceMatch(transcript, phraseGerman) {
-  const aWords = new Set(normalizeGerman(transcript).split(" ").filter(Boolean));
-  const bWords = new Set(normalizeGerman(phraseGerman).split(" ").filter(Boolean));
-  if (!aWords.size) return false;
-  let intersection = 0;
-  for (const w of aWords) { if (bWords.has(w)) intersection++; }
-  const union = new Set([...aWords, ...bWords]).size;
-  return (intersection / union) >= 0.75;
-}
 
 // ---- Init ----
 function buildCategorySelect() {
@@ -1185,10 +1167,9 @@ function renderCard(autoPlay = false) {
 
   // Hide recall-specific elements by default; recall branch shows them
   document.getElementById("recall-srs-bar").style.display = "none";
-  document.getElementById("recall-voice-area").style.display = "none";
+  document.getElementById("recall-attempt-area").style.display = "none";
+  document.getElementById("recall-ai-feedback").style.display = "none";
   document.getElementById("srs-status-badge").style.display = "none";
-  if (recallIsRecording) recallRecognition.stop();
-  document.getElementById("recall-transcript").textContent = "";
 
   if (mode === "listen") {
     germanEl.classList.remove("hidden");
@@ -1231,7 +1212,8 @@ function renderCard(autoPlay = false) {
 
     if (phraseMode === "mc") {
       // MC mode: show prompt, hide reveal hint, display choices
-      document.getElementById("recall-voice-area").style.display = "none";
+      document.getElementById("recall-attempt-area").style.display = "none";
+      document.getElementById("recall-ai-feedback").style.display = "none";
       revealHint.style.display = "none";
       if (phraseDirection === "en_de") {
         germanEl.classList.add("hidden");
@@ -1248,14 +1230,22 @@ function renderCard(autoPlay = false) {
     } else {
       // Flashcard mode
       mcArea.style.display = "none";
-      document.getElementById("recall-voice-area").style.display = "flex";
+      const attemptArea = document.getElementById("recall-attempt-area");
+      const aiFeedback = document.getElementById("recall-ai-feedback");
       if (phraseDirection === "en_de") {
+        attemptArea.style.display = "flex";
+        aiFeedback.style.display = "none";
+        document.getElementById("recall-text-input").value = "";
+        document.getElementById("recall-check-btn").disabled = true;
+        document.getElementById("recall-attempt-status").textContent = "";
         germanEl.classList.add("hidden");
         englishEl.classList.remove("hidden");
         revealHint.style.display = "block";
-        revealHint.textContent = "Tap mic or card to reveal";
+        revealHint.textContent = "Tap card to reveal";
         statusText.textContent = "Produce German from memory";
       } else {
+        attemptArea.style.display = "none";
+        aiFeedback.style.display = "none";
         germanEl.classList.remove("hidden");
         englishEl.classList.add("hidden");
         revealHint.style.display = "block";
@@ -1530,12 +1520,6 @@ function setupEvents() {
 
   prevBtn.addEventListener("click", () => advance(-1));
   nextBtn.addEventListener("click", () => advance(1));
-
-  document.getElementById("recall-mic-btn").addEventListener("click", () => {
-    if (!recallRecognition) return;
-    if (recallIsRecording) { recallRecognition.stop(); }
-    else { document.getElementById("recall-transcript").textContent = ""; recallRecognition.start(); }
-  });
 
   document.getElementById("recall-autograde-toggle").addEventListener("click", () => {
     srsSettings.autoGrade = !srsSettings.autoGrade;
@@ -1902,48 +1886,173 @@ function exportAIPhrases() {
   a.click();
 }
 
-// ---- Recall Voice ----
+// ---- Recall Attempt (type or speak, then AI checks without revealing) ----
 
 function setupRecallSpeech() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { document.getElementById("recall-mic-btn").style.display = "none"; return; }
-  recallRecognition = new SR();
-  recallRecognition.continuous = false;
-  recallRecognition.interimResults = false;
-  recallRecognition.lang = "de-DE";
-  recallRecognition.onstart = () => {
-    recallIsRecording = true;
-    document.getElementById("recall-mic-btn").classList.add("recording");
-    document.getElementById("recall-transcript").textContent = "Listening...";
-  };
-  recallRecognition.onresult = (e) => {
-    const text = e.results[0][0].transcript;
-    document.getElementById("recall-transcript").textContent = `"${text}"`;
-    handleRecallVoice(text);
-  };
-  recallRecognition.onerror = (e) => {
-    document.getElementById("recall-transcript").textContent = `Error: ${e.error}`;
-    recallIsRecording = false;
-    document.getElementById("recall-mic-btn").classList.remove("recording");
-  };
-  recallRecognition.onend = () => {
-    recallIsRecording = false;
-    document.getElementById("recall-mic-btn").classList.remove("recording");
-  };
-}
+  const micBtn = document.getElementById("recall-attempt-mic-btn");
+  const textInput = document.getElementById("recall-text-input");
+  const statusEl = document.getElementById("recall-attempt-status");
+  const checkBtn = document.getElementById("recall-check-btn");
 
-function handleRecallVoice(transcript) {
-  const p = queue[queueIndex];
-  if (!p || phraseMode !== "flashcard" || phraseDirection !== "en_de") return;
-  revealRecallCard();
-  if (srsSettings.autoGrade && isVoiceMatch(transcript, p.german)) {
-    setTimeout(() => gotItBtn.click(), 700);
+  if (!micBtn) return;
+
+  let recallAttemptRecording = false;
+  let recallAttemptStream = null;
+  let recallAttemptWS = null;
+  let recallAttemptRecorder = null;
+
+  async function startAttemptRecording() {
+    if (recallAttemptRecording) { stopAttemptRecording(); return; }
+    statusEl.textContent = "Connecting...";
+    try {
+      const tokenRes = await fetch("/api/deepgram-token", { method: "POST" });
+      if (!tokenRes.ok) throw new Error("token");
+      const { key } = await tokenRes.json();
+
+      recallAttemptStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const wsUrl = "wss://api.deepgram.com/v1/listen?language=de&model=nova-2-general&interim_results=true&utterance_end_ms=1200&endpointing=500&vad_events=true&encoding=linear16&sample_rate=16000";
+      recallAttemptWS = new WebSocket(wsUrl, ["token", key]);
+
+      recallAttemptWS.onopen = () => {
+        recallAttemptRecording = true;
+        micBtn.classList.add("recording");
+        statusEl.textContent = "Listening...";
+        recallAttemptRecorder = new MediaRecorder(recallAttemptStream, { mimeType: "audio/webm;codecs=opus" });
+        recallAttemptRecorder.ondataavailable = (e) => {
+          if (recallAttemptWS && recallAttemptWS.readyState === WebSocket.OPEN && e.data.size > 0) {
+            recallAttemptWS.send(e.data);
+          }
+        };
+        recallAttemptRecorder.start(100);
+      };
+
+      let interimText = "";
+      recallAttemptWS.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === "Results") {
+          const t = msg.channel?.alternatives?.[0]?.transcript || "";
+          if (msg.is_final) {
+            interimText = "";
+            if (t.trim()) stopAttemptRecording(t.trim());
+          } else {
+            interimText = t;
+            statusEl.textContent = interimText;
+          }
+        } else if (msg.type === "UtteranceEnd" && interimText.trim()) {
+          stopAttemptRecording(interimText.trim());
+        }
+      };
+
+      recallAttemptWS.onerror = () => stopAttemptRecording();
+      recallAttemptWS.onclose = () => { if (recallAttemptRecording) stopAttemptRecording(); };
+
+    } catch {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) { statusEl.textContent = "Mic not available"; return; }
+      const sr = new SR();
+      sr.lang = "de-DE";
+      sr.interimResults = false;
+      sr.onresult = (ev) => stopAttemptRecording(ev.results[0][0].transcript.trim());
+      sr.onerror = () => { statusEl.textContent = ""; micBtn.classList.remove("recording"); };
+      recallAttemptRecording = true;
+      micBtn.classList.add("recording");
+      statusEl.textContent = "Listening...";
+      sr.start();
+    }
   }
+
+  function stopAttemptRecording(transcript) {
+    recallAttemptRecording = false;
+    micBtn.classList.remove("recording");
+    if (recallAttemptRecorder && recallAttemptRecorder.state !== "inactive") recallAttemptRecorder.stop();
+    if (recallAttemptWS) { recallAttemptWS.close(); recallAttemptWS = null; }
+    if (recallAttemptStream) { recallAttemptStream.getTracks().forEach(t => t.stop()); recallAttemptStream = null; }
+    if (transcript) {
+      textInput.value = transcript;
+      statusEl.textContent = `"${transcript}"`;
+      checkBtn.disabled = false;
+    } else {
+      statusEl.textContent = "";
+    }
+  }
+
+  micBtn.addEventListener("click", startAttemptRecording);
+
+  textInput.addEventListener("input", () => {
+    checkBtn.disabled = textInput.value.trim().length === 0;
+  });
+
+  checkBtn.addEventListener("click", async () => {
+    const text = textInput.value.trim();
+    if (!text) return;
+    const p = queue[queueIndex];
+    if (!p) return;
+
+    checkBtn.disabled = true;
+    checkBtn.textContent = "Checking...";
+    statusEl.textContent = "";
+
+    const feedbackEl = document.getElementById("recall-ai-feedback");
+    const feedbackBody = document.getElementById("recall-ai-feedback-body");
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "recall-check", text, targetEnglish: p.english }),
+      });
+      const result = await res.json();
+
+      const badge = result.is_correct
+        ? `<div class="recall-feedback-correct">✓ Correct!</div>`
+        : `<div class="recall-feedback-wrong">✗ Not quite</div>`;
+      const hintHtml = result.hint
+        ? `<div class="recall-feedback-hint">${result.hint}</div>`
+        : "";
+      feedbackBody.innerHTML = `${badge}<div class="recall-feedback-text">${result.feedback}</div>${hintHtml}`;
+
+      const actionsEl = document.getElementById("recall-ai-feedback-actions");
+      if (result.is_correct) {
+        actionsEl.innerHTML = `<button class="recall-gotit-btn">Got it! Next →</button>`;
+        actionsEl.querySelector(".recall-gotit-btn").addEventListener("click", () => {
+          feedbackEl.style.display = "none";
+          document.getElementById("recall-attempt-area").style.display = "none";
+          document.getElementById("got-it-btn").click();
+        });
+      } else {
+        actionsEl.innerHTML = `
+          <button id="recall-try-again-btn" class="recall-action-btn">Try Again</button>
+          <button id="recall-reveal-btn" class="recall-action-btn recall-reveal-btn">Reveal Answer</button>
+        `;
+        document.getElementById("recall-try-again-btn").addEventListener("click", () => {
+          textInput.value = "";
+          statusEl.textContent = "";
+          checkBtn.disabled = true;
+          checkBtn.textContent = "Check";
+          feedbackEl.style.display = "none";
+          document.getElementById("recall-attempt-area").style.display = "flex";
+          textInput.focus();
+        });
+        document.getElementById("recall-reveal-btn").addEventListener("click", () => {
+          feedbackEl.style.display = "none";
+          revealRecallCard();
+        });
+      }
+
+      feedbackEl.style.display = "flex";
+      document.getElementById("recall-attempt-area").style.display = "none";
+    } catch {
+      statusEl.textContent = "Error - please try again";
+    }
+    checkBtn.textContent = "Check";
+  });
 }
 
 function revealRecallCard() {
   if (revealed) return;
   revealed = true;
+  document.getElementById("recall-attempt-area").style.display = "none";
+  document.getElementById("recall-ai-feedback").style.display = "none";
   revealHint.style.display = "none";
   recallButtons.classList.add("visible");
 

@@ -254,6 +254,38 @@ module.exports = async function handler(req, res) {
       return res.json({ ...result, original: text, audio_base64 });
     }
 
+    if (mode === "recall-check") {
+      const { targetEnglish } = req.body;
+      try {
+        const raw = await callGroq(
+          `A German learner was shown this English sentence: "${targetEnglish}"\n` +
+          `Their German attempt: "${text}"\n\n` +
+          `Evaluate their attempt. Be encouraging and pedagogically specific.\n` +
+          `IMPORTANT: Do NOT write the correct German sentence anywhere in your response.\n` +
+          `- If correct: praise them, name the grammar structures they used correctly (e.g. "Perfect Perfekt usage" or "Correct Akkusativ article")\n` +
+          `- If incorrect: name the specific rule that's broken, describe the error pattern, then give ONE short hint that steers them toward the right form without writing it out\n\n` +
+          `German grammar reference for naming errors:\n` +
+          `- Verb must be at position 2 in main clauses (Verbzweitstellung). After a fronted adverb, subject and verb swap (inversion).\n` +
+          `- Akkusativ (direct object, "wen/was"): masc. der->den, ein->einen\n` +
+          `- Dativ (indirect object/recipient, "wem"): dem/der/dem/den; einem/einer/einem\n` +
+          `- Akkusativ-only prepositions: durch, für, gegen, ohne, um, bis, entlang\n` +
+          `- Dativ-only prepositions: mit, aus, bei, nach, seit, von, zu/zum/zur, außer, gegenüber\n` +
+          `- Wechselpräpositionen (an/auf/hinter/in/neben/über/unter/vor/zwischen): Wo?=Dativ, Wohin?=Akkusativ\n` +
+          `- Dative-only verbs: helfen, danken, gefallen, gehören, passen, schmecken, antworten, folgen\n` +
+          `- Separable verbs: prefix splits to end in main clause\n` +
+          `- Perfekt: haben/sein + Partizip II at the end\n` +
+          `- Konjunktiv II: würde + infinitive, or hätte/wäre\n` +
+          `- Subordinate clauses (weil, dass, wenn, obwohl, etc.): verb goes to the very end\n\n` +
+          `Reply with ONLY this JSON, no markdown fences:\n` +
+          `{"is_correct":true/false,"feedback":"1-2 sentences: if correct, name what they got right; if wrong, name the specific rule broken WITHOUT writing the corrected form","hint":"if correct leave empty string; if wrong, one short tip steering toward the right form without revealing it"}`
+        );
+        const result = JSON.parse(stripMarkdown(raw));
+        return res.json({ is_correct: result.is_correct, feedback: result.feedback, hint: result.hint });
+      } catch {
+        return res.json({ is_correct: false, feedback: "Could not evaluate your answer. Try again.", hint: "" });
+      }
+    }
+
     if (mode === "write-check") {
       const raw = await callGroq(
         `A German B1 learner wrote:\n"${text}"\n\n` +

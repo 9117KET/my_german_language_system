@@ -255,3 +255,212 @@ describe("mobile level bar — level chip sync in app.js", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Recall attempt system: HTML
+// ---------------------------------------------------------------------------
+
+describe("recall attempt system — index.html", () => {
+  const html = readFile("index.html");
+
+  test("recall-attempt-area element exists", () => {
+    assert.ok(html.includes('id="recall-attempt-area"'), "index.html must contain recall-attempt-area");
+  });
+
+  test("recall-text-input textarea exists", () => {
+    assert.ok(html.includes('id="recall-text-input"'), "index.html must contain recall-text-input textarea");
+  });
+
+  test("recall-attempt-mic-btn exists", () => {
+    assert.ok(html.includes('id="recall-attempt-mic-btn"'), "index.html must contain recall-attempt-mic-btn");
+  });
+
+  test("recall-check-btn exists and is disabled by default", () => {
+    assert.ok(html.includes('id="recall-check-btn"'), "index.html must contain recall-check-btn");
+    const btnIdx = html.indexOf('id="recall-check-btn"');
+    const surroundingHtml = html.slice(Math.max(0, btnIdx - 100), btnIdx + 100);
+    assert.ok(surroundingHtml.includes("disabled"), "recall-check-btn must be disabled by default");
+  });
+
+  test("recall-ai-feedback element exists", () => {
+    assert.ok(html.includes('id="recall-ai-feedback"'), "index.html must contain recall-ai-feedback");
+  });
+
+  test("recall-ai-feedback-body and recall-ai-feedback-actions exist", () => {
+    assert.ok(html.includes('id="recall-ai-feedback-body"'), "missing recall-ai-feedback-body");
+    assert.ok(html.includes('id="recall-ai-feedback-actions"'), "missing recall-ai-feedback-actions");
+  });
+
+  test("Try Again and Reveal Answer buttons exist in feedback", () => {
+    assert.ok(html.includes('id="recall-try-again-btn"'), "missing recall-try-again-btn");
+    assert.ok(html.includes('id="recall-reveal-btn"'), "missing recall-reveal-btn");
+  });
+
+  test("attempt area appears before recall-buttons in DOM order", () => {
+    const attemptPos = html.indexOf('id="recall-attempt-area"');
+    const buttonsPos = html.indexOf('id="recall-buttons"');
+    assert.ok(attemptPos < buttonsPos, "recall-attempt-area must appear before recall-buttons");
+  });
+
+  test("old recall-voice-area is removed", () => {
+    assert.ok(!html.includes('id="recall-voice-area"'), "old recall-voice-area should be removed");
+    assert.ok(!html.includes('id="recall-transcript"'), "old recall-transcript should be removed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Recall attempt system: CSS
+// ---------------------------------------------------------------------------
+
+describe("recall attempt system — CSS", () => {
+  const css = readFile("style.css");
+
+  test("#recall-attempt-area defined in CSS", () => {
+    assert.ok(css.includes("#recall-attempt-area {"), "CSS must define #recall-attempt-area");
+  });
+
+  test(".recall-text-input defined with focus state", () => {
+    assert.ok(css.includes(".recall-text-input {"), "CSS must define .recall-text-input");
+    assert.ok(css.includes(".recall-text-input:focus"), "CSS must define .recall-text-input:focus");
+  });
+
+  test(".recall-check-btn has disabled and hover states", () => {
+    assert.ok(css.includes(".recall-check-btn:disabled"), "CSS must define disabled state");
+    assert.ok(css.includes(".recall-check-btn:not(:disabled):hover"), "CSS must define hover state");
+  });
+
+  test("recall feedback classes exist", () => {
+    assert.ok(css.includes(".recall-feedback-correct"), "missing .recall-feedback-correct");
+    assert.ok(css.includes(".recall-feedback-wrong"), "missing .recall-feedback-wrong");
+    assert.ok(css.includes(".recall-feedback-hint"), "missing .recall-feedback-hint");
+  });
+
+  test(".recall-gotit-btn defined", () => {
+    assert.ok(css.includes(".recall-gotit-btn"), "CSS must define .recall-gotit-btn");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Recall attempt system: app.js logic
+// ---------------------------------------------------------------------------
+
+describe("recall attempt system — app.js", () => {
+  const appJs = readFile("app.js");
+
+  test("setupRecallSpeech uses Deepgram WebSocket with German language", () => {
+    assert.ok(
+      appJs.includes("language=de"),
+      "setupRecallSpeech must use Deepgram with language=de for German"
+    );
+  });
+
+  test("setupRecallSpeech falls back to browser SpeechRecognition", () => {
+    assert.ok(
+      appJs.includes("window.SpeechRecognition || window.webkitSpeechRecognition"),
+      "setupRecallSpeech must include SpeechRecognition fallback"
+    );
+  });
+
+  test("check button posts to recall-check API mode", () => {
+    assert.ok(
+      appJs.includes(`mode: "recall-check"`),
+      "check button must POST to /api/chat with mode recall-check"
+    );
+    assert.ok(
+      appJs.includes("targetEnglish: p.english"),
+      "recall-check request must include targetEnglish"
+    );
+  });
+
+  test("correct result shows got-it button that clicks got-it-btn", () => {
+    assert.ok(
+      appJs.includes(`"got-it-btn"`),
+      "correct feedback must trigger got-it-btn"
+    );
+    assert.ok(
+      appJs.includes("recall-gotit-btn"),
+      "correct feedback must render recall-gotit-btn"
+    );
+  });
+
+  test("incorrect result shows try-again and reveal-answer buttons", () => {
+    assert.ok(
+      appJs.includes("recall-try-again-btn"),
+      "incorrect feedback must include Try Again button"
+    );
+    assert.ok(
+      appJs.includes("recall-reveal-btn"),
+      "incorrect feedback must include Reveal Answer button"
+    );
+  });
+
+  test("reveal button calls revealRecallCard", () => {
+    assert.ok(
+      appJs.includes("revealRecallCard()"),
+      "Reveal Answer button must call revealRecallCard()"
+    );
+  });
+
+  test("revealRecallCard hides attempt area and feedback", () => {
+    const fnStart = appJs.indexOf("function revealRecallCard(");
+    const fnEnd = appJs.indexOf("\nfunction ", fnStart + 1);
+    const fnBody = appJs.slice(fnStart, fnEnd);
+    assert.ok(fnBody.includes("recall-attempt-area"), "revealRecallCard must hide recall-attempt-area");
+    assert.ok(fnBody.includes("recall-ai-feedback"), "revealRecallCard must hide recall-ai-feedback");
+  });
+
+  test("old voice state variables are removed", () => {
+    assert.ok(!appJs.includes("let recallRecognition"), "recallRecognition variable must be removed");
+    assert.ok(!appJs.includes("let recallIsRecording"), "recallIsRecording variable must be removed");
+    assert.ok(!appJs.includes("handleRecallVoice"), "handleRecallVoice function must be removed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Recall attempt system: API
+// ---------------------------------------------------------------------------
+
+describe("recall attempt system — api/chat.js", () => {
+  const chatJs = readFile("api/chat.js");
+
+  test("recall-check mode exists in api/chat.js", () => {
+    assert.ok(
+      chatJs.includes(`mode === "recall-check"`),
+      "api/chat.js must handle recall-check mode"
+    );
+  });
+
+  test("recall-check uses targetEnglish from request body", () => {
+    assert.ok(
+      chatJs.includes("targetEnglish"),
+      "recall-check must read targetEnglish from req.body"
+    );
+  });
+
+  test("recall-check prompt instructs AI not to reveal correct answer", () => {
+    const modeStart = chatJs.indexOf(`mode === "recall-check"`);
+    const modeBlock = chatJs.slice(modeStart, modeStart + 3000);
+    assert.ok(
+      modeBlock.includes("Do NOT write the correct German sentence"),
+      "prompt must instruct AI not to reveal the correct answer"
+    );
+  });
+
+  test("recall-check returns is_correct, feedback, hint - no corrected field", () => {
+    const modeStart = chatJs.indexOf(`mode === "recall-check"`);
+    const modeBlock = chatJs.slice(modeStart, modeStart + 3000);
+    assert.ok(modeBlock.includes("is_correct"), "recall-check must return is_correct");
+    assert.ok(modeBlock.includes("feedback"), "recall-check must return feedback");
+    assert.ok(modeBlock.includes("hint"), "recall-check must return hint");
+    assert.ok(!modeBlock.includes("callElevenLabs"), "recall-check must NOT call ElevenLabs");
+  });
+
+  test("recall-check has error handling fallback", () => {
+    const modeStart = chatJs.indexOf(`mode === "recall-check"`);
+    const modeBlock = chatJs.slice(modeStart, modeStart + 3000);
+    assert.ok(
+      modeBlock.includes("Could not evaluate"),
+      "recall-check must have a user-friendly error fallback message"
+    );
+  });
+});
