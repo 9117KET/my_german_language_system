@@ -137,6 +137,10 @@ body {
   flex: 1;
 }
 
+#mobile-level-bar {
+  display: none;
+}
+
 /* ---- Sidebar Level Filter ---- */
 .sidebar-level {
   padding: 10px 12px 12px;
@@ -1554,6 +1558,19 @@ select option {
     display: none;
   }
 
+  #mobile-level-bar {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--surface1);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 0;
+  }
+  #mobile-level-bar::-webkit-scrollbar { display: none; }
+
   /* Tabs become a horizontal scrollable row */
   #mode-tabs {
     flex-direction: row;
@@ -1746,6 +1763,14 @@ select option {
   padding: 10px 0 4px;
   border-top: 1px solid var(--border);
   margin-top: 4px;
+}
+.drill-rule-hint {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 6px;
+  line-height: 1.55;
+  border-left: 2px solid var(--border-bright);
+  padding-left: 8px;
 }
 #drill-next {
   display: block;

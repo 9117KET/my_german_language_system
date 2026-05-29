@@ -1420,7 +1420,7 @@ function setupEvents() {
     chip.addEventListener("click", () => {
       cefrFilter = chip.dataset.level;
       localStorage.setItem("cefrFilter", cefrFilter);
-      document.querySelectorAll(".level-chip").forEach(c => c.classList.toggle("active", c === chip));
+      document.querySelectorAll(".level-chip").forEach(c => c.classList.toggle("active", c.dataset.level === chip.dataset.level));
       buildQueue();
       renderCard();
       if (mode === "words") { buildWordsQueue(); renderWordCard(); }
@@ -2250,9 +2250,11 @@ function answerDrill(chosen) {
   speakGerman(item.german);
   const fb = document.getElementById("drill-feedback");
   fb.style.display = "block";
+  const topic = GRAMMAR_TOPICS.find(t => t.id === drillTag);
+  const ruleHint = topic ? `<div class="drill-rule-hint">${topic.rule}</div>` : "";
   fb.innerHTML = isCorrect
-    ? `<span style="color:var(--green)">✓ Correct!</span>`
-    : `<span style="color:var(--red)">✗ Correct answer: <strong>${correct}</strong></span>`;
+    ? `<span style="color:var(--green)">✓ Correct!</span>${ruleHint}`
+    : `<span style="color:var(--red)">✗ Correct answer: <strong>${correct}</strong></span>${ruleHint}`;
   document.getElementById("drill-next").style.display = "block";
   drillIdx++;
 }
