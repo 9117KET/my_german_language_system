@@ -1202,11 +1202,12 @@ function init() {
   setupRecallSpeech();
   initWordsPanel();
   setupStarterPracticeModal();
+  setupSpeakPanel();
 }
 
 // ---- Render (player) ----
 function renderCard(autoPlay = false) {
-  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters") return;
+  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak") return;
 
   if (!queue.length) {
     audio.pause();
@@ -1399,6 +1400,7 @@ function showPlayerPanel() {
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
   playerEls.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
@@ -1414,6 +1416,7 @@ function showAIPanel() {
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
   aiPanel.style.display = "flex";
   renderAISavedList();
 }
@@ -1444,6 +1447,9 @@ function setupEvents() {
       } else if (newMode === "starters") {
         mode = "starters";
         showStartersPanel();
+      } else if (newMode === "speak") {
+        mode = "speak";
+        showSpeakPanel();
       } else {
         mode = newMode;
         showPlayerPanel();
@@ -1641,7 +1647,7 @@ function setupEvents() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters") return;
+    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak") return;
     if (e.key === "Escape") { document.getElementById("vocab-modal").style.display = "none"; return; }
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
@@ -2280,6 +2286,7 @@ function showProgressPanel() {
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
   document.getElementById("progress-panel").style.display = "flex";
   renderProgressTab();
 }
@@ -2573,6 +2580,7 @@ function showVocabPanel() {
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "flex";
   document.getElementById("vocab-panel-search").value = "";
   vocabPage = 0;
@@ -2590,6 +2598,7 @@ function showStartersPanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "flex";
   renderStartersPanel("all");
 }
@@ -2793,6 +2802,283 @@ function setupStarterPracticeModal() {
   document.getElementById("starter-mark-done-btn").addEventListener("click", starterMarkDone);
 }
 
+// ---- Just Say It (Speak) ----
+
+const SPEAK_PROMPTS = [
+  // Classroom - asking professor
+  { id:1,  cat:"classroom", prompt:"Your professor just explained the Dativ case and asks if anyone has questions. Explain what you understood and ask one thing you are unsure about.", hint:"Try: 'Ich habe verstanden, dass... Aber ich bin nicht sicher, ob...'" },
+  { id:2,  cat:"classroom", prompt:"You arrived 5 minutes late to the online class. Apologize to the professor and briefly explain why.", hint:"Try: 'Entschuldigung, ich bin zu spät, weil...'" },
+  { id:3,  cat:"classroom", prompt:"The professor assigns a group task. Ask your partner what they think you should do first.", hint:"Try: 'Was denkst du, was sollen wir zuerst machen?'" },
+  { id:4,  cat:"classroom", prompt:"The professor asks you to summarize what you learned in the last lesson. Speak for as long as you can.", hint:"Try: 'In der letzten Stunde haben wir... gelernt.'" },
+  { id:5,  cat:"classroom", prompt:"You don't understand the homework. Ask the professor to explain it again and say specifically what confused you.", hint:"Try: 'Ich verstehe die Aufgabe nicht ganz. Könnten Sie... erklären?'" },
+  { id:6,  cat:"classroom", prompt:"Your professor asks for your opinion on a short German text you just read. Share your thoughts.", hint:"Try: 'Ich finde den Text... weil...'" },
+  // Daily life
+  { id:7,  cat:"daily",     prompt:"Describe your morning routine today entirely in German. What did you do from waking up to joining this session?", hint:"Try: 'Heute Morgen bin ich um... Uhr aufgewacht und dann...'" },
+  { id:8,  cat:"daily",     prompt:"You are at a German supermarket and can't find the bread aisle. Ask a staff member for help and have a short conversation.", hint:"Try: 'Entschuldigung, wo finde ich... bitte?'" },
+  { id:9,  cat:"daily",     prompt:"Tell a classmate about your weekend plans in German. Include at least two activities.", hint:"Try: 'Am Wochenende möchte ich... und vielleicht auch...'" },
+  { id:10, cat:"daily",     prompt:"You are ordering coffee in a German café. The barista asks for your name and whether you want it to go or stay. Handle the whole exchange.", hint:"Try: 'Ich hätte gerne einen... Mein Name ist..., und ich nehme es mit.'" },
+  // Opinion / discussion
+  { id:11, cat:"opinion",   prompt:"Your classmate says learning German grammar is impossible. Agree or disagree and explain why.", hint:"Try: 'Ich stimme dir (nicht) zu, weil...' or 'Ich sehe das ein bisschen anders...'" },
+  { id:12, cat:"opinion",   prompt:"The professor asks: what is the hardest thing about speaking German for you? Be honest and explain.", hint:"Try: 'Das Schwierigste für mich ist..., weil...'" },
+  { id:13, cat:"opinion",   prompt:"Describe your favourite German word you have learned so far and explain why you like it.", hint:"Try: 'Mein Lieblingswort auf Deutsch ist... weil es...'" },
+  { id:14, cat:"opinion",   prompt:"Someone asks whether you prefer learning German online or in person. Give your opinion with reasons.", hint:"Try: 'Ich bevorzuge... weil... Allerdings...'" },
+  // Storytelling
+  { id:15, cat:"story",     prompt:"Tell a short story about a time something went wrong during your day - in German.", hint:"Try: 'Gestern ist etwas Lustiges passiert. Ich wollte... aber...'" },
+  { id:16, cat:"story",     prompt:"Describe a place that is important to you - your room, a park, a city. Paint the picture in German.", hint:"Try: 'Es gibt einen Ort, der mir sehr wichtig ist. Er ist...'" },
+  { id:17, cat:"story",     prompt:"Tell your classmate about a movie or show you recently watched. What happened and did you like it?", hint:"Try: 'Ich habe letztens... gesehen. Es handelt von... Ich finde es...'" },
+  // Escape / buy-time practice
+  { id:18, cat:"escape",    prompt:"The professor calls on you suddenly and you are not sure of the answer. Buy time, try your best, and wrap up gracefully.", hint:"Try: 'Einen Moment bitte... Ich glaube, dass... Ich bin mir aber nicht ganz sicher.'" },
+  { id:19, cat:"escape",    prompt:"You forget a key word mid-sentence while explaining something in class. Work around it out loud in German.", hint:"Try: 'Wie sagt man... auf Deutsch? Ich meine das Wort für...' then keep going." },
+  { id:20, cat:"escape",    prompt:"You are asked a question in German that you completely do not understand. Ask for clarification politely, twice if needed, then attempt an answer.", hint:"Try: 'Entschuldigung, könnten Sie das bitte wiederholen? Meinen Sie...?'" },
+];
+
+const SPEAK_DURATION = 60;
+const SPEAK_CIRCUMFERENCE = 2 * Math.PI * 44;
+
+let speakPromptIndex = 0;
+let speakTimerInterval = null;
+let speakSecondsLeft = SPEAK_DURATION;
+let speakMicStream = null;
+let speakMicWS = null;
+let speakMicRecorder = null;
+let speakTranscriptChunks = [];
+let speakIsRecording = false;
+
+function showSpeakPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "flex";
+  initSpeakPanel();
+}
+
+function initSpeakPanel() {
+  speakStopRecording();
+  speakClearTimer();
+  speakPromptIndex = shuffleSpeakIndex();
+  renderSpeakPrompt();
+  updateSpeakStreak();
+  document.getElementById("speak-feedback-area").style.display = "none";
+  document.getElementById("speak-transcript-area").style.display = "none";
+  document.getElementById("speak-actions").style.display = "flex";
+  document.getElementById("speak-start-btn").disabled = false;
+  document.getElementById("speak-start-btn").textContent = "▶ Start Speaking";
+  document.getElementById("speak-start-btn").classList.remove("recording");
+  setSpeakTimerDisplay(SPEAK_DURATION);
+  setSpeakArc(1);
+}
+
+function shuffleSpeakIndex() {
+  return Math.floor(Math.random() * SPEAK_PROMPTS.length);
+}
+
+function renderSpeakPrompt() {
+  const p = SPEAK_PROMPTS[speakPromptIndex];
+  document.getElementById("speak-scenario-text").textContent = p.prompt;
+  document.getElementById("speak-scenario-hint").textContent = p.hint;
+}
+
+function updateSpeakStreak() {
+  const streak = getSpeakStreak();
+  const badge = document.getElementById("speak-streak-badge");
+  if (streak > 0) {
+    badge.textContent = "🔥 " + streak + " day streak";
+    badge.classList.add("visible");
+  } else {
+    badge.classList.remove("visible");
+  }
+}
+
+function getSpeakStreak() {
+  try {
+    const data = JSON.parse(localStorage.getItem("speak_streak") || "{}");
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (data.last === today) return data.count || 0;
+    if (data.last === yesterday) return data.count || 0;
+    return 0;
+  } catch { return 0; }
+}
+
+function recordSpeakDone() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const data = JSON.parse(localStorage.getItem("speak_streak") || "{}");
+    if (data.last === today) return;
+    const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
+    localStorage.setItem("speak_streak", JSON.stringify({ last: today, count: newCount }));
+  } catch {}
+}
+
+function setSpeakTimerDisplay(seconds) {
+  document.getElementById("speak-timer-display").textContent = seconds;
+}
+
+function setSpeakArc(fraction) {
+  const arc = document.getElementById("speak-timer-arc");
+  arc.style.strokeDashoffset = SPEAK_CIRCUMFERENCE * (1 - fraction);
+  if (fraction <= 0.25) arc.classList.add("low-time");
+  else arc.classList.remove("low-time");
+}
+
+function speakClearTimer() {
+  if (speakTimerInterval) { clearInterval(speakTimerInterval); speakTimerInterval = null; }
+  speakSecondsLeft = SPEAK_DURATION;
+}
+
+async function speakStartRecording() {
+  if (speakIsRecording) return;
+  speakTranscriptChunks = [];
+  document.getElementById("speak-transcript-text").textContent = "";
+  document.getElementById("speak-transcript-area").style.display = "none";
+  speakIsRecording = true;
+  document.getElementById("speak-start-btn").textContent = "Listening…";
+  document.getElementById("speak-start-btn").classList.add("recording");
+  document.getElementById("speak-start-btn").disabled = true;
+
+  try {
+    const tokenRes = await fetch("/api/deepgram-token", { method: "POST" });
+    if (!tokenRes.ok) throw new Error("token");
+    const { key } = await tokenRes.json();
+    speakMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const wsUrl = "wss://api.deepgram.com/v1/listen?language=de&model=nova-2-general&interim_results=true&endpointing=800&vad_events=true&encoding=linear16&sample_rate=16000";
+    speakMicWS = new WebSocket(wsUrl, ["token", key]);
+
+    speakMicWS.onopen = () => {
+      speakMicRecorder = new MediaRecorder(speakMicStream, { mimeType: "audio/webm;codecs=opus" });
+      speakMicRecorder.ondataavailable = (e) => {
+        if (speakMicWS && speakMicWS.readyState === WebSocket.OPEN && e.data.size > 0) speakMicWS.send(e.data);
+      };
+      speakMicRecorder.start(100);
+    };
+
+    speakMicWS.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "Results" && msg.is_final) {
+        const t = msg.channel?.alternatives?.[0]?.transcript || "";
+        if (t.trim()) {
+          speakTranscriptChunks.push(t.trim());
+          document.getElementById("speak-transcript-text").textContent = speakTranscriptChunks.join(" ");
+          document.getElementById("speak-transcript-area").style.display = "flex";
+        }
+      }
+    };
+    speakMicWS.onerror = () => {};
+    speakMicWS.onclose = () => {};
+  } catch {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      const sr = new SR();
+      sr.lang = "de-DE";
+      sr.interimResults = false;
+      sr.continuous = true;
+      sr.onresult = (ev) => {
+        const t = ev.results[ev.results.length - 1][0].transcript.trim();
+        if (t) {
+          speakTranscriptChunks.push(t);
+          document.getElementById("speak-transcript-text").textContent = speakTranscriptChunks.join(" ");
+          document.getElementById("speak-transcript-area").style.display = "flex";
+        }
+      };
+      sr.start();
+      speakMicWS = { _sr: sr, close: () => sr.stop() };
+    }
+  }
+
+  speakSecondsLeft = SPEAK_DURATION;
+  setSpeakTimerDisplay(speakSecondsLeft);
+  setSpeakArc(1);
+  speakTimerInterval = setInterval(() => {
+    speakSecondsLeft--;
+    setSpeakTimerDisplay(speakSecondsLeft);
+    setSpeakArc(speakSecondsLeft / SPEAK_DURATION);
+    if (speakSecondsLeft <= 0) speakTimeUp();
+  }, 1000);
+}
+
+function speakStopRecording() {
+  speakIsRecording = false;
+  if (speakMicRecorder && speakMicRecorder.state !== "inactive") speakMicRecorder.stop();
+  if (speakMicWS) { speakMicWS.close(); speakMicWS = null; }
+  if (speakMicStream) { speakMicStream.getTracks().forEach(t => t.stop()); speakMicStream = null; }
+  speakMicRecorder = null;
+}
+
+async function speakTimeUp() {
+  speakClearTimer();
+  speakStopRecording();
+  setSpeakTimerDisplay(0);
+  setSpeakArc(0);
+  recordSpeakDone();
+  updateSpeakStreak();
+
+  document.getElementById("speak-actions").style.display = "none";
+  document.getElementById("speak-start-btn").disabled = false;
+  document.getElementById("speak-start-btn").classList.remove("recording");
+
+  const transcript = speakTranscriptChunks.join(" ").trim();
+  const prompt = SPEAK_PROMPTS[speakPromptIndex].prompt;
+
+  document.getElementById("speak-feedback-area").style.display = "flex";
+  document.getElementById("speak-feedback-text").textContent = "Getting feedback…";
+  document.getElementById("speak-next-btn").disabled = true;
+
+  if (transcript.length > 5) {
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "speak-check", text: transcript, prompt }),
+      });
+      const data = await res.json();
+      document.getElementById("speak-feedback-text").textContent =
+        data.feedback || "Good effort! Keep practicing.";
+    } catch {
+      document.getElementById("speak-feedback-text").textContent =
+        "Could not get feedback right now - but great job speaking!";
+    }
+  } else {
+    document.getElementById("speak-feedback-text").textContent =
+      "No speech detected. Make sure your microphone is on and try again!";
+  }
+
+  document.getElementById("speak-next-btn").disabled = false;
+}
+
+function speakSkip() {
+  speakClearTimer();
+  speakStopRecording();
+  speakPromptIndex = (speakPromptIndex + 1) % SPEAK_PROMPTS.length;
+  renderSpeakPrompt();
+  document.getElementById("speak-feedback-area").style.display = "none";
+  document.getElementById("speak-transcript-area").style.display = "none";
+  document.getElementById("speak-actions").style.display = "flex";
+  document.getElementById("speak-start-btn").disabled = false;
+  document.getElementById("speak-start-btn").textContent = "▶ Start Speaking";
+  document.getElementById("speak-start-btn").classList.remove("recording");
+  setSpeakTimerDisplay(SPEAK_DURATION);
+  setSpeakArc(1);
+}
+
+function setupSpeakPanel() {
+  document.getElementById("speak-start-btn").addEventListener("click", () => {
+    if (!speakIsRecording) speakStartRecording();
+  });
+  document.getElementById("speak-skip-btn").addEventListener("click", speakSkip);
+  document.getElementById("speak-next-btn").addEventListener("click", () => {
+    speakPromptIndex = (speakPromptIndex + 1) % SPEAK_PROMPTS.length;
+    initSpeakPanel();
+  });
+}
+
 // ---- Grammar Tab ----
 
 function showGrammarPanel(filterTag = null) {
@@ -2806,6 +3092,7 @@ function showGrammarPanel(filterTag = null) {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "flex";
   renderGrammarTab(filterTag);
 }
@@ -3854,6 +4141,7 @@ function showWordsPanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "flex";
   wordsSessionCorrect = 0;
   wordsSessionTotal = 0;

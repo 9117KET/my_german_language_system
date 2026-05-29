@@ -54,6 +54,10 @@
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span class="tab-label">Starters</span>
       </div>
+      <div class="tab" data-mode="speak">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="tab-label">Speak</span>
+      </div>
     </nav>
     <div class="sidebar-level">
       <span class="sidebar-level-label">Level</span>
@@ -504,6 +508,43 @@
           <button class="starter-cat-chip" data-cat="escape">Buy Time</button>
         </div>
         <div id="starters-list"></div>
+      </div>
+
+      <div id="speak-panel" style="display:none">
+        <div id="speak-header">
+          <div id="speak-title-row">
+            <h2 class="speak-title">Just Say It</h2>
+            <div id="speak-streak-badge"></div>
+          </div>
+          <p class="speak-subtitle">A scenario appears. You speak in German for 60 seconds without stopping. No judgment - just fluency.</p>
+        </div>
+        <div id="speak-scenario-card">
+          <div id="speak-scenario-label">Scenario</div>
+          <div id="speak-scenario-text"></div>
+          <div id="speak-scenario-hint"></div>
+        </div>
+        <div id="speak-timer-ring-wrap">
+          <svg id="speak-timer-svg" viewBox="0 0 100 100">
+            <circle id="speak-timer-track" cx="50" cy="50" r="44"/>
+            <circle id="speak-timer-arc" cx="50" cy="50" r="44"/>
+          </svg>
+          <div id="speak-timer-display">60</div>
+        </div>
+        <div id="speak-transcript-area" style="display:none">
+          <div id="speak-transcript-label">What I heard:</div>
+          <div id="speak-transcript-text"></div>
+        </div>
+        <div id="speak-actions">
+          <button id="speak-start-btn">&#9654; Start Speaking</button>
+          <button id="speak-skip-btn">Skip</button>
+        </div>
+        <div id="speak-feedback-area" style="display:none">
+          <div id="speak-feedback-label">Quick feedback</div>
+          <div id="speak-feedback-text"></div>
+          <div id="speak-feedback-actions">
+            <button id="speak-next-btn">Next scenario &#8594;</button>
+          </div>
+        </div>
       </div>
 
     </div><!-- end #card-area -->

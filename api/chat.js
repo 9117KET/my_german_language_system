@@ -286,6 +286,27 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    if (mode === "speak-check") {
+      const { prompt: scenario } = req.body;
+      try {
+        const raw = await callGroq(
+          `A German learner was given this speaking scenario:\n"${scenario}"\n\n` +
+          `They spoke for 60 seconds and this is what was transcribed:\n"${text}"\n\n` +
+          `Give brief, encouraging fluency feedback (2-3 sentences max). Focus on:\n` +
+          `- Did they attempt to address the scenario? (yes/partly/no)\n` +
+          `- One specific thing they did well (a phrase, structure, or vocabulary choice)\n` +
+          `- One concrete tip to improve fluency next time (not a grammar lecture - think mindset or sentence-starting strategy)\n\n` +
+          `Do NOT rewrite their sentences. Do NOT list every error. The goal is building confidence to speak, not grammar perfection.\n` +
+          `Reply with ONLY this JSON, no markdown:\n` +
+          `{"feedback":"2-3 encouraging sentences with one strength and one fluency tip"}`
+        );
+        const result = JSON.parse(stripMarkdown(raw));
+        return res.json({ feedback: result.feedback });
+      } catch {
+        return res.json({ feedback: "Great effort speaking for 60 seconds! Keep going - fluency comes from repetition." });
+      }
+    }
+
     if (mode === "write-check") {
       const raw = await callGroq(
         `A German B1 learner wrote:\n"${text}"\n\n` +

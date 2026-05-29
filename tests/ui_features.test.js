@@ -806,3 +806,222 @@ describe("conversation starters — app.js functions", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Feature 2: Just Say It (Speak panel)
+// ---------------------------------------------------------------------------
+
+function loadSpeakPrompts() {
+  const content = readFile("app.js");
+  const start = content.indexOf("const SPEAK_PROMPTS = [");
+  assert.ok(start !== -1, "SPEAK_PROMPTS not found in app.js");
+  const end = content.indexOf("const SPEAK_DURATION", start);
+  assert.ok(end !== -1, "SPEAK_DURATION not found after SPEAK_PROMPTS");
+  const snippet = content.slice(start, end).trim()
+    .replace(/\bconst\s+/g, "");
+  const ctx = {};
+  vm.runInNewContext(snippet, ctx);
+  return ctx.SPEAK_PROMPTS;
+}
+
+describe("just say it — SPEAK_PROMPTS data", () => {
+  const prompts = loadSpeakPrompts();
+
+  test("SPEAK_PROMPTS has at least 15 entries", () => {
+    assert.ok(prompts.length >= 15, `Expected >= 15 prompts, got ${prompts.length}`);
+  });
+
+  test("every prompt has required fields: id, cat, prompt, hint", () => {
+    const missing = prompts.filter(p => !p.id || !p.cat || !p.prompt || !p.hint);
+    assert.equal(missing.length, 0,
+      `Prompts missing fields: ${missing.map(p => p.id).join(", ")}`
+    );
+  });
+
+  test("prompt ids are unique", () => {
+    const ids = prompts.map(p => p.id);
+    assert.equal(new Set(ids).size, ids.length, "Duplicate prompt ids found");
+  });
+
+  test("all prompts and hints are non-empty strings", () => {
+    const bad = prompts.filter(p =>
+      typeof p.prompt !== "string" || p.prompt.trim() === "" ||
+      typeof p.hint !== "string" || p.hint.trim() === ""
+    );
+    assert.equal(bad.length, 0, "Some prompts have empty prompt or hint");
+  });
+
+  test("escape/buy-time scenarios are included", () => {
+    const escapeCats = prompts.filter(p => p.cat === "escape");
+    assert.ok(escapeCats.length >= 2, "Expected at least 2 escape scenarios");
+  });
+
+  test("classroom scenarios are included", () => {
+    const classroomCats = prompts.filter(p => p.cat === "classroom");
+    assert.ok(classroomCats.length >= 3, "Expected at least 3 classroom scenarios");
+  });
+});
+
+describe("just say it — HTML structure", () => {
+  const html = readFile("index.html");
+
+  test("speak tab exists in sidebar nav", () => {
+    assert.ok(html.includes('data-mode="speak"'), "Speak tab not found");
+  });
+
+  test("#speak-panel element exists", () => {
+    assert.ok(html.includes('id="speak-panel"'), "#speak-panel missing");
+  });
+
+  test("#speak-scenario-text element exists", () => {
+    assert.ok(html.includes('id="speak-scenario-text"'), "#speak-scenario-text missing");
+  });
+
+  test("#speak-timer-ring-wrap exists", () => {
+    assert.ok(html.includes('id="speak-timer-ring-wrap"'), "#speak-timer-ring-wrap missing");
+  });
+
+  test("#speak-timer-arc SVG element exists", () => {
+    assert.ok(html.includes('id="speak-timer-arc"'), "#speak-timer-arc missing");
+  });
+
+  test("#speak-start-btn exists", () => {
+    assert.ok(html.includes('id="speak-start-btn"'), "#speak-start-btn missing");
+  });
+
+  test("#speak-skip-btn exists", () => {
+    assert.ok(html.includes('id="speak-skip-btn"'), "#speak-skip-btn missing");
+  });
+
+  test("#speak-feedback-area exists", () => {
+    assert.ok(html.includes('id="speak-feedback-area"'), "#speak-feedback-area missing");
+  });
+
+  test("#speak-transcript-area exists", () => {
+    assert.ok(html.includes('id="speak-transcript-area"'), "#speak-transcript-area missing");
+  });
+
+  test("#speak-next-btn exists", () => {
+    assert.ok(html.includes('id="speak-next-btn"'), "#speak-next-btn missing");
+  });
+});
+
+describe("just say it — CSS", () => {
+  const css = readFile("style.css");
+
+  test("#speak-panel styles present", () => {
+    assert.ok(css.includes("#speak-panel"), "#speak-panel CSS missing");
+  });
+
+  test("#speak-timer-arc styles present", () => {
+    assert.ok(css.includes("#speak-timer-arc"), "#speak-timer-arc CSS missing");
+  });
+
+  test("stroke-dasharray constant set on timer arc", () => {
+    assert.ok(css.includes("stroke-dasharray"), "stroke-dasharray missing from timer arc");
+  });
+
+  test("#speak-start-btn recording state styled", () => {
+    assert.ok(css.includes("#speak-start-btn.recording"), "#speak-start-btn.recording CSS missing");
+  });
+
+  test("#speak-scenario-card styles present", () => {
+    assert.ok(css.includes("#speak-scenario-card"), "#speak-scenario-card CSS missing");
+  });
+});
+
+describe("just say it — app.js functions", () => {
+  const appJs = readFile("app.js");
+
+  test("showSpeakPanel function is defined", () => {
+    assert.ok(appJs.includes("function showSpeakPanel("), "showSpeakPanel missing");
+  });
+
+  test("speakStartRecording function is defined", () => {
+    assert.ok(appJs.includes("async function speakStartRecording("), "speakStartRecording missing");
+  });
+
+  test("speakTimeUp function is defined", () => {
+    assert.ok(appJs.includes("async function speakTimeUp("), "speakTimeUp missing");
+  });
+
+  test("setupSpeakPanel is called in init()", () => {
+    assert.ok(appJs.includes("setupSpeakPanel()"), "setupSpeakPanel() not called");
+  });
+
+  test("speak mode included in renderCard guard", () => {
+    const guardMatch = appJs.match(/if \(mode === "ai"[^)]+\) return;/g);
+    assert.ok(guardMatch && guardMatch.length > 0, "renderCard guard not found");
+    assert.ok(guardMatch.some(g => g.includes('"speak"')), "speak not in renderCard guard");
+  });
+
+  test("speak mode handled in setupEvents tab click", () => {
+    assert.ok(appJs.includes('newMode === "speak"'), "speak mode not handled in setupEvents");
+  });
+
+  test("speakStartRecording fetches Deepgram token", () => {
+    const start = appJs.indexOf("async function speakStartRecording(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes("/api/deepgram-token"), "Deepgram token fetch missing from speakStartRecording");
+  });
+
+  test("speakTimeUp calls recordSpeakDone for streak tracking", () => {
+    const start = appJs.indexOf("async function speakTimeUp(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes("recordSpeakDone()"), "speakTimeUp must call recordSpeakDone");
+  });
+
+  test("speakTimeUp posts to speak-check API mode", () => {
+    const start = appJs.indexOf("async function speakTimeUp(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes('"speak-check"'), "speakTimeUp must POST to speak-check mode");
+  });
+
+  test("getSpeakStreak uses localStorage speak_streak key", () => {
+    assert.ok(appJs.includes("speak_streak"), "speak_streak localStorage key missing");
+  });
+
+  test("all show*Panel functions hide #speak-panel", () => {
+    const panels = ["showPlayerPanel", "showAIPanel", "showProgressPanel",
+                    "showVocabPanel", "showGrammarPanel", "showWordsPanel", "showStartersPanel"];
+    for (const fn of panels) {
+      const start = appJs.indexOf(`function ${fn}(`);
+      assert.ok(start !== -1, `${fn} not found`);
+      const end = appJs.indexOf("\nfunction ", start + 1);
+      const body = appJs.slice(start, end);
+      assert.ok(body.includes('"speak-panel"'), `${fn} does not hide #speak-panel`);
+    }
+  });
+});
+
+describe("just say it — api/chat.js", () => {
+  const chatJs = readFile("api/chat.js");
+
+  test("speak-check mode exists in api/chat.js", () => {
+    assert.ok(chatJs.includes('"speak-check"'), "speak-check mode missing from api/chat.js");
+  });
+
+  test("speak-check uses scenario prompt from request body", () => {
+    const start = chatJs.indexOf('"speak-check"');
+    const end = chatJs.indexOf("\n    if (mode", start + 1);
+    const body = chatJs.slice(start, end);
+    assert.ok(body.includes("scenario") || body.includes("prompt"), "speak-check must use scenario/prompt");
+  });
+
+  test("speak-check returns feedback field", () => {
+    const start = chatJs.indexOf('"speak-check"');
+    const end = chatJs.indexOf("\n    if (mode", start + 1);
+    const body = chatJs.slice(start, end);
+    assert.ok(body.includes("feedback"), "speak-check response must include feedback");
+  });
+
+  test("speak-check has error fallback", () => {
+    const start = chatJs.indexOf('"speak-check"');
+    const end = chatJs.indexOf("\n    if (mode", start + 1);
+    const body = chatJs.slice(start, end);
+    assert.ok(body.includes("catch"), "speak-check must have error fallback");
+  });
+});
