@@ -2590,3 +2590,191 @@ select option {
 @media (max-width: 767px) {
   #speak-panel { padding: 14px 14px 100px; }
 }
+
+/* ====================================================
+   THINK IN GERMAN - MONOLOGUE PANEL
+   ==================================================== */
+
+#monologue-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 20px 32px;
+  gap: 16px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+#monologue-header { flex-shrink: 0; }
+
+#monologue-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.monologue-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+#monologue-streak-badge {
+  font-size: 0.75rem;
+  color: var(--green);
+  font-weight: 700;
+  background: rgba(74,222,128,0.1);
+  border: 1px solid rgba(74,222,128,0.3);
+  border-radius: 20px;
+  padding: 2px 10px;
+  display: none;
+}
+#monologue-streak-badge.visible { display: inline-block; }
+
+.monologue-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin: 0;
+  line-height: 1.5;
+}
+
+#monologue-prompt-card {
+  background: var(--surface1);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#monologue-prompt-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+#monologue-prompt-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+#monologue-count-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+#monologue-count-num {
+  font-weight: 700;
+  color: var(--text);
+}
+
+#monologue-new-prompt-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+  touch-action: manipulation;
+}
+#monologue-new-prompt-btn:hover { background: var(--surface3); color: var(--text); }
+
+#monologue-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  padding: 12px 14px;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+#monologue-input:focus {
+  outline: none;
+  border-color: var(--green);
+}
+#monologue-input::placeholder { color: var(--text-dim); }
+
+#monologue-char-hint {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: -8px;
+}
+
+#monologue-submit-row { display: flex; }
+
+#monologue-submit-btn {
+  flex: 1;
+  padding: 12px 0;
+  background: var(--green);
+  color: #0a1a0a;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  touch-action: manipulation;
+}
+#monologue-submit-btn:hover { opacity: 0.85; }
+#monologue-submit-btn:disabled { opacity: 0.4; cursor: default; }
+
+#monologue-reflection-area {
+  background: var(--surface1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#monologue-reflection-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+#monologue-reflection-text {
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.65;
+}
+
+#monologue-another-btn {
+  padding: 10px 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.12s;
+  touch-action: manipulation;
+}
+#monologue-another-btn:hover { background: var(--surface3); }
+
+@media (max-width: 767px) {
+  #monologue-panel { padding: 14px 14px 100px; }
+}

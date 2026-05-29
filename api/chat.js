@@ -307,6 +307,26 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    if (mode === "monologue-reflect") {
+      const { prompt: thoughtPrompt } = req.body;
+      try {
+        const raw = await callGroq(
+          `A German learner was given this thought prompt:\n"${thoughtPrompt}"\n\n` +
+          `They wrote the following in German:\n"${text}"\n\n` +
+          `Give a warm, brief reflection (2-3 sentences). Your goal is to build their confidence to keep thinking in German, not to correct them. Focus on:\n` +
+          `- One thing that reads naturally or shows good instinct (a word choice, a structure, a idea expressed well)\n` +
+          `- One gentle nudge toward more natural German phrasing for the next time (not a grammar rule - think phrasing or word choice)\n\n` +
+          `Do NOT list errors. Do NOT rewrite their sentences. Be the kind of mentor who makes them want to write more.\n` +
+          `Reply with ONLY this JSON, no markdown:\n` +
+          `{"reflection":"2-3 warm sentences with one strength and one gentle nudge"}`
+        );
+        const result = JSON.parse(stripMarkdown(raw));
+        return res.json({ reflection: result.reflection });
+      } catch {
+        return res.json({ reflection: "Writing in German - even imperfectly - is exactly how fluency builds. Keep going!" });
+      }
+    }
+
     if (mode === "write-check") {
       const raw = await callGroq(
         `A German B1 learner wrote:\n"${text}"\n\n` +

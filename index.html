@@ -58,6 +58,10 @@
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span class="tab-label">Speak</span>
       </div>
+      <div class="tab" data-mode="monologue">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span class="tab-label">Think</span>
+      </div>
     </nav>
     <div class="sidebar-level">
       <span class="sidebar-level-label">Level</span>
@@ -543,6 +547,37 @@
           <div id="speak-feedback-text"></div>
           <div id="speak-feedback-actions">
             <button id="speak-next-btn">Next scenario &#8594;</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="monologue-panel" style="display:none">
+        <div id="monologue-header">
+          <div id="monologue-title-row">
+            <h2 class="monologue-title">Think in German</h2>
+            <div id="monologue-streak-badge"></div>
+          </div>
+          <p class="monologue-subtitle">A thought prompt appears. Write whatever comes to mind in German - no pressure, no timer. Your brain learns to think in German by doing it.</p>
+        </div>
+        <div id="monologue-prompt-card">
+          <div id="monologue-prompt-label">Today's prompt</div>
+          <div id="monologue-prompt-text"></div>
+        </div>
+        <div id="monologue-count-row">
+          <span id="monologue-count-label">Done today: </span>
+          <span id="monologue-count-num">0</span>
+          <button id="monologue-new-prompt-btn">New prompt</button>
+        </div>
+        <textarea id="monologue-input" placeholder="Schreib auf Deutsch..." rows="6"></textarea>
+        <div id="monologue-char-hint"></div>
+        <div id="monologue-submit-row">
+          <button id="monologue-submit-btn" disabled>Reflect &#x2192;</button>
+        </div>
+        <div id="monologue-reflection-area" style="display:none">
+          <div id="monologue-reflection-label">Reflection</div>
+          <div id="monologue-reflection-text"></div>
+          <div id="monologue-reflection-actions">
+            <button id="monologue-another-btn">Another prompt &#x2192;</button>
           </div>
         </div>
       </div>

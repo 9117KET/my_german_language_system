@@ -1203,11 +1203,12 @@ function init() {
   initWordsPanel();
   setupStarterPracticeModal();
   setupSpeakPanel();
+  setupMonologuePanel();
 }
 
 // ---- Render (player) ----
 function renderCard(autoPlay = false) {
-  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak") return;
+  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue") return;
 
   if (!queue.length) {
     audio.pause();
@@ -1401,6 +1402,7 @@ function showPlayerPanel() {
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
   playerEls.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
@@ -1417,6 +1419,7 @@ function showAIPanel() {
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
   aiPanel.style.display = "flex";
   renderAISavedList();
 }
@@ -1450,6 +1453,9 @@ function setupEvents() {
       } else if (newMode === "speak") {
         mode = "speak";
         showSpeakPanel();
+      } else if (newMode === "monologue") {
+        mode = "monologue";
+        showMonologuePanel();
       } else {
         mode = newMode;
         showPlayerPanel();
@@ -1647,7 +1653,7 @@ function setupEvents() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak") return;
+    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue") return;
     if (e.key === "Escape") { document.getElementById("vocab-modal").style.display = "none"; return; }
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
@@ -2287,6 +2293,7 @@ function showProgressPanel() {
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("progress-panel").style.display = "flex";
   renderProgressTab();
 }
@@ -2581,6 +2588,7 @@ function showVocabPanel() {
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "flex";
   document.getElementById("vocab-panel-search").value = "";
   vocabPage = 0;
@@ -2599,6 +2607,7 @@ function showStartersPanel() {
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "flex";
   renderStartersPanel("all");
 }
@@ -2855,6 +2864,7 @@ function showSpeakPanel() {
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "flex";
   initSpeakPanel();
 }
@@ -3079,6 +3089,187 @@ function setupSpeakPanel() {
   });
 }
 
+// ---- Think in German (Inner Monologue) ----
+
+const MONOLOGUE_PROMPTS = [
+  // Observation
+  { id:1,  cat:"observe", prompt:"Describe everything you can see around you right now. What colours, objects, and people do you notice?" },
+  { id:2,  cat:"observe", prompt:"Look at the room you are in. Describe it as if you are explaining it to someone who cannot see it." },
+  { id:3,  cat:"observe", prompt:"What is the weather like right now? Describe it in detail - sky, temperature, sound, how it makes you feel." },
+  { id:4,  cat:"observe", prompt:"Describe what you are wearing today and why you chose it." },
+  // Reflection
+  { id:5,  cat:"reflect", prompt:"What was the most interesting thing you learned in German class this week? Try to explain it in your own words." },
+  { id:6,  cat:"reflect", prompt:"What is one thing you want to say in German but always struggle to start? Write it out now - imperfectly is fine." },
+  { id:7,  cat:"reflect", prompt:"Think about your day so far. What happened? Write a short journal entry in German." },
+  { id:8,  cat:"reflect", prompt:"What is one German word or phrase you learned recently that you want to remember? Use it in three sentences." },
+  { id:9,  cat:"reflect", prompt:"What do you find hardest about thinking in German? Describe the feeling and what happens when you try." },
+  // Imagination
+  { id:10, cat:"imagine", prompt:"Imagine you are a German-speaking exchange student on your first day at a university in Munich. What do you see, hear, and feel?" },
+  { id:11, cat:"imagine", prompt:"You are at a Berlin Christmas market. Describe the sights, smells, sounds, and what you would buy." },
+  { id:12, cat:"imagine", prompt:"Imagine explaining your hometown to a German friend who has never heard of it. What would you say?" },
+  { id:13, cat:"imagine", prompt:"You meet your German professor at a café by coincidence. What do you say? Write the whole conversation." },
+  // Opinion
+  { id:14, cat:"opinion", prompt:"What do you think about learning languages online? What are the advantages and disadvantages?" },
+  { id:15, cat:"opinion", prompt:"If you could choose any German-speaking city to live in for one year, which would you choose and why?" },
+  { id:16, cat:"opinion", prompt:"Is it harder to learn grammar rules or to find the confidence to speak? What do you think?" },
+  { id:17, cat:"opinion", prompt:"What motivates you to learn German? Write honestly - what is your real reason?" },
+  // Course-specific
+  { id:18, cat:"course",  prompt:"Imagine the professor asks you tomorrow: 'Was haben Sie letzte Woche gemacht?' Write your answer now so you are ready." },
+  { id:19, cat:"course",  prompt:"There is a group discussion in class about hobbies. Write what you would say to introduce yourself and your interests in German." },
+  { id:20, cat:"course",  prompt:"Your professor gives you unexpected praise. Write down what you would say in response - in German, politely and naturally." },
+  { id:21, cat:"course",  prompt:"A classmate asks you to explain Dativ prepositions. How would you explain it to them in simple German?" },
+  { id:22, cat:"course",  prompt:"Write a short message to your professor asking for an extension on an assignment. Be polite and give a reason." },
+  { id:23, cat:"course",  prompt:"Describe your ideal German class. What would the teacher be like? What would you practise?" },
+];
+
+let monologuePromptIndex = 0;
+let monologueDoneToday = 0;
+
+function showMonologuePanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "flex";
+  initMonologuePanel();
+}
+
+function initMonologuePanel() {
+  monologuePromptIndex = Math.floor(Math.random() * MONOLOGUE_PROMPTS.length);
+  monologueDoneToday = getMonologueDoneToday();
+  renderMonologuePrompt();
+  updateMonologueStreak();
+  updateMonologueCount();
+  document.getElementById("monologue-input").value = "";
+  document.getElementById("monologue-submit-btn").disabled = true;
+  document.getElementById("monologue-char-hint").textContent = "";
+  document.getElementById("monologue-reflection-area").style.display = "none";
+  document.getElementById("monologue-submit-btn").textContent = "Reflect →";
+}
+
+function renderMonologuePrompt() {
+  const p = MONOLOGUE_PROMPTS[monologuePromptIndex];
+  document.getElementById("monologue-prompt-text").textContent = p.prompt;
+}
+
+function getMonologueDoneToday() {
+  try {
+    const key = "monologue_done_" + new Date().toISOString().slice(0, 10);
+    return parseInt(localStorage.getItem(key) || "0", 10);
+  } catch { return 0; }
+}
+
+function recordMonologueDone() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const key = "monologue_done_" + today;
+    const n = parseInt(localStorage.getItem(key) || "0", 10) + 1;
+    localStorage.setItem(key, String(n));
+    monologueDoneToday = n;
+
+    const streakKey = "monologue_streak";
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const data = JSON.parse(localStorage.getItem(streakKey) || "{}");
+    if (data.last === today) return;
+    const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
+    localStorage.setItem(streakKey, JSON.stringify({ last: today, count: newCount }));
+  } catch {}
+}
+
+function getMonologueStreak() {
+  try {
+    const data = JSON.parse(localStorage.getItem("monologue_streak") || "{}");
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (data.last === today || data.last === yesterday) return data.count || 0;
+    return 0;
+  } catch { return 0; }
+}
+
+function updateMonologueStreak() {
+  const streak = getMonologueStreak();
+  const badge = document.getElementById("monologue-streak-badge");
+  if (streak > 0) {
+    badge.textContent = streak + " day streak";
+    badge.classList.add("visible");
+  } else {
+    badge.classList.remove("visible");
+  }
+}
+
+function updateMonologueCount() {
+  document.getElementById("monologue-count-num").textContent = String(monologueDoneToday);
+}
+
+async function submitMonologue() {
+  const text = document.getElementById("monologue-input").value.trim();
+  if (text.length < 10) return;
+
+  const btn = document.getElementById("monologue-submit-btn");
+  btn.disabled = true;
+  btn.textContent = "Thinking…";
+  document.getElementById("monologue-reflection-area").style.display = "none";
+
+  const prompt = MONOLOGUE_PROMPTS[monologuePromptIndex].prompt;
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "monologue-reflect", text, prompt }),
+    });
+    const data = await res.json();
+    document.getElementById("monologue-reflection-text").textContent =
+      data.reflection || "Good thinking! Keep writing in German every day.";
+  } catch {
+    document.getElementById("monologue-reflection-text").textContent =
+      "Could not get a reflection right now - but great job writing in German!";
+  }
+
+  recordMonologueDone();
+  updateMonologueCount();
+  updateMonologueStreak();
+  document.getElementById("monologue-reflection-area").style.display = "flex";
+  btn.textContent = "Reflect →";
+  btn.disabled = false;
+}
+
+function setupMonologuePanel() {
+  const input = document.getElementById("monologue-input");
+  const submitBtn = document.getElementById("monologue-submit-btn");
+  const charHint = document.getElementById("monologue-char-hint");
+
+  input.addEventListener("input", () => {
+    const len = input.value.trim().length;
+    submitBtn.disabled = len < 10;
+    if (len === 0) { charHint.textContent = ""; }
+    else if (len < 10) { charHint.textContent = `${10 - len} more characters to unlock reflection`; }
+    else { charHint.textContent = `${len} characters`; }
+  });
+
+  submitBtn.addEventListener("click", submitMonologue);
+
+  document.getElementById("monologue-new-prompt-btn").addEventListener("click", () => {
+    monologuePromptIndex = (monologuePromptIndex + 1) % MONOLOGUE_PROMPTS.length;
+    renderMonologuePrompt();
+    document.getElementById("monologue-reflection-area").style.display = "none";
+    input.value = "";
+    submitBtn.disabled = true;
+    charHint.textContent = "";
+  });
+
+  document.getElementById("monologue-another-btn").addEventListener("click", () => {
+    monologuePromptIndex = (monologuePromptIndex + 1) % MONOLOGUE_PROMPTS.length;
+    initMonologuePanel();
+  });
+}
+
 // ---- Grammar Tab ----
 
 function showGrammarPanel(filterTag = null) {
@@ -3093,6 +3284,7 @@ function showGrammarPanel(filterTag = null) {
   document.getElementById("words-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "flex";
   renderGrammarTab(filterTag);
 }
@@ -4142,6 +4334,7 @@ function showWordsPanel() {
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "flex";
   wordsSessionCorrect = 0;
   wordsSessionTotal = 0;

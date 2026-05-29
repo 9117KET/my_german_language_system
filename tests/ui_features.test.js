@@ -1025,3 +1025,213 @@ describe("just say it — api/chat.js", () => {
     assert.ok(body.includes("catch"), "speak-check must have error fallback");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Feature 3: Think in German (Inner Monologue)
+// ---------------------------------------------------------------------------
+
+function loadMonologuePrompts() {
+  const content = readFile("app.js");
+  const start = content.indexOf("const MONOLOGUE_PROMPTS = [");
+  assert.ok(start !== -1, "MONOLOGUE_PROMPTS not found in app.js");
+  const end = content.indexOf("let monologuePromptIndex", start);
+  assert.ok(end !== -1, "monologuePromptIndex not found after MONOLOGUE_PROMPTS");
+  const snippet = content.slice(start, end).trim().replace(/\bconst\s+/g, "");
+  const ctx = {};
+  vm.runInNewContext(snippet, ctx);
+  return ctx.MONOLOGUE_PROMPTS;
+}
+
+describe("think in german — MONOLOGUE_PROMPTS data", () => {
+  const prompts = loadMonologuePrompts();
+
+  test("MONOLOGUE_PROMPTS has at least 15 entries", () => {
+    assert.ok(prompts.length >= 15, `Expected >= 15 prompts, got ${prompts.length}`);
+  });
+
+  test("every prompt has required fields: id, cat, prompt", () => {
+    const missing = prompts.filter(p => !p.id || !p.cat || !p.prompt);
+    assert.equal(missing.length, 0,
+      `Prompts missing fields: ${missing.map(p => p.id).join(", ")}`
+    );
+  });
+
+  test("prompt ids are unique", () => {
+    const ids = prompts.map(p => p.id);
+    assert.equal(new Set(ids).size, ids.length, "Duplicate prompt ids found");
+  });
+
+  test("all prompts are non-empty strings", () => {
+    const bad = prompts.filter(p => typeof p.prompt !== "string" || p.prompt.trim() === "");
+    assert.equal(bad.length, 0, "Some prompts have empty prompt text");
+  });
+
+  test("course-related prompts are included", () => {
+    const n = prompts.filter(p => p.cat === "course").length;
+    assert.ok(n >= 3, `Expected >= 3 course prompts, got ${n}`);
+  });
+
+  test("reflection prompts are included", () => {
+    const n = prompts.filter(p => p.cat === "reflect").length;
+    assert.ok(n >= 3, `Expected >= 3 reflect prompts, got ${n}`);
+  });
+});
+
+describe("think in german — HTML structure", () => {
+  const html = readFile("index.html");
+
+  test("monologue tab exists in sidebar nav", () => {
+    assert.ok(html.includes('data-mode="monologue"'), "monologue tab not found");
+  });
+
+  test("#monologue-panel element exists", () => {
+    assert.ok(html.includes('id="monologue-panel"'), "#monologue-panel missing");
+  });
+
+  test("#monologue-prompt-text element exists", () => {
+    assert.ok(html.includes('id="monologue-prompt-text"'), "#monologue-prompt-text missing");
+  });
+
+  test("#monologue-input textarea exists", () => {
+    assert.ok(html.includes('id="monologue-input"'), "#monologue-input missing");
+  });
+
+  test("#monologue-submit-btn exists and starts disabled", () => {
+    assert.ok(html.includes('id="monologue-submit-btn"'), "#monologue-submit-btn missing");
+    assert.ok(html.includes('id="monologue-submit-btn" disabled'), "#monologue-submit-btn should be disabled initially");
+  });
+
+  test("#monologue-reflection-area exists", () => {
+    assert.ok(html.includes('id="monologue-reflection-area"'), "#monologue-reflection-area missing");
+  });
+
+  test("#monologue-new-prompt-btn exists", () => {
+    assert.ok(html.includes('id="monologue-new-prompt-btn"'), "#monologue-new-prompt-btn missing");
+  });
+
+  test("#monologue-streak-badge exists", () => {
+    assert.ok(html.includes('id="monologue-streak-badge"'), "#monologue-streak-badge missing");
+  });
+
+  test("#monologue-count-num exists", () => {
+    assert.ok(html.includes('id="monologue-count-num"'), "#monologue-count-num missing");
+  });
+});
+
+describe("think in german — CSS", () => {
+  const css = readFile("style.css");
+
+  test("#monologue-panel styles present", () => {
+    assert.ok(css.includes("#monologue-panel"), "#monologue-panel CSS missing");
+  });
+
+  test("#monologue-input styles present", () => {
+    assert.ok(css.includes("#monologue-input"), "#monologue-input CSS missing");
+  });
+
+  test("#monologue-submit-btn disabled state styled", () => {
+    assert.ok(css.includes("#monologue-submit-btn:disabled"), "#monologue-submit-btn:disabled CSS missing");
+  });
+
+  test("#monologue-prompt-card styles present", () => {
+    assert.ok(css.includes("#monologue-prompt-card"), "#monologue-prompt-card CSS missing");
+  });
+
+  test("#monologue-streak-badge visible class styled", () => {
+    assert.ok(css.includes("#monologue-streak-badge.visible"), "#monologue-streak-badge.visible CSS missing");
+  });
+});
+
+describe("think in german — app.js functions", () => {
+  const appJs = readFile("app.js");
+
+  test("showMonologuePanel function is defined", () => {
+    assert.ok(appJs.includes("function showMonologuePanel("), "showMonologuePanel missing");
+  });
+
+  test("submitMonologue function is defined", () => {
+    assert.ok(appJs.includes("async function submitMonologue("), "submitMonologue missing");
+  });
+
+  test("recordMonologueDone function is defined", () => {
+    assert.ok(appJs.includes("function recordMonologueDone("), "recordMonologueDone missing");
+  });
+
+  test("setupMonologuePanel is called in init()", () => {
+    assert.ok(appJs.includes("setupMonologuePanel()"), "setupMonologuePanel() not called");
+  });
+
+  test("monologue mode included in renderCard guard", () => {
+    const guardMatch = appJs.match(/if \(mode === "ai"[^)]+\) return;/g);
+    assert.ok(guardMatch && guardMatch.length > 0, "renderCard guard not found");
+    assert.ok(guardMatch.some(g => g.includes('"monologue"')), "monologue not in renderCard guard");
+  });
+
+  test("monologue mode handled in setupEvents tab click", () => {
+    assert.ok(appJs.includes('newMode === "monologue"'), "monologue mode not handled in setupEvents");
+  });
+
+  test("submitMonologue posts to monologue-reflect API mode", () => {
+    const start = appJs.indexOf("async function submitMonologue(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes('"monologue-reflect"'), "submitMonologue must POST to monologue-reflect mode");
+  });
+
+  test("recordMonologueDone updates daily count and streak", () => {
+    const start = appJs.indexOf("function recordMonologueDone(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes("monologue_done_"), "daily count key missing");
+    assert.ok(body.includes("monologue_streak"), "streak key missing");
+  });
+
+  test("submit button enables only after 10+ chars", () => {
+    const start = appJs.indexOf("function setupMonologuePanel(");
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const body = appJs.slice(start, end);
+    assert.ok(body.includes("< 10"), "10-char minimum check missing");
+  });
+
+  test("all show*Panel functions hide #monologue-panel", () => {
+    const panels = ["showPlayerPanel", "showAIPanel", "showProgressPanel",
+                    "showVocabPanel", "showGrammarPanel", "showWordsPanel",
+                    "showStartersPanel", "showSpeakPanel"];
+    for (const fn of panels) {
+      const start = appJs.indexOf(`function ${fn}(`);
+      assert.ok(start !== -1, `${fn} not found`);
+      const end = appJs.indexOf("\nfunction ", start + 1);
+      const body = appJs.slice(start, end);
+      assert.ok(body.includes('"monologue-panel"'), `${fn} does not hide #monologue-panel`);
+    }
+  });
+});
+
+describe("think in german — api/chat.js", () => {
+  const chatJs = readFile("api/chat.js");
+
+  test("monologue-reflect mode exists in api/chat.js", () => {
+    assert.ok(chatJs.includes('"monologue-reflect"'), "monologue-reflect mode missing from api/chat.js");
+  });
+
+  test("monologue-reflect uses thought prompt from request body", () => {
+    const start = chatJs.indexOf('"monologue-reflect"');
+    const end = chatJs.indexOf("\n    if (mode", start + 1);
+    const body = chatJs.slice(start, end);
+    assert.ok(body.includes("thoughtPrompt") || body.includes("prompt"), "monologue-reflect must use prompt");
+  });
+
+  test("monologue-reflect returns reflection field", () => {
+    const start = chatJs.indexOf('"monologue-reflect"');
+    const end = chatJs.indexOf("\n    if (mode", start + 1);
+    const body = chatJs.slice(start, end);
+    assert.ok(body.includes("reflection"), "monologue-reflect response must include reflection");
+  });
+
+  test("monologue-reflect has error fallback", () => {
+    const start = chatJs.indexOf('"monologue-reflect"');
+    const end = chatJs.indexOf("\n    if (mode", start + 1);
+    const body = chatJs.slice(start, end);
+    assert.ok(body.includes("catch"), "monologue-reflect must have error fallback");
+  });
+});
