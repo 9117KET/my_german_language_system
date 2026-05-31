@@ -50,6 +50,10 @@
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
         <span class="tab-label">Words</span>
       </div>
+      <div class="tab" data-mode="drills">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="tab-label">Drills</span>
+      </div>
       <div class="tab" data-mode="starters">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span class="tab-label">Starters</span>
@@ -495,6 +499,17 @@
         </div>
       </div>
 
+      <div id="drills-panel" style="display:none">
+        <div id="drills-header">
+          <div id="drills-title-row">
+            <h2 class="drills-title">Prep &amp; Connector Drills</h2>
+            <div id="drills-streak-badge"></div>
+          </div>
+          <p class="drills-subtitle">Fill-in-the-blank drills for prepositions, conjunctions, and connectors. Tap a set to start.</p>
+        </div>
+        <div id="drills-set-grid"></div>
+      </div>
+
       <div id="starters-panel" style="display:none">
         <div id="starters-header">
           <div id="starters-title-row">
@@ -635,7 +650,10 @@
     <button id="drill-close">✕</button>
     <div id="drill-header">
       <div id="drill-tag-chip"></div>
-      <div id="drill-progress-label"></div>
+      <div id="drill-header-right">
+        <span id="drill-score-label"></span>
+        <span id="drill-progress-label"></span>
+      </div>
     </div>
     <div id="drill-sentence"></div>
     <div id="drill-choices"></div>
@@ -671,6 +689,8 @@ if (typeof PHRASES === 'undefined') { window.PHRASES = []; }
 <script src="data.js" onerror="window.PHRASES=[]"></script>
 <script>if (typeof WORDS === 'undefined') { window.WORDS = []; }</script>
 <script src="words_data.js" onerror="window.WORDS=[]"></script>
+<script>if (typeof DRILL_SETS === 'undefined') { window.DRILL_SETS = {}; }</script>
+<script src="drills_data.js" onerror="window.DRILL_SETS={}"></script>
 <script src="app.js"></script>
 
 </body>

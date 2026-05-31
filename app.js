@@ -976,6 +976,9 @@ let repetitionContext = null; // { corrected, original } when AI is waiting for 
 let drillQueue = [];
 let drillIdx = 0;
 let drillTag = null;
+let drillSetKey = null;
+let drillSessionCorrect = 0;
+let drillSessionTotal = 0;
 
 // ---- DOM refs (player) ----
 const tabEls = document.querySelectorAll(".tab");
@@ -1204,11 +1207,12 @@ function init() {
   setupStarterPracticeModal();
   setupSpeakPanel();
   setupMonologuePanel();
+  setupDrillsPanel();
 }
 
 // ---- Render (player) ----
 function renderCard(autoPlay = false) {
-  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue") return;
+  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills") return;
 
   if (!queue.length) {
     audio.pause();
@@ -1400,6 +1404,7 @@ function showPlayerPanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
@@ -1417,6 +1422,7 @@ function showAIPanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
@@ -1447,6 +1453,9 @@ function setupEvents() {
       } else if (newMode === "words") {
         mode = "words";
         showWordsPanel();
+      } else if (newMode === "drills") {
+        mode = "drills";
+        showDrillsPanel();
       } else if (newMode === "starters") {
         mode = "starters";
         showStartersPanel();
@@ -1653,7 +1662,7 @@ function setupEvents() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue") return;
+    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills") return;
     if (e.key === "Escape") { document.getElementById("vocab-modal").style.display = "none"; return; }
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
@@ -2291,6 +2300,7 @@ function showProgressPanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
@@ -2415,6 +2425,9 @@ function generateGapFill(phrase) {
 
 function openDrillMode(tag) {
   drillTag = tag;
+  drillSetKey = null;
+  drillSessionCorrect = 0;
+  drillSessionTotal = 0;
   const tagged = PHRASES.filter(p => getTagsForCard(p.id, p.german).includes(tag));
   drillQueue = tagged.map(p => generateGapFill(p)).filter(Boolean).sort(() => Math.random() - 0.5);
   if (!drillQueue.length) {
@@ -2422,27 +2435,144 @@ function openDrillMode(tag) {
     return;
   }
   drillIdx = 0;
+  document.getElementById("drill-score-label").textContent = "";
   document.getElementById("drill-modal").style.display = "flex";
   renderDrillCard();
 }
 
+function openDrillSetSession(setKey) {
+  const set = DRILL_SETS[setKey];
+  if (!set || !set.items || !set.items.length) return;
+  drillTag = null;
+  drillSetKey = setKey;
+  drillSessionCorrect = 0;
+  drillSessionTotal = 0;
+  drillQueue = [...set.items].sort(() => Math.random() - 0.5).map(item => {
+    const sentenceHtml = item.sentence.replace("___", '<span class="drill-blank">___</span>');
+    const revealedText = item.sentence.startsWith("___")
+      ? item.sentence.replace("___", item.answer.charAt(0).toUpperCase() + item.answer.slice(1))
+      : item.sentence.replace("___", item.answer);
+    const revealedHtml = item.sentence.startsWith("___")
+      ? item.sentence.replace("___", `<strong style="color:var(--green)">${item.answer.charAt(0).toUpperCase() + item.answer.slice(1)}</strong>`)
+      : item.sentence.replace("___", `<strong style="color:var(--green)">${item.answer}</strong>`);
+    const options = [item.answer, ...item.distractors].sort(() => Math.random() - 0.5);
+    return {
+      display: sentenceHtml,
+      blank: item.answer,
+      options,
+      phraseId: null,
+      german: revealedText,
+      germanHtml: revealedHtml,
+      rule: item.rule,
+    };
+  });
+  drillIdx = 0;
+  document.getElementById("drill-tag-chip").innerHTML = `<span class="grammar-chip">${set.label}</span>`;
+  document.getElementById("drill-score-label").textContent = "";
+  document.getElementById("drill-progress-label").textContent = `1 / ${drillQueue.length}`;
+  document.getElementById("drill-modal").style.display = "flex";
+  renderDrillCard();
+}
+
+// ---- Drills panel ----
+
+function showDrillsPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "flex";
+  renderDrillSetsPanel();
+}
+
+function renderDrillSetsPanel() {
+  updateDrillsStreakBadge();
+  const grid = document.getElementById("drills-set-grid");
+  if (!grid) return;
+  const setKeys = Object.keys(DRILL_SETS);
+  grid.innerHTML = setKeys.map(key => {
+    const s = DRILL_SETS[key];
+    return `<div class="drill-set-card" onclick="openDrillSetSession('${key}')" style="--set-color:${s.color}">
+      <div class="drill-set-name">${s.label}</div>
+      <div class="drill-set-subtitle">${s.subtitle}</div>
+      <div class="drill-set-count">${s.items.length} drills →</div>
+    </div>`;
+  }).join("");
+}
+
+function getDrillStreak() {
+  try {
+    const data = JSON.parse(localStorage.getItem("drills_streak") || "{}");
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (data.last === today || data.last === yesterday) return data.count || 0;
+    return 0;
+  } catch { return 0; }
+}
+
+function recordDrillDone() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const data = JSON.parse(localStorage.getItem("drills_streak") || "{}");
+    if (data.last === today) return;
+    const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
+    localStorage.setItem("drills_streak", JSON.stringify({ last: today, count: newCount }));
+  } catch {}
+}
+
+function updateDrillsStreakBadge() {
+  const streak = getDrillStreak();
+  const badge = document.getElementById("drills-streak-badge");
+  if (!badge) return;
+  if (streak > 0) {
+    badge.textContent = "🔥 " + streak + " day streak";
+    badge.classList.add("visible");
+  } else {
+    badge.classList.remove("visible");
+  }
+}
+
+function setupDrillsPanel() {
+  // nothing extra needed; openDrillSetSession handles setup
+}
+
 function renderDrillCard() {
   if (drillIdx >= drillQueue.length) {
-    document.getElementById("drill-sentence").innerHTML = '<div class="drill-done">Done! All phrases completed.</div>';
+    if (drillSetKey && drillSessionTotal > 0) recordDrillDone();
+    const streak = getDrillStreak();
+    const streakHtml = streak > 0 ? `<div class="drill-done-streak">🔥 ${streak} day streak</div>` : "";
+    document.getElementById("drill-sentence").innerHTML = `
+      <div class="drill-done">
+        <div class="drill-done-score">${drillSessionCorrect} / ${drillSessionTotal}</div>
+        <div class="drill-done-label">Set complete!</div>
+        ${streakHtml}
+      </div>`;
     document.getElementById("drill-choices").innerHTML = "";
     document.getElementById("drill-feedback").style.display = "none";
     document.getElementById("drill-next").style.display = "none";
     document.getElementById("drill-progress-label").textContent = "Complete!";
+    document.getElementById("drill-score-label").textContent = "";
+    if (mode === "drills") updateDrillsStreakBadge();
     return;
   }
   const item = drillQueue[drillIdx];
-  document.getElementById("drill-tag-chip").innerHTML = `<span class="grammar-chip">${drillTag}</span>`;
+  const chipLabel = drillSetKey ? (DRILL_SETS[drillSetKey] || {}).label : drillTag;
+  document.getElementById("drill-tag-chip").innerHTML = `<span class="grammar-chip">${chipLabel || ""}</span>`;
   document.getElementById("drill-progress-label").textContent = `${drillIdx + 1} / ${drillQueue.length}`;
+  document.getElementById("drill-score-label").textContent = drillSessionTotal > 0 ? `${drillSessionCorrect} ✓` : "";
   document.getElementById("drill-sentence").innerHTML = `<div class="drill-phrase">${item.display}</div>`;
   document.getElementById("drill-feedback").style.display = "none";
   document.getElementById("drill-next").style.display = "none";
   document.getElementById("drill-choices").innerHTML = item.options.map(opt =>
-    `<button class="drill-choice" onclick="answerDrill('${opt}')">${opt}</button>`
+    `<button class="drill-choice" onclick="answerDrill('${opt.replace(/'/g, "\\'")}')">${opt}</button>`
   ).join("");
 }
 
@@ -2452,21 +2582,31 @@ function answerDrill(chosen) {
   const isCorrect = chosen.toLowerCase() === correct.toLowerCase();
   document.querySelectorAll(".drill-choice").forEach(btn => {
     btn.disabled = true;
-    if (btn.textContent === correct) btn.classList.add("drill-correct");
+    if (btn.textContent.toLowerCase() === correct.toLowerCase()) btn.classList.add("drill-correct");
     else if (btn.textContent === chosen && !isCorrect) btn.classList.add("drill-wrong");
   });
-  document.getElementById("drill-sentence").innerHTML = `<div class="drill-phrase">${item.german}</div>`;
-  if (isCorrect) updateOnGotIt(item.phraseId);
-  else updateOnMissed(item.phraseId);
+  document.getElementById("drill-sentence").innerHTML = `<div class="drill-phrase">${item.germanHtml || item.german}</div>`;
+  if (item.phraseId != null) {
+    if (isCorrect) updateOnGotIt(item.phraseId);
+    else updateOnMissed(item.phraseId);
+  }
+  if (isCorrect) drillSessionCorrect++;
+  drillSessionTotal++;
   speakGerman(item.german);
   const fb = document.getElementById("drill-feedback");
   fb.style.display = "block";
-  const topic = GRAMMAR_TOPICS.find(t => t.id === drillTag);
-  const ruleHint = topic ? `<div class="drill-rule-hint">${topic.rule}</div>` : "";
+  let ruleHint = "";
+  if (item.rule) {
+    ruleHint = `<div class="drill-rule-hint">${item.rule}</div>`;
+  } else if (drillTag) {
+    const topic = GRAMMAR_TOPICS.find(t => t.id === drillTag);
+    if (topic) ruleHint = `<div class="drill-rule-hint">${topic.rule}</div>`;
+  }
   fb.innerHTML = isCorrect
     ? `<span style="color:var(--green)">✓ Correct!</span>${ruleHint}`
     : `<span style="color:var(--red)">✗ Correct answer: <strong>${correct}</strong></span>${ruleHint}`;
   document.getElementById("drill-next").style.display = "block";
+  document.getElementById("drill-score-label").textContent = `${drillSessionCorrect} ✓`;
   drillIdx++;
 }
 
@@ -2586,6 +2726,7 @@ function showVocabPanel() {
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
@@ -2606,6 +2747,7 @@ function showStartersPanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "flex";
@@ -2862,6 +3004,7 @@ function showSpeakPanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
@@ -3224,6 +3367,7 @@ function showMonologuePanel() {
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
@@ -3372,6 +3516,7 @@ function showGrammarPanel(filterTag = null) {
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
@@ -4422,6 +4567,7 @@ function showWordsPanel() {
   document.getElementById("progress-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
