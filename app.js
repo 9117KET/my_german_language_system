@@ -924,6 +924,16 @@ const vocabCache = {};
 
 // Words mode state
 let wordsSRS = {};
+
+// Games mode state
+let wsCurrentPuzzle = null;
+let wsIsDragging = false;
+let wsStartCell = null;
+let wsLockedDir = null;
+let wsHoveredCells = [];
+let wsCurrentPopupWordId = null;
+let wsHintsUsed = 0;
+let wsWsMode = "vocab";
 let wordsQueue = [];
 let wordsIndex = 0;
 let wordRevealed = false;
@@ -1208,11 +1218,12 @@ function init() {
   setupSpeakPanel();
   setupMonologuePanel();
   setupDrillsPanel();
+  initGamesPanel();
 }
 
 // ---- Render (player) ----
 function renderCard(autoPlay = false) {
-  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills") return;
+  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games") return;
 
   if (!queue.length) {
     audio.pause();
@@ -1408,6 +1419,7 @@ function showPlayerPanel() {
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
   playerEls.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
@@ -1426,6 +1438,7 @@ function showAIPanel() {
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
   aiPanel.style.display = "flex";
   renderAISavedList();
 }
@@ -1465,6 +1478,9 @@ function setupEvents() {
       } else if (newMode === "monologue") {
         mode = "monologue";
         showMonologuePanel();
+      } else if (newMode === "games") {
+        mode = "games";
+        showGamesPanel();
       } else {
         mode = newMode;
         showPlayerPanel();
@@ -1662,7 +1678,7 @@ function setupEvents() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills") return;
+    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games") return;
     if (e.key === "Escape") { document.getElementById("vocab-modal").style.display = "none"; return; }
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
@@ -2304,6 +2320,7 @@ function showProgressPanel() {
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
   document.getElementById("progress-panel").style.display = "flex";
   renderProgressTab();
 }
@@ -2488,6 +2505,7 @@ function showDrillsPanel() {
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
   document.getElementById("drills-panel").style.display = "flex";
   renderDrillSetsPanel();
 }
@@ -2730,6 +2748,7 @@ function showVocabPanel() {
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "flex";
   document.getElementById("vocab-panel-search").value = "";
   vocabPage = 0;
@@ -2750,6 +2769,7 @@ function showStartersPanel() {
   document.getElementById("drills-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "flex";
   renderStartersPanel("all");
 }
@@ -3008,6 +3028,7 @@ function showSpeakPanel() {
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "flex";
   initSpeakPanel();
 }
@@ -3371,6 +3392,7 @@ function showMonologuePanel() {
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "flex";
   initMonologuePanel();
 }
@@ -3520,6 +3542,7 @@ function showGrammarPanel(filterTag = null) {
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "flex";
   renderGrammarTab(filterTag);
 }
@@ -4571,6 +4594,7 @@ function showWordsPanel() {
   document.getElementById("starters-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "flex";
   wordsSessionCorrect = 0;
   wordsSessionTotal = 0;
@@ -4626,6 +4650,540 @@ function initWordsPanel() {
     btn.classList.toggle("active", wordsMode === "mc");
     renderWordCard();
   });
+}
+
+// ---- Games / Word Search ----
+
+const WS_GRID_SIZE = 12;
+const WS_WORD_COUNT = 10;
+const WS_DIRECTIONS = [
+  [0,1],[1,0],[0,-1],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]
+];
+const WS_FILL_POOL = Array.from("ABCDEFGHIJKLMNOPRSTUVWXZÄÖÜ");
+
+function showGamesPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "flex";
+  showGamesLanding();
+  updateGamesStreakBadge();
+}
+
+function initGamesPanel() {
+  // Populate island select
+  const islandSel = document.getElementById("ws-island-select");
+  if (islandSel && typeof GAME_ISLAND_SETS !== "undefined") {
+    islandSel.innerHTML = "";
+    Object.entries(GAME_ISLAND_SETS).forEach(([key, val]) => {
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = val.label;
+      islandSel.appendChild(opt);
+    });
+  }
+
+  // Mode tab buttons
+  document.querySelectorAll(".ws-mode-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".ws-mode-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      wsWsMode = btn.dataset.wsmode;
+      document.getElementById("ws-vocab-filters").style.display = wsWsMode === "vocab" ? "" : "none";
+      document.getElementById("ws-island-filters").style.display = wsWsMode === "island" ? "" : "none";
+      wsGenerateAndRender();
+    });
+  });
+
+  document.getElementById("ws-back-btn").addEventListener("click", exitWordSearch);
+  document.getElementById("ws-new-puzzle-btn").addEventListener("click", wsGenerateAndRender);
+  document.getElementById("ws-hint-btn").addEventListener("click", handleWsHint);
+  document.getElementById("ws-popup-x").addEventListener("click", closeWordPopup);
+  document.getElementById("ws-popup-continue-btn").addEventListener("click", closeWordPopup);
+  document.getElementById("ws-popup-add-btn").addEventListener("click", () => {
+    if (wsCurrentPopupWordId != null) addWordToSRS(wsCurrentPopupWordId);
+  });
+}
+
+function showGamesLanding() {
+  document.getElementById("games-landing").style.display = "";
+  document.getElementById("wordsearch-view").style.display = "none";
+}
+
+function openWordSearch() {
+  document.getElementById("games-landing").style.display = "none";
+  document.getElementById("wordsearch-view").style.display = "";
+  wsHintsUsed = 0;
+  const hintBtn = document.getElementById("ws-hint-btn");
+  if (hintBtn) { hintBtn.textContent = "Hint (3)"; hintBtn.disabled = false; }
+  wsGenerateAndRender();
+}
+
+function exitWordSearch() {
+  saveWsPuzzleState();
+  showGamesLanding();
+}
+
+function wsGetWordPool() {
+  if (!WORDS || !WORDS.length) return [];
+  if (wsWsMode === "island") {
+    const key = document.getElementById("ws-island-select")?.value;
+    const set = (typeof GAME_ISLAND_SETS !== "undefined") && GAME_ISLAND_SETS[key];
+    if (set && set.wordIds) {
+      return set.wordIds.map(id => WORDS.find(w => w.id === id)).filter(Boolean);
+    }
+  }
+  const tier = parseInt(document.getElementById("ws-tier-select")?.value || "1", 10);
+  return WORDS.filter(w => w.tier === tier);
+}
+
+function wsFilterCandidates(pool) {
+  return pool.filter(w => {
+    const s = w.german;
+    return s && !s.includes(" ") && s.length >= 5 && s.length <= 11;
+  });
+}
+
+function wsShuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function wsGenerateGrid(words) {
+  const G = WS_GRID_SIZE;
+  const grid = Array.from({length: G}, () => Array(G).fill(""));
+  const placed = [];
+
+  const sortedWords = [...words].sort((a, b) => b.german.length - a.german.length);
+
+  for (const word of sortedWords) {
+    const letters = Array.from(word.german.toUpperCase());
+    const L = letters.length;
+    let didPlace = false;
+
+    for (let attempt = 0; attempt < 200 && !didPlace; attempt++) {
+      const [dr, dc] = WS_DIRECTIONS[Math.floor(Math.random() * WS_DIRECTIONS.length)];
+      const maxR = dr === 0 ? G - 1 : dr > 0 ? G - L : L - 1;
+      const minR = dr < 0 ? L - 1 : 0;
+      const maxC = dc === 0 ? G - 1 : dc > 0 ? G - L : L - 1;
+      const minC = dc < 0 ? L - 1 : 0;
+      if (maxR < minR || maxC < minC) continue;
+      const r0 = minR + Math.floor(Math.random() * (maxR - minR + 1));
+      const c0 = minC + Math.floor(Math.random() * (maxC - minC + 1));
+
+      let fits = true;
+      for (let i = 0; i < L; i++) {
+        const r = r0 + i * dr;
+        const c = c0 + i * dc;
+        if (r < 0 || r >= G || c < 0 || c >= G) { fits = false; break; }
+        if (grid[r][c] !== "" && grid[r][c] !== letters[i]) { fits = false; break; }
+      }
+      if (!fits) continue;
+
+      for (let i = 0; i < L; i++) {
+        grid[r0 + i * dr][c0 + i * dc] = letters[i];
+      }
+      placed.push({ word, r0, c0, dr, dc, letters, discovered: false, colorIdx: placed.length % 8 });
+      didPlace = true;
+    }
+  }
+
+  for (let r = 0; r < G; r++) {
+    for (let c = 0; c < G; c++) {
+      if (grid[r][c] === "") {
+        grid[r][c] = WS_FILL_POOL[Math.floor(Math.random() * WS_FILL_POOL.length)];
+      }
+    }
+  }
+
+  return { grid, placed };
+}
+
+function wsGenerateAndRender() {
+  wsCurrentPuzzle = null;
+  wsHintsUsed = 0;
+  const hintBtn = document.getElementById("ws-hint-btn");
+  if (hintBtn) { hintBtn.textContent = "Hint (3)"; hintBtn.disabled = false; }
+
+  const pool = wsGetWordPool();
+  const candidates = wsFilterCandidates(pool);
+  if (!candidates.length) {
+    document.getElementById("ws-grid").innerHTML = "<div style='padding:20px;color:var(--text-dim)'>No words available. Choose another tier or island.</div>";
+    document.getElementById("ws-word-list").innerHTML = "";
+    document.getElementById("ws-word-count").textContent = "0 / 0";
+    return;
+  }
+
+  const shuffled = wsShuffle(candidates);
+  const selected = shuffled.slice(0, WS_WORD_COUNT);
+
+  // Try up to 3 times to get at least 6 words placed
+  let result;
+  for (let t = 0; t < 3; t++) {
+    result = wsGenerateGrid(selected);
+    if (result.placed.length >= 6) break;
+  }
+
+  wsCurrentPuzzle = {
+    grid: result.grid,
+    placed: result.placed,
+    foundIds: [],
+  };
+
+  renderWsGrid();
+  renderWsWordList();
+  document.getElementById("ws-word-count").textContent = `0 / ${result.placed.length}`;
+}
+
+function renderWsGrid() {
+  if (!wsCurrentPuzzle) return;
+  const { grid } = wsCurrentPuzzle;
+  const G = WS_GRID_SIZE;
+  const container = document.getElementById("ws-grid");
+  container.innerHTML = "";
+  container.style.gridTemplateColumns = `repeat(${G}, 1fr)`;
+
+  for (let r = 0; r < G; r++) {
+    for (let c = 0; c < G; c++) {
+      const cell = document.createElement("div");
+      cell.className = "ws-cell";
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      cell.textContent = grid[r][c];
+      container.appendChild(cell);
+    }
+  }
+
+  container.addEventListener("pointerdown", wsOnPointerDown);
+  document.addEventListener("pointermove", wsOnPointerMove);
+  document.addEventListener("pointerup", wsOnPointerUp);
+}
+
+function renderWsWordList() {
+  if (!wsCurrentPuzzle) return;
+  const list = document.getElementById("ws-word-list");
+  list.innerHTML = wsCurrentPuzzle.placed.map(p =>
+    `<span class="ws-target-word${wsCurrentPuzzle.foundIds.includes(p.word.id) ? " found" : ""}" data-word-id="${p.word.id}">${p.word.german}</span>`
+  ).join("");
+}
+
+function wsOnPointerDown(e) {
+  if (e.button !== undefined && e.button !== 0 && e.pointerType !== "touch") return;
+  const cell = e.target.closest(".ws-cell");
+  if (!cell) return;
+  e.preventDefault();
+  wsIsDragging = true;
+  wsLockedDir = null;
+  wsHoveredCells = [];
+  wsStartCell = { r: parseInt(cell.dataset.row), c: parseInt(cell.dataset.col) };
+  wsHoveredCells = [wsStartCell];
+  wsApplyHighlight(wsHoveredCells);
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+}
+
+function wsOnPointerMove(e) {
+  if (!wsIsDragging) return;
+  e.preventDefault();
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  if (!el) return;
+  const cell = el.closest(".ws-cell");
+  if (!cell) return;
+  const r = parseInt(cell.dataset.row);
+  const c = parseInt(cell.dataset.col);
+  if (isNaN(r) || isNaN(c)) return;
+
+  const dr = r - wsStartCell.r;
+  const dc = c - wsStartCell.c;
+
+  if (dr === 0 && dc === 0) {
+    wsHoveredCells = [wsStartCell];
+    wsLockedDir = null;
+    wsApplyHighlight(wsHoveredCells);
+    return;
+  }
+
+  if (!wsLockedDir) {
+    wsLockedDir = wsSnapToAxis(dr, dc);
+  }
+
+  const steps = wsProjectOnAxis(dr, dc, wsLockedDir);
+  const G = WS_GRID_SIZE;
+  const cells = [];
+  for (let i = 0; i <= steps; i++) {
+    const nr = wsStartCell.r + i * wsLockedDir[0];
+    const nc = wsStartCell.c + i * wsLockedDir[1];
+    if (nr >= 0 && nr < G && nc >= 0 && nc < G) cells.push({ r: nr, c: nc });
+  }
+  wsHoveredCells = cells;
+  wsApplyHighlight(wsHoveredCells);
+}
+
+function wsOnPointerUp(e) {
+  if (!wsIsDragging) return;
+  wsIsDragging = false;
+  const cells = wsHoveredCells.slice();
+  wsApplyHighlight([]);
+  wsHoveredCells = [];
+  if (cells.length >= 2) wsCheckMatch(cells);
+}
+
+function wsSnapToAxis(dr, dc) {
+  const angle = Math.atan2(dr, dc);
+  const sector = Math.round(angle / (Math.PI / 4));
+  const idx = ((sector % 8) + 8) % 8;
+  const axes = [[0,1],[1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1]];
+  return axes[idx];
+}
+
+function wsProjectOnAxis(dr, dc, axis) {
+  if (axis[0] !== 0 && axis[1] !== 0) return Math.max(Math.abs(dr), Math.abs(dc));
+  if (axis[0] === 0) return Math.abs(dc);
+  return Math.abs(dr);
+}
+
+function wsApplyHighlight(cells) {
+  if (!wsCurrentPuzzle) return;
+  document.querySelectorAll(".ws-cell.selecting").forEach(c => c.classList.remove("selecting"));
+  cells.forEach(({ r, c }) => {
+    const el = wsGetCell(r, c);
+    if (el && !el.classList.contains("ws-found")) el.classList.add("selecting");
+  });
+}
+
+function wsGetCell(r, c) {
+  return document.querySelector(`.ws-cell[data-row="${r}"][data-col="${c}"]`);
+}
+
+function wsCheckMatch(cells) {
+  if (!wsCurrentPuzzle) return;
+  const fwd = cells.map(({ r, c }) => wsCurrentPuzzle.grid[r][c]).join("");
+  const rev = fwd.split("").reverse().join("");
+
+  for (const p of wsCurrentPuzzle.placed) {
+    if (p.discovered) continue;
+    const target = p.letters.join("");
+    if (fwd === target || rev === target) {
+      wsMarkFound(p, cells);
+      wsShowWordPopup(p.word);
+      return;
+    }
+  }
+  // Wrong selection: flash red
+  cells.forEach(({ r, c }) => {
+    const el = wsGetCell(r, c);
+    if (!el) return;
+    el.classList.add("ws-wrong-flash");
+    setTimeout(() => el.classList.remove("ws-wrong-flash"), 500);
+  });
+}
+
+function wsMarkFound(placed, cells) {
+  placed.discovered = true;
+  wsCurrentPuzzle.foundIds.push(placed.word.id);
+  cells.forEach(({ r, c }) => {
+    const el = wsGetCell(r, c);
+    if (!el) return;
+    el.classList.remove("selecting");
+    el.classList.add("ws-found", `ws-found-${placed.colorIdx}`);
+  });
+  // Update word list chip
+  const chip = document.querySelector(`.ws-target-word[data-word-id="${placed.word.id}"]`);
+  if (chip) chip.classList.add("found");
+  // Update counter
+  const total = wsCurrentPuzzle.placed.length;
+  const found = wsCurrentPuzzle.foundIds.length;
+  document.getElementById("ws-word-count").textContent = `${found} / ${total}`;
+  // Persist found word
+  try {
+    const fw = JSON.parse(localStorage.getItem("ws_found_words") || "{}");
+    fw[String(placed.word.id)] = true;
+    localStorage.setItem("ws_found_words", JSON.stringify(fw));
+    const total2 = parseInt(localStorage.getItem("ws_total_found") || "0") + 1;
+    localStorage.setItem("ws_total_found", String(total2));
+  } catch {}
+  if (found === total) wsPuzzleComplete();
+}
+
+function wsPuzzleComplete() {
+  recordGamesStreak();
+  updateGamesStreakBadge();
+  const list = document.getElementById("ws-word-list");
+  const n = wsCurrentPuzzle.placed.length;
+  list.innerHTML = `<div class="ws-complete-msg">All ${n} words found! <button id="ws-play-again-btn" class="ws-play-again-btn">New Puzzle</button></div>`;
+  document.getElementById("ws-play-again-btn")?.addEventListener("click", wsGenerateAndRender);
+}
+
+function wsShowWordPopup(word) {
+  wsCurrentPopupWordId = word.id;
+  const popup = document.getElementById("ws-word-popup");
+
+  // Populate immediately with static data
+  document.getElementById("ws-popup-article").textContent = word.article || "";
+  document.getElementById("ws-popup-word").textContent = word.german;
+  document.getElementById("ws-popup-pos").textContent = word.pos || "";
+  document.getElementById("ws-popup-english").textContent = word.english || "";
+  document.getElementById("ws-popup-forms").textContent = "";
+  document.getElementById("ws-popup-example").innerHTML = (word.example_de || "").replace(/<mark>/g, "<strong>").replace(/<\/mark>/g, "</strong>");
+  document.getElementById("ws-popup-tip").textContent = word.mnemonic ? `💡 ${word.mnemonic}` : "";
+  document.getElementById("ws-popup-spinner").style.display = "";
+
+  // Check if already in SRS
+  loadWordsSRS();
+  const addBtn = document.getElementById("ws-popup-add-btn");
+  if (wordsSRS[String(word.id)]) {
+    addBtn.textContent = "Already in Word List";
+    addBtn.disabled = true;
+  } else {
+    addBtn.textContent = "+ Add to Word List";
+    addBtn.disabled = false;
+  }
+
+  popup.style.display = "";
+
+  // Async enrich with AI
+  fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "game-word-info", wordData: word }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (wsCurrentPopupWordId !== word.id) return; // popup changed
+      if (data.forms) document.getElementById("ws-popup-forms").textContent = data.forms;
+      if (data.example) {
+        document.getElementById("ws-popup-example").textContent = data.example;
+        if (data.example_en) {
+          document.getElementById("ws-popup-example").innerHTML +=
+            `<div class="ws-popup-example-en">${data.example_en}</div>`;
+        }
+      }
+      if (data.plural) {
+        document.getElementById("ws-popup-forms").textContent =
+          [data.forms, `Plural: ${data.plural}`].filter(Boolean).join(" · ");
+      }
+      if (data.tip) document.getElementById("ws-popup-tip").textContent = `💡 ${data.tip}`;
+    })
+    .catch(() => {})
+    .finally(() => {
+      const spinner = document.getElementById("ws-popup-spinner");
+      if (spinner) spinner.style.display = "none";
+    });
+}
+
+function closeWordPopup() {
+  document.getElementById("ws-word-popup").style.display = "none";
+  wsCurrentPopupWordId = null;
+}
+
+function addWordToSRS(wordId) {
+  loadWordsSRS();
+  const key = String(wordId);
+  if (wordsSRS[key]) {
+    const btn = document.getElementById("ws-popup-add-btn");
+    if (btn) { btn.textContent = "Already in Word List"; btn.disabled = true; }
+    return;
+  }
+  wordsSRS[key] = {
+    interval: 0, easeFactor: 2.5, dueDate: null,
+    lastReviewed: null, totalReviews: 0, totalCorrect: 0, archived: false,
+  };
+  saveWordsSRS();
+  const btn = document.getElementById("ws-popup-add-btn");
+  if (btn) { btn.textContent = "Saved ✓"; btn.disabled = true; }
+}
+
+function handleWsHint() {
+  if (!wsCurrentPuzzle) return;
+  const remaining = wsCurrentPuzzle.placed.filter(p => !p.discovered);
+  if (!remaining.length) return;
+
+  if (wsHintsUsed >= 3) {
+    document.getElementById("ws-hint-btn").disabled = true;
+    return;
+  }
+  wsHintsUsed++;
+
+  const pick = remaining[Math.floor(Math.random() * remaining.length)];
+  const hintCell = wsGetCell(pick.r0, pick.c0);
+  if (hintCell) {
+    hintCell.classList.add("ws-hint-pulse");
+    setTimeout(() => hintCell.classList.remove("ws-hint-pulse"), 2200);
+  }
+
+  const remaining2 = 3 - wsHintsUsed;
+  const msg = document.getElementById("ws-hint-msg");
+  if (msg) {
+    msg.style.display = "";
+    msg.textContent = `Hint: look for a word starting with "${pick.letters[0]}"`;
+    setTimeout(() => { msg.style.display = "none"; }, 3500);
+  }
+
+  const hintBtn = document.getElementById("ws-hint-btn");
+  if (remaining2 <= 0) {
+    hintBtn.textContent = "No hints left";
+    hintBtn.disabled = true;
+  } else {
+    hintBtn.textContent = `Hint (${remaining2})`;
+  }
+}
+
+function getGamesStreak() {
+  try {
+    const data = JSON.parse(localStorage.getItem("ws_streak") || "{}");
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (data.last === today) return data.count || 1;
+    if (data.last === yesterday) return data.count || 0;
+    return 0;
+  } catch { return 0; }
+}
+
+function recordGamesStreak() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const data = JSON.parse(localStorage.getItem("ws_streak") || "{}");
+    if (data.last === today) return;
+    const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
+    localStorage.setItem("ws_streak", JSON.stringify({ last: today, count: newCount }));
+  } catch {}
+}
+
+function updateGamesStreakBadge() {
+  const streak = getGamesStreak();
+  const badge = document.getElementById("games-streak-badge");
+  if (!badge) return;
+  badge.textContent = streak > 0 ? `🔥 ${streak} day streak` : "";
+  badge.style.display = streak > 0 ? "" : "none";
+}
+
+function saveWsPuzzleState() {
+  if (!wsCurrentPuzzle) return;
+  try {
+    localStorage.setItem("ws_puzzle_state", JSON.stringify({
+      grid: wsCurrentPuzzle.grid,
+      placed: wsCurrentPuzzle.placed.map(p => ({
+        wordId: p.word.id, r0: p.r0, c0: p.c0, dr: p.dr, dc: p.dc,
+        letters: p.letters, discovered: p.discovered, colorIdx: p.colorIdx,
+      })),
+      foundIds: wsCurrentPuzzle.foundIds,
+      wsWsMode,
+      ts: Date.now(),
+    }));
+  } catch {}
 }
 
 // ---- Start ----

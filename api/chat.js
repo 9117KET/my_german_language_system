@@ -416,6 +416,49 @@ module.exports = async function handler(req, res) {
       return res.json({ reply, correction, needs_repetition, audio_base64 });
     }
 
+    if (mode === "game-word-info") {
+      const { wordData } = req.body;
+      if (!wordData) return res.status(400).json({ error: "No wordData" });
+      try {
+        const articlePart = wordData.article ? `${wordData.article} ` : "";
+        const raw = await callGroq(
+          `You are a German language expert. Return ONLY valid JSON (no markdown, no code fences):\n` +
+          `{\n` +
+          `  "article": "${wordData.article || ""}",\n` +
+          `  "plural": null,\n` +
+          `  "forms": "",\n` +
+          `  "example": "",\n` +
+          `  "example_en": "",\n` +
+          `  "tip": ""\n` +
+          `}\n\n` +
+          `Fill in the fields for this German word:\n` +
+          `Word: ${articlePart}${wordData.german} — ${wordData.english} (${wordData.pos})\n` +
+          `- article: correct article (der/die/das), or empty string for verbs/adj\n` +
+          `- plural: for nouns the plural form like "die Arbeiten", for others null\n` +
+          `- forms: for nouns the Genitiv singular; for verbs "ich/du/er" Präsens; for adj the comparative; for others leave empty\n` +
+          `- example: one natural B1 German sentence using this word\n` +
+          `- example_en: English translation of that sentence\n` +
+          `- tip: one short memory tip or usage note, max 12 words`
+        );
+        let result;
+        try { result = JSON.parse(stripMarkdown(raw)); } catch { result = {}; }
+        return res.json({
+          article:    result.article    || wordData.article || "",
+          plural:     result.plural     || null,
+          forms:      result.forms      || "",
+          example:    result.example    || (wordData.example_de || "").replace(/<[^>]+>/g, ""),
+          example_en: result.example_en || wordData.example_en || "",
+          tip:        result.tip        || "",
+        });
+      } catch {
+        return res.json({
+          article: wordData.article || "", plural: null, forms: "",
+          example: (wordData.example_de || "").replace(/<[^>]+>/g, ""),
+          example_en: wordData.example_en || "", tip: "",
+        });
+      }
+    }
+
     return res.status(400).json({ error: "unknown mode" });
   } catch (err) {
     console.error("[api/chat]", err.message);
