@@ -925,6 +925,18 @@ const vocabCache = {};
 // Words mode state
 let wordsSRS = {};
 
+// Grammar Sprint state
+let gsTimerInterval = null;
+let gsSecondsLeft = 90;
+let gsDuration = 90;
+let gsSessionCorrect = 0;
+let gsSessionTotal = 0;
+let gsQueue = [];
+let gsQueueIdx = 0;
+let gsSet = "all";
+let gsRunning = false;
+let gsHighScore = 0;
+
 // Listening Blitz state
 let lbCurrentPhrase = null;
 let lbTargetWord = "";
@@ -4753,6 +4765,7 @@ function showGamesLanding() {
   document.getElementById("talkbox-view").style.display = "none";
   document.getElementById("sentencebuilder-view").style.display = "none";
   document.getElementById("listeningblitz-view").style.display = "none";
+  document.getElementById("grammarsprint-view").style.display = "none";
 }
 
 function openWordSearch() {
@@ -5219,6 +5232,226 @@ function saveWsPuzzleState() {
       wsWsMode,
       ts: Date.now(),
     }));
+  } catch {}
+}
+
+// ---- Grammar Sprint ----
+
+const GS_CIRCUMFERENCE = 2 * Math.PI * 44;
+
+function openGrammarSprint() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  ["progress-panel","vocab-panel","grammar-panel","words-panel","drills-panel",
+   "starters-panel","speak-panel","monologue-panel"].forEach(id => {
+    document.getElementById(id).style.display = "none";
+  });
+  document.getElementById("games-panel").style.display = "flex";
+  showGamesLanding();
+  document.getElementById("games-landing").style.display = "none";
+  document.getElementById("grammarsprint-view").style.display = "flex";
+
+  gsRunning = false;
+  if (gsTimerInterval) { clearInterval(gsTimerInterval); gsTimerInterval = null; }
+  gsHighScore = parseInt(localStorage.getItem("gs_highscore") || "0", 10);
+
+  gsShowReady();
+  gsUpdateStreak();
+
+  document.getElementById("gs-back-btn").onclick = () => {
+    if (gsTimerInterval) { clearInterval(gsTimerInterval); gsTimerInterval = null; }
+    showGamesLanding();
+  };
+  document.querySelectorAll(".gs-set-btn").forEach(btn => {
+    btn.onclick = () => {
+      gsSet = btn.dataset.gsset;
+      document.querySelectorAll(".gs-set-btn").forEach(b => b.classList.toggle("active", b === btn));
+    };
+  });
+  document.querySelectorAll(".gs-dur-btn").forEach(btn => {
+    btn.onclick = () => {
+      gsDuration = parseInt(btn.dataset.gsdur, 10);
+      document.querySelectorAll(".gs-dur-btn").forEach(b => b.classList.toggle("active", b === btn));
+    };
+  });
+  document.getElementById("gs-start-btn").onclick = gsStartSprint;
+  document.getElementById("gs-again-btn").onclick = gsStartSprint;
+  document.getElementById("gs-change-btn").onclick = gsShowReady;
+}
+
+function gsGetPool() {
+  if (!DRILL_SETS) return [];
+  if (gsSet === "all") return Object.values(DRILL_SETS).flatMap(s => s.items);
+  return (DRILL_SETS[gsSet]?.items) || [];
+}
+
+function gsShuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function gsShowReady() {
+  if (gsTimerInterval) { clearInterval(gsTimerInterval); gsTimerInterval = null; }
+  gsRunning = false;
+  document.getElementById("gs-ready-section").style.display = "flex";
+  document.getElementById("gs-play-section").style.display = "none";
+  document.getElementById("gs-done-section").style.display = "none";
+}
+
+function gsStartSprint() {
+  const pool = gsGetPool();
+  if (!pool.length) return;
+  gsQueue = gsShuffle(pool);
+  gsQueueIdx = 0;
+  gsSessionCorrect = 0;
+  gsSessionTotal = 0;
+  gsSecondsLeft = gsDuration;
+
+  document.getElementById("gs-ready-section").style.display = "none";
+  document.getElementById("gs-done-section").style.display = "none";
+  document.getElementById("gs-play-section").style.display = "flex";
+  document.getElementById("gs-rule-display").style.display = "none";
+
+  gsUpdatePlayStats();
+  gsSetTimerDisplay(gsSecondsLeft);
+  gsSetArc(1);
+  gsRunning = true;
+  gsRenderQuestion();
+
+  if (gsTimerInterval) clearInterval(gsTimerInterval);
+  gsTimerInterval = setInterval(() => {
+    gsSecondsLeft--;
+    gsSetTimerDisplay(gsSecondsLeft);
+    gsSetArc(gsSecondsLeft / gsDuration);
+    if (gsSecondsLeft <= 0) gsEndSprint();
+  }, 1000);
+}
+
+function gsRenderQuestion() {
+  if (gsQueueIdx >= gsQueue.length) gsQueue = gsShuffle(gsGetPool());
+  const item = gsQueue[gsQueueIdx % gsQueue.length];
+  gsQueueIdx++;
+
+  const sentEl = document.getElementById("gs-sentence-display");
+  sentEl.innerHTML = item.sentence.replace("_____", '<span class="gs-blank">___</span>').replace("___", '<span class="gs-blank">___</span>');
+  document.getElementById("gs-rule-display").style.display = "none";
+  document.getElementById("gs-rule-display").textContent = "";
+
+  const opts = gsShuffle([item.answer, ...item.distractors]);
+  const grid = document.getElementById("gs-answer-grid");
+  grid.innerHTML = "";
+  opts.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "gs-opt-btn";
+    btn.textContent = opt;
+    btn.onclick = () => gsPickAnswer(opt, item, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function gsPickAnswer(chosen, item, btn) {
+  if (!gsRunning) return;
+  const correct = chosen === item.answer;
+  gsSessionTotal++;
+  if (correct) gsSessionCorrect++;
+
+  document.querySelectorAll(".gs-opt-btn").forEach(b => {
+    b.disabled = true;
+    if (b.textContent === item.answer) b.classList.add("gs-opt-correct");
+    else if (b === btn && !correct) b.classList.add("gs-opt-wrong");
+    else b.classList.add("gs-opt-dim");
+  });
+
+  const blank = document.querySelector(".gs-blank");
+  if (blank) { blank.textContent = item.answer; blank.className = correct ? "gs-blank gs-filled-correct" : "gs-blank gs-filled-wrong"; }
+
+  if (!correct) {
+    const ruleEl = document.getElementById("gs-rule-display");
+    ruleEl.textContent = item.rule;
+    ruleEl.style.display = "block";
+  }
+
+  gsUpdatePlayStats();
+  if (correct) recordGsDone();
+
+  setTimeout(gsRenderQuestion, correct ? 350 : 900);
+}
+
+function gsEndSprint() {
+  clearInterval(gsTimerInterval);
+  gsTimerInterval = null;
+  gsRunning = false;
+  gsSetTimerDisplay(0);
+  gsSetArc(0);
+
+  if (gsSessionCorrect > gsHighScore) {
+    gsHighScore = gsSessionCorrect;
+    localStorage.setItem("gs_highscore", String(gsHighScore));
+  }
+
+  const accuracy = gsSessionTotal > 0 ? Math.round((gsSessionCorrect / gsSessionTotal) * 100) : 0;
+  document.getElementById("gs-done-score").textContent = gsSessionCorrect + " correct out of " + gsSessionTotal + " (" + accuracy + "%)";
+  document.getElementById("gs-done-highscore").textContent = "Best: " + gsHighScore + " correct";
+
+  const setLabel = gsSet === "all" ? "All sets" : (DRILL_SETS[gsSet]?.label || gsSet);
+  document.getElementById("gs-done-breakdown").textContent = setLabel + " · " + gsDuration + "s";
+
+  document.getElementById("gs-play-section").style.display = "none";
+  document.getElementById("gs-done-section").style.display = "flex";
+
+  gsUpdateStreak();
+}
+
+function gsSetTimerDisplay(s) {
+  const el = document.getElementById("gs-timer-display");
+  if (el) el.textContent = s;
+}
+
+function gsSetArc(fraction) {
+  const arc = document.getElementById("gs-timer-arc");
+  if (!arc) return;
+  arc.style.strokeDashoffset = GS_CIRCUMFERENCE * (1 - fraction);
+  if (fraction <= 0.25) arc.classList.add("low-time");
+  else arc.classList.remove("low-time");
+}
+
+function gsUpdatePlayStats() {
+  document.getElementById("gs-score-big").textContent = gsSessionCorrect;
+  document.getElementById("gs-total-label").textContent = gsSessionTotal + " attempted";
+}
+
+function gsUpdateStreak() {
+  const streak = getGsStreak();
+  const badge = document.getElementById("gs-streak-badge");
+  if (!badge) return;
+  if (streak > 0) { badge.textContent = "🔥 " + streak + " day streak"; badge.classList.add("visible"); }
+  else badge.classList.remove("visible");
+}
+
+function getGsStreak() {
+  try {
+    const data = JSON.parse(localStorage.getItem("gs_streak") || "{}");
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (data.last === today || data.last === yesterday) return data.count || 0;
+    return 0;
+  } catch { return 0; }
+}
+
+function recordGsDone() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const data = JSON.parse(localStorage.getItem("gs_streak") || "{}");
+    if (data.last === today) return;
+    const newCount = data.last === yesterday ? (data.count || 0) + 1 : 1;
+    localStorage.setItem("gs_streak", JSON.stringify({ last: today, count: newCount }));
   } catch {}
 }
 

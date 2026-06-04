@@ -637,6 +637,14 @@
               <div class="game-card-desc">Find hidden German words in a letter grid.</div>
               <div class="game-card-cta">Play &rarr;</div>
             </div>
+            <div class="game-card" id="game-card-grammarsprint" onclick="openGrammarSprint()">
+              <div class="game-card-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="game-card-name">Grammar Sprint</div>
+              <div class="game-card-desc">60-second gap-fill speed round across all grammar sets.</div>
+              <div class="game-card-cta">Play &rarr;</div>
+            </div>
             <div class="game-card" id="game-card-listeningblitz" onclick="openListeningBlitz()">
               <div class="game-card-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
@@ -692,6 +700,70 @@
           <div id="ws-word-list"></div>
           <div id="ws-grid-wrap"><div id="ws-grid"></div></div>
           <div id="ws-hint-msg" style="display:none"></div>
+        </div>
+
+        <!-- Grammar Sprint board -->
+        <div id="grammarsprint-view" style="display:none">
+          <div id="gs-topbar">
+            <button id="gs-back-btn">&#8592; Games</button>
+            <div id="gs-streak-badge"></div>
+          </div>
+
+          <!-- Ready screen -->
+          <div id="gs-ready-section">
+            <div id="gs-ready-title">Grammar Sprint</div>
+            <div id="gs-ready-sub">Answer as many gap-fills as you can before time runs out.</div>
+            <div id="gs-set-filters">
+              <button class="gs-set-btn active" data-gsset="all">All</button>
+              <button class="gs-set-btn" data-gsset="akkusativ">Akkusativ</button>
+              <button class="gs-set-btn" data-gsset="dativ">Dativ</button>
+              <button class="gs-set-btn" data-gsset="wechsel_wo">Wechsel Wo?</button>
+              <button class="gs-set-btn" data-gsset="wechsel_wohin">Wechsel Wohin?</button>
+              <button class="gs-set-btn" data-gsset="koord">Konjunktionen</button>
+              <button class="gs-set-btn" data-gsset="subord">Nebensatz</button>
+              <button class="gs-set-btn" data-gsset="dacompounds">Da-Komposita</button>
+              <button class="gs-set-btn" data-gsset="verbprep">Verb+Präp</button>
+            </div>
+            <div id="gs-duration-row">
+              <button class="gs-dur-btn" data-gsdur="60">60s</button>
+              <button class="gs-dur-btn active" data-gsdur="90">90s</button>
+              <button class="gs-dur-btn" data-gsdur="120">120s</button>
+            </div>
+            <button id="gs-start-btn">Start Sprint</button>
+          </div>
+
+          <!-- Play screen -->
+          <div id="gs-play-section" style="display:none">
+            <div id="gs-play-toprow">
+              <div id="gs-timer-wrap">
+                <svg id="gs-timer-svg" viewBox="0 0 100 100">
+                  <circle id="gs-timer-track" cx="50" cy="50" r="44"/>
+                  <circle id="gs-timer-arc" cx="50" cy="50" r="44"/>
+                </svg>
+                <div id="gs-timer-display">60</div>
+              </div>
+              <div id="gs-play-stats">
+                <div id="gs-score-big"></div>
+                <div id="gs-score-label">correct</div>
+                <div id="gs-total-label"></div>
+              </div>
+            </div>
+            <div id="gs-question-card">
+              <div id="gs-sentence-display"></div>
+              <div id="gs-rule-display" style="display:none"></div>
+            </div>
+            <div id="gs-answer-grid"></div>
+          </div>
+
+          <!-- Done screen -->
+          <div id="gs-done-section" style="display:none">
+            <div id="gs-done-title">Time&rsquo;s up!</div>
+            <div id="gs-done-score"></div>
+            <div id="gs-done-highscore"></div>
+            <div id="gs-done-breakdown"></div>
+            <button id="gs-again-btn">Play Again</button>
+            <button id="gs-change-btn">Change Settings</button>
+          </div>
         </div>
 
         <!-- Listening Blitz board -->
