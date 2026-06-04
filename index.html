@@ -637,6 +637,14 @@
               <div class="game-card-desc">Find hidden German words in a letter grid.</div>
               <div class="game-card-cta">Play &rarr;</div>
             </div>
+            <div class="game-card" id="game-card-sentencebuilder" onclick="openSentenceBuilder()">
+              <div class="game-card-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/><polyline points="17 15 20 18 17 21"/></svg>
+              </div>
+              <div class="game-card-name">Sentence Builder</div>
+              <div class="game-card-desc">Arrange scrambled words into the correct German sentence.</div>
+              <div class="game-card-cta">Play &rarr;</div>
+            </div>
             <div class="game-card" id="game-card-talkbox" onclick="openTalkBox()">
               <div class="game-card-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -676,6 +684,51 @@
           <div id="ws-word-list"></div>
           <div id="ws-grid-wrap"><div id="ws-grid"></div></div>
           <div id="ws-hint-msg" style="display:none"></div>
+        </div>
+
+        <!-- Sentence Builder board -->
+        <div id="sentencebuilder-view" style="display:none">
+          <div id="sb-topbar">
+            <button id="sb-back-btn">&#8592; Games</button>
+            <div id="sb-score-display">0 / 0</div>
+            <div id="sb-streak-badge"></div>
+          </div>
+          <div id="sb-grammar-filters">
+            <button class="sb-filter-btn active" data-sbgrammar="all">All</button>
+            <button class="sb-filter-btn" data-sbgrammar="Perfekt">Perfekt</button>
+            <button class="sb-filter-btn" data-sbgrammar="Modal">Modal</button>
+            <button class="sb-filter-btn" data-sbgrammar="Nebensatz">Nebensatz</button>
+            <button class="sb-filter-btn" data-sbgrammar="Konjunktiv-II">Konjunktiv II</button>
+            <button class="sb-filter-btn" data-sbgrammar="Fragewort">Fragewort</button>
+            <button class="sb-filter-btn" data-sbgrammar="Präteritum">Präteritum</button>
+          </div>
+          <div id="sb-prompt-card">
+            <div id="sb-prompt-label">Translate into German:</div>
+            <div id="sb-english-text"></div>
+          </div>
+          <div id="sb-build-zone">
+            <div id="sb-build-placeholder">Tap words below to build the sentence</div>
+            <div id="sb-build-tiles"></div>
+          </div>
+          <div id="sb-bank-zone">
+            <div id="sb-bank-tiles"></div>
+          </div>
+          <div id="sb-actions">
+            <button id="sb-check-btn" disabled>Check</button>
+            <button id="sb-clear-btn">Clear</button>
+            <button id="sb-skip-btn">Skip</button>
+          </div>
+          <div id="sb-feedback-area" style="display:none">
+            <div id="sb-feedback-row">
+              <span id="sb-feedback-icon"></span>
+              <span id="sb-feedback-text"></span>
+            </div>
+            <div id="sb-correct-wrap" style="display:none">
+              <div id="sb-correct-label">Correct sentence:</div>
+              <div id="sb-correct-sentence"></div>
+            </div>
+            <button id="sb-next-btn">Next &#8594;</button>
+          </div>
         </div>
 
         <!-- Talk Box board -->

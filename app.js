@@ -925,6 +925,16 @@ const vocabCache = {};
 // Words mode state
 let wordsSRS = {};
 
+// Sentence Builder state
+let sbCurrentPhrase = null;
+let sbBankWords = [];
+let sbBuiltWords = [];
+let sbSessionScore = 0;
+let sbSessionTotal = 0;
+let sbGrammarFilter = "all";
+let sbSeenIds = new Set();
+let sbChecked = false;
+
 // Talk Box state
 let tbCurrentCard = null;
 let tbCategory = "alltag";
@@ -4731,6 +4741,7 @@ function showGamesLanding() {
   document.getElementById("games-landing").style.display = "";
   document.getElementById("wordsearch-view").style.display = "none";
   document.getElementById("talkbox-view").style.display = "none";
+  document.getElementById("sentencebuilder-view").style.display = "none";
 }
 
 function openWordSearch() {
@@ -5197,6 +5208,216 @@ function saveWsPuzzleState() {
       wsWsMode,
       ts: Date.now(),
     }));
+  } catch {}
+}
+
+// ---- Sentence Builder ----
+
+function openSentenceBuilder() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  ["progress-panel","vocab-panel","grammar-panel","words-panel","drills-panel",
+   "starters-panel","speak-panel","monologue-panel"].forEach(id => {
+    document.getElementById(id).style.display = "none";
+  });
+  document.getElementById("games-panel").style.display = "flex";
+  document.getElementById("games-landing").style.display = "none";
+  document.getElementById("wordsearch-view").style.display = "none";
+  document.getElementById("talkbox-view").style.display = "none";
+  document.getElementById("sentencebuilder-view").style.display = "flex";
+
+  sbSessionScore = 0;
+  sbSessionTotal = 0;
+  sbGrammarFilter = "all";
+  sbSeenIds = new Set();
+  sbChecked = false;
+
+  document.querySelectorAll(".sb-filter-btn").forEach(b => b.classList.toggle("active", b.dataset.sbgrammar === "all"));
+  sbUpdateScore();
+  sbUpdateStreak();
+  sbNextPhrase();
+
+  document.getElementById("sb-back-btn").onclick = showGamesLanding;
+  document.querySelectorAll(".sb-filter-btn").forEach(btn => {
+    btn.onclick = () => {
+      sbGrammarFilter = btn.dataset.sbgrammar;
+      document.querySelectorAll(".sb-filter-btn").forEach(b => b.classList.toggle("active", b === btn));
+      sbSeenIds = new Set();
+      sbNextPhrase();
+    };
+  });
+  document.getElementById("sb-check-btn").onclick = sbCheck;
+  document.getElementById("sb-clear-btn").onclick = sbClear;
+  document.getElementById("sb-skip-btn").onclick = sbSkip;
+  document.getElementById("sb-next-btn").onclick = sbNextPhrase;
+}
+
+function sbGetPool() {
+  if (!PHRASES || !PHRASES.length) return [];
+  return PHRASES.filter(p => {
+    const words = p.german.trim().split(/\s+/);
+    if (words.length < 4 || words.length > 13) return false;
+    if (sbGrammarFilter === "all") return true;
+    const tags = GRAMMAR_TAGS[p.id] || [];
+    return sbGrammarFilter === "Nebensatz"
+      ? tags.some(t => t.startsWith("Nebensatz"))
+      : tags.includes(sbGrammarFilter);
+  });
+}
+
+function sbNextPhrase() {
+  const pool = sbGetPool();
+  const unseen = pool.filter(p => !sbSeenIds.has(p.id));
+  const candidates = unseen.length > 0 ? unseen : pool;
+  if (!candidates.length) return;
+  if (unseen.length === 0) sbSeenIds = new Set();
+
+  const phrase = candidates[Math.floor(Math.random() * candidates.length)];
+  sbCurrentPhrase = phrase;
+  sbSeenIds.add(phrase.id);
+  sbChecked = false;
+
+  const words = phrase.german.trim().split(/\s+/);
+  sbBankWords = sbShuffle(words.slice());
+  sbBuiltWords = [];
+
+  document.getElementById("sb-english-text").textContent = phrase.english;
+  document.getElementById("sb-feedback-area").style.display = "none";
+  document.getElementById("sb-build-zone").classList.remove("correct","wrong");
+  document.getElementById("sb-check-btn").disabled = true;
+  document.getElementById("sb-check-btn").textContent = "Check";
+  document.getElementById("sb-actions").style.display = "flex";
+  sbRenderTiles();
+}
+
+function sbShuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function sbRenderTiles() {
+  const buildEl = document.getElementById("sb-build-tiles");
+  const bankEl = document.getElementById("sb-bank-tiles");
+  const placeholder = document.getElementById("sb-build-placeholder");
+
+  buildEl.innerHTML = "";
+  bankEl.innerHTML = "";
+
+  placeholder.style.display = sbBuiltWords.length === 0 ? "block" : "none";
+
+  sbBuiltWords.forEach((word, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "sb-tile sb-tile-built";
+    btn.textContent = word;
+    btn.onclick = () => { sbBuiltWords.splice(idx, 1); sbBankWords.push(word); sbRenderTiles(); sbSyncCheck(); };
+    buildEl.appendChild(btn);
+  });
+
+  sbBankWords.forEach((word, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "sb-tile sb-tile-bank";
+    btn.textContent = word;
+    btn.onclick = () => { sbBankWords.splice(idx, 1); sbBuiltWords.push(word); sbRenderTiles(); sbSyncCheck(); };
+    bankEl.appendChild(btn);
+  });
+}
+
+function sbSyncCheck() {
+  document.getElementById("sb-check-btn").disabled = sbBuiltWords.length === 0 || sbChecked;
+}
+
+function sbNormalize(str) {
+  return str.toLowerCase().replace(/[.,!?;:"""„"'()\-]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function sbCheck() {
+  if (!sbCurrentPhrase || sbChecked) return;
+  sbChecked = true;
+  sbSessionTotal++;
+
+  const userSentence = sbBuiltWords.join(" ");
+  const correct = sbNormalize(userSentence) === sbNormalize(sbCurrentPhrase.german);
+
+  const zone = document.getElementById("sb-build-zone");
+  zone.classList.toggle("correct", correct);
+  zone.classList.toggle("wrong", !correct);
+
+  const feedbackArea = document.getElementById("sb-feedback-area");
+  const feedbackIcon = document.getElementById("sb-feedback-icon");
+  const feedbackText = document.getElementById("sb-feedback-text");
+  const correctWrap = document.getElementById("sb-correct-wrap");
+  const correctSentence = document.getElementById("sb-correct-sentence");
+
+  if (correct) {
+    sbSessionScore++;
+    feedbackIcon.textContent = "✓";
+    feedbackIcon.className = "sb-correct";
+    feedbackText.textContent = "Correct!";
+    correctWrap.style.display = "none";
+    recordSbDone();
+    sbUpdateStreak();
+  } else {
+    feedbackIcon.textContent = "✗";
+    feedbackIcon.className = "sb-wrong";
+    feedbackText.textContent = "Not quite.";
+    correctWrap.style.display = "";
+    correctSentence.textContent = sbCurrentPhrase.german;
+  }
+
+  feedbackArea.style.display = "flex";
+  document.getElementById("sb-check-btn").disabled = true;
+  document.getElementById("sb-actions").style.display = "none";
+  sbUpdateScore();
+}
+
+function sbClear() {
+  sbBankWords = [...sbBankWords, ...sbBuiltWords];
+  sbBuiltWords = [];
+  sbBankWords = sbShuffle(sbBankWords);
+  sbRenderTiles();
+  sbSyncCheck();
+  document.getElementById("sb-build-zone").classList.remove("correct","wrong");
+}
+
+function sbSkip() {
+  sbNextPhrase();
+}
+
+function sbUpdateScore() {
+  document.getElementById("sb-score-display").textContent = sbSessionScore + " / " + sbSessionTotal;
+}
+
+function sbUpdateStreak() {
+  const streak = getSbStreak();
+  const badge = document.getElementById("sb-streak-badge");
+  if (!badge) return;
+  if (streak > 0) { badge.textContent = "🔥 " + streak + " day streak"; badge.classList.add("visible"); }
+  else badge.classList.remove("visible");
+}
+
+function getSbStreak() {
+  try {
+    const data = JSON.parse(localStorage.getItem("sb_streak") || "{}");
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (data.last === today || data.last === yesterday) return data.count || 0;
+    return 0;
+  } catch { return 0; }
+}
+
+function recordSbDone() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const data = JSON.parse(localStorage.getItem("sb_streak") || "{}");
+    if (data.last === today) return;
+    const newCount = data.last === yesterday ? (data.count || 0) + 1 : 1;
+    localStorage.setItem("sb_streak", JSON.stringify({ last: today, count: newCount }));
   } catch {}
 }
 
