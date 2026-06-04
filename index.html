@@ -637,12 +637,13 @@
               <div class="game-card-desc">Find hidden German words in a letter grid.</div>
               <div class="game-card-cta">Play &rarr;</div>
             </div>
-            <div class="game-card game-card-soon">
+            <div class="game-card" id="game-card-talkbox" onclick="openTalkBox()">
               <div class="game-card-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
-              <div class="game-card-name">Coming Soon</div>
-              <div class="game-card-desc">More games are on the way.</div>
+              <div class="game-card-name">Talk Box</div>
+              <div class="game-card-desc">Draw a card and speak in German for 45 seconds.</div>
+              <div class="game-card-cta">Play &rarr;</div>
             </div>
           </div>
         </div>
@@ -675,6 +676,70 @@
           <div id="ws-word-list"></div>
           <div id="ws-grid-wrap"><div id="ws-grid"></div></div>
           <div id="ws-hint-msg" style="display:none"></div>
+        </div>
+
+        <!-- Talk Box board -->
+        <div id="talkbox-view" style="display:none">
+          <div id="tb-topbar">
+            <button id="tb-back-btn">&#8592; Games</button>
+            <div id="tb-streak-badge"></div>
+          </div>
+          <div id="tb-category-tabs">
+            <button class="tb-cat-btn active" data-tbcat="alltag">Alltag</button>
+            <button class="tb-cat-btn" data-tbcat="meinungen">Meinungen</button>
+            <button class="tb-cat-btn" data-tbcat="szenarien">Szenarien</button>
+            <button class="tb-cat-btn" data-tbcat="uni_leben">Uni-Leben</button>
+            <button class="tb-cat-btn" data-tbcat="random">Zufall</button>
+          </div>
+          <div id="tb-card-wrap">
+            <div id="tb-card">
+              <div id="tb-card-inner">
+                <div id="tb-card-front">
+                  <div id="tb-card-front-icon">&#127924;</div>
+                  <div id="tb-card-front-label">Karte ziehen</div>
+                </div>
+                <div id="tb-card-back">
+                  <div id="tb-card-category-label"></div>
+                  <div id="tb-card-prompt-de"></div>
+                  <div id="tb-card-prompt-en"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="tb-draw-area">
+            <button id="tb-draw-btn">Draw Card</button>
+          </div>
+          <div id="tb-duration-row" style="display:none">
+            <button class="tb-dur-btn" data-dur="30">30s</button>
+            <button class="tb-dur-btn active" data-dur="45">45s</button>
+            <button class="tb-dur-btn" data-dur="60">60s</button>
+            <button class="tb-dur-btn" data-dur="90">90s</button>
+          </div>
+          <div id="tb-timer-ring-wrap" style="display:none">
+            <svg id="tb-timer-svg" viewBox="0 0 100 100">
+              <circle id="tb-timer-track" cx="50" cy="50" r="44"/>
+              <circle id="tb-timer-arc" cx="50" cy="50" r="44"/>
+            </svg>
+            <div id="tb-timer-display">45</div>
+          </div>
+          <div id="tb-actions" style="display:none">
+            <button id="tb-start-btn">&#9654; Start Speaking</button>
+            <button id="tb-stop-btn" style="display:none">&#9632; Stop</button>
+          </div>
+          <div id="tb-transcript-area" style="display:none">
+            <div id="tb-transcript-label">What I heard:</div>
+            <div id="tb-transcript-text"></div>
+          </div>
+          <div id="tb-feedback-area" style="display:none">
+            <div id="tb-feedback-label">Feedback</div>
+            <div id="tb-feedback-text"></div>
+            <div id="tb-grammar-tip" class="tb-tag-row" style="display:none"></div>
+            <div id="tb-vocab-note" class="tb-tag-row" style="display:none"></div>
+            <div id="tb-feedback-actions">
+              <button id="tb-next-btn">Draw Next Card &#8594;</button>
+              <button id="tb-retry-btn">&#8635; Try Again</button>
+            </div>
+          </div>
         </div>
 
       </div><!-- end #games-panel -->
@@ -780,6 +845,8 @@ if (typeof PHRASES === 'undefined') { window.PHRASES = []; }
 <script src="drills_data.js" onerror="window.DRILL_SETS={}"></script>
 <script>if (typeof GAME_ISLAND_SETS === 'undefined') { window.GAME_ISLAND_SETS = {}; }</script>
 <script src="games_data.js" onerror="window.GAME_ISLAND_SETS={}"></script>
+<script>if (typeof TALKBOX_CARDS === 'undefined') { window.TALKBOX_CARDS = {}; }</script>
+<script src="talkbox_data.js" onerror="window.TALKBOX_CARDS={}"></script>
 <script src="app.js"></script>
 
 </body>

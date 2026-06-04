@@ -925,6 +925,19 @@ const vocabCache = {};
 // Words mode state
 let wordsSRS = {};
 
+// Talk Box state
+let tbCurrentCard = null;
+let tbCategory = "alltag";
+let tbSeenIds = new Set();
+let tbIsRecording = false;
+let tbTranscriptChunks = [];
+let tbDuration = 45;
+let tbSecondsLeft = 45;
+let tbTimerInterval = null;
+let tbMicStream = null;
+let tbMicWS = null;
+let tbMicRecorder = null;
+
 // Games mode state
 let wsCurrentPuzzle = null;
 let wsIsDragging = false;
@@ -4717,6 +4730,7 @@ function initGamesPanel() {
 function showGamesLanding() {
   document.getElementById("games-landing").style.display = "";
   document.getElementById("wordsearch-view").style.display = "none";
+  document.getElementById("talkbox-view").style.display = "none";
 }
 
 function openWordSearch() {
@@ -5184,6 +5198,343 @@ function saveWsPuzzleState() {
       ts: Date.now(),
     }));
   } catch {}
+}
+
+// ---- Talk Box ----
+
+const TB_CIRCUMFERENCE = 2 * Math.PI * 44;
+
+function openTalkBox() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "flex";
+
+  document.getElementById("games-landing").style.display = "none";
+  document.getElementById("wordsearch-view").style.display = "none";
+  document.getElementById("talkbox-view").style.display = "flex";
+
+  tbStopRecording();
+  tbClearTimer();
+  tbCurrentCard = null;
+  tbSeenIds = new Set();
+  tbCategory = "alltag";
+  tbDuration = 45;
+  tbTranscriptChunks = [];
+
+  document.querySelectorAll(".tb-cat-btn").forEach(b => b.classList.toggle("active", b.dataset.tbcat === "alltag"));
+  document.querySelectorAll(".tb-dur-btn").forEach(b => b.classList.toggle("active", b.dataset.dur === "45"));
+  tbResetToDrawState();
+  tbUpdateStreakBadge();
+
+  document.querySelectorAll(".tb-dur-btn").forEach(btn => {
+    btn.onclick = () => {
+      if (tbIsRecording) return;
+      tbDuration = parseInt(btn.dataset.dur, 10);
+      tbSecondsLeft = tbDuration;
+      document.querySelectorAll(".tb-dur-btn").forEach(b => b.classList.toggle("active", b === btn));
+      tbSetTimerDisplay(tbDuration);
+      tbSetArc(1);
+    };
+  });
+
+  document.getElementById("tb-back-btn").onclick = () => {
+    tbStopRecording();
+    tbClearTimer();
+    showGamesLanding();
+  };
+
+  document.querySelectorAll(".tb-cat-btn").forEach(btn => {
+    btn.onclick = () => tbSelectCategory(btn.dataset.tbcat);
+  });
+
+  document.getElementById("tb-draw-btn").onclick = tbDrawCard;
+  document.getElementById("tb-start-btn").onclick = tbStartSpeaking;
+  document.getElementById("tb-stop-btn").onclick = tbTimeUp;
+  document.getElementById("tb-next-btn").onclick = () => {
+    tbStopRecording();
+    tbClearTimer();
+    tbCurrentCard = null;
+    tbResetToDrawState();
+  };
+  document.getElementById("tb-retry-btn").onclick = tbRetry;
+}
+
+function tbSelectCategory(cat) {
+  tbCategory = cat;
+  document.querySelectorAll(".tb-cat-btn").forEach(b => b.classList.toggle("active", b.dataset.tbcat === cat));
+  tbCurrentCard = null;
+  tbSeenIds = new Set();
+  tbStopRecording();
+  tbClearTimer();
+  tbResetToDrawState();
+}
+
+function tbResetToDrawState() {
+  document.getElementById("tb-card").classList.remove("flipped");
+  document.getElementById("tb-card-category-label").textContent = "";
+  document.getElementById("tb-card-prompt-de").textContent = "";
+  document.getElementById("tb-card-prompt-en").textContent = "";
+  document.getElementById("tb-draw-area").style.display = "flex";
+  document.getElementById("tb-actions").style.display = "none";
+  document.getElementById("tb-duration-row").style.display = "none";
+  document.getElementById("tb-timer-ring-wrap").style.display = "none";
+  document.getElementById("tb-transcript-area").style.display = "none";
+  document.getElementById("tb-transcript-text").textContent = "";
+  document.getElementById("tb-feedback-area").style.display = "none";
+  document.getElementById("tb-start-btn").textContent = "▶ Start Speaking";
+  document.getElementById("tb-start-btn").disabled = false;
+  document.getElementById("tb-start-btn").classList.remove("recording");
+  document.getElementById("tb-stop-btn").style.display = "none";
+  tbSetTimerDisplay(tbDuration);
+  tbSetArc(1);
+}
+
+function tbDrawCard() {
+  const pool = tbGetCardPool();
+  const unseen = pool.filter(c => !tbSeenIds.has(c.id));
+  const candidates = unseen.length > 0 ? unseen : pool;
+  if (candidates.length === 0) return;
+  if (unseen.length === 0) tbSeenIds = new Set();
+
+  const card = candidates[Math.floor(Math.random() * candidates.length)];
+  tbCurrentCard = card;
+  tbSeenIds.add(card.id);
+
+  const cat = tbCategory === "random"
+    ? Object.values(TALKBOX_CARDS).find(c => c.cards.some(x => x.id === card.id))
+    : TALKBOX_CARDS[tbCategory];
+
+  document.getElementById("tb-card-category-label").textContent = cat ? `${cat.label} · ${cat.labelEn}` : "";
+  document.getElementById("tb-card-prompt-de").textContent = card.de;
+  document.getElementById("tb-card-prompt-en").textContent = card.en;
+
+  document.getElementById("tb-draw-area").style.display = "none";
+  document.getElementById("tb-card").classList.add("flipped");
+
+  setTimeout(() => {
+    document.getElementById("tb-duration-row").style.display = "flex";
+    document.getElementById("tb-timer-ring-wrap").style.display = "flex";
+    document.getElementById("tb-actions").style.display = "flex";
+    tbSetTimerDisplay(tbDuration);
+    tbSetArc(1);
+  }, 520);
+}
+
+function tbGetCardPool() {
+  if (!TALKBOX_CARDS) return [];
+  if (tbCategory === "random") {
+    return Object.values(TALKBOX_CARDS).flatMap(c => c.cards);
+  }
+  return (TALKBOX_CARDS[tbCategory]?.cards) || [];
+}
+
+async function tbStartSpeaking() {
+  if (tbIsRecording) return;
+  tbTranscriptChunks = [];
+  document.getElementById("tb-transcript-text").textContent = "";
+  document.getElementById("tb-transcript-area").style.display = "none";
+  tbIsRecording = true;
+  document.getElementById("tb-start-btn").textContent = "Listening…";
+  document.getElementById("tb-start-btn").classList.add("recording");
+  document.getElementById("tb-start-btn").disabled = true;
+  document.getElementById("tb-stop-btn").style.display = "";
+
+  try {
+    const tokenRes = await fetch("/api/deepgram-token", { method: "POST" });
+    if (!tokenRes.ok) throw new Error("token");
+    const { key } = await tokenRes.json();
+    tbMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const wsUrl = "wss://api.deepgram.com/v1/listen?language=de&model=nova-2-general&interim_results=true&endpointing=800&vad_events=true&encoding=linear16&sample_rate=16000";
+    tbMicWS = new WebSocket(wsUrl, ["token", key]);
+
+    tbMicWS.onopen = () => {
+      tbMicRecorder = new MediaRecorder(tbMicStream, { mimeType: "audio/webm;codecs=opus" });
+      tbMicRecorder.ondataavailable = (e) => {
+        if (tbMicWS && tbMicWS.readyState === WebSocket.OPEN && e.data.size > 0) tbMicWS.send(e.data);
+      };
+      tbMicRecorder.start(100);
+    };
+
+    tbMicWS.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "Results" && msg.is_final) {
+        const t = msg.channel?.alternatives?.[0]?.transcript || "";
+        if (t.trim()) {
+          tbTranscriptChunks.push(t.trim());
+          document.getElementById("tb-transcript-text").textContent = tbTranscriptChunks.join(" ");
+          document.getElementById("tb-transcript-area").style.display = "flex";
+        }
+      }
+    };
+    tbMicWS.onerror = () => {};
+    tbMicWS.onclose = () => {};
+  } catch {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      const sr = new SR();
+      sr.lang = "de-DE";
+      sr.interimResults = false;
+      sr.continuous = true;
+      sr.onresult = (ev) => {
+        const t = ev.results[ev.results.length - 1][0].transcript.trim();
+        if (t) {
+          tbTranscriptChunks.push(t);
+          document.getElementById("tb-transcript-text").textContent = tbTranscriptChunks.join(" ");
+          document.getElementById("tb-transcript-area").style.display = "flex";
+        }
+      };
+      sr.start();
+      tbMicWS = { _sr: sr, close: () => sr.stop() };
+    }
+  }
+
+  tbSecondsLeft = tbDuration;
+  tbSetTimerDisplay(tbSecondsLeft);
+  tbSetArc(1);
+  tbTimerInterval = setInterval(() => {
+    tbSecondsLeft--;
+    tbSetTimerDisplay(tbSecondsLeft);
+    tbSetArc(tbSecondsLeft / tbDuration);
+    if (tbSecondsLeft <= 0) tbTimeUp();
+  }, 1000);
+}
+
+function tbStopRecording() {
+  tbIsRecording = false;
+  if (tbMicRecorder && tbMicRecorder.state !== "inactive") tbMicRecorder.stop();
+  if (tbMicWS) { tbMicWS.close(); tbMicWS = null; }
+  if (tbMicStream) { tbMicStream.getTracks().forEach(t => t.stop()); tbMicStream = null; }
+  tbMicRecorder = null;
+}
+
+async function tbTimeUp() {
+  tbClearTimer();
+  tbStopRecording();
+  tbSetTimerDisplay(0);
+  tbSetArc(0);
+  recordTalkBoxDone();
+  tbUpdateStreakBadge();
+
+  document.getElementById("tb-start-btn").disabled = false;
+  document.getElementById("tb-start-btn").classList.remove("recording");
+  document.getElementById("tb-start-btn").textContent = "▶ Start Speaking";
+  document.getElementById("tb-stop-btn").style.display = "none";
+
+  const transcript = tbTranscriptChunks.join(" ").trim();
+  const cardPrompt = tbCurrentCard ? tbCurrentCard.de : "";
+  const category = tbCategory;
+
+  document.getElementById("tb-feedback-area").style.display = "flex";
+  document.getElementById("tb-feedback-text").textContent = "Getting feedback…";
+  document.getElementById("tb-grammar-tip").style.display = "none";
+  document.getElementById("tb-vocab-note").style.display = "none";
+  document.getElementById("tb-next-btn").disabled = true;
+  document.getElementById("tb-retry-btn").disabled = true;
+
+  if (transcript.length > 5) {
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "talkbox-feedback", text: transcript, prompt: cardPrompt, category }),
+      });
+      const data = await res.json();
+      document.getElementById("tb-feedback-text").textContent = data.feedback || "Good effort — keep speaking!";
+      if (data.grammar_tip) {
+        document.getElementById("tb-grammar-tip").textContent = "Grammar: " + data.grammar_tip;
+        document.getElementById("tb-grammar-tip").style.display = "";
+      }
+      if (data.vocab_note) {
+        document.getElementById("tb-vocab-note").textContent = "Vocab: " + data.vocab_note;
+        document.getElementById("tb-vocab-note").style.display = "";
+      }
+    } catch {
+      document.getElementById("tb-feedback-text").textContent = "Great effort speaking! Keep practicing.";
+    }
+  } else {
+    document.getElementById("tb-feedback-text").textContent = "No speech detected. Make sure your microphone is on and try again!";
+  }
+
+  document.getElementById("tb-next-btn").disabled = false;
+  document.getElementById("tb-retry-btn").disabled = false;
+}
+
+function tbRetry() {
+  tbStopRecording();
+  tbClearTimer();
+  tbTranscriptChunks = [];
+  document.getElementById("tb-transcript-text").textContent = "";
+  document.getElementById("tb-transcript-area").style.display = "none";
+  document.getElementById("tb-feedback-area").style.display = "none";
+  document.getElementById("tb-start-btn").textContent = "▶ Start Speaking";
+  document.getElementById("tb-start-btn").disabled = false;
+  document.getElementById("tb-start-btn").classList.remove("recording");
+  document.getElementById("tb-stop-btn").style.display = "none";
+  tbSetTimerDisplay(tbDuration);
+  tbSetArc(1);
+}
+
+function tbClearTimer() {
+  if (tbTimerInterval) { clearInterval(tbTimerInterval); tbTimerInterval = null; }
+  tbSecondsLeft = tbDuration;
+}
+
+function tbSetTimerDisplay(seconds) {
+  document.getElementById("tb-timer-display").textContent = seconds;
+}
+
+function tbSetArc(fraction) {
+  const arc = document.getElementById("tb-timer-arc");
+  if (!arc) return;
+  arc.style.strokeDashoffset = TB_CIRCUMFERENCE * (1 - fraction);
+  if (fraction <= 0.25) arc.classList.add("low-time");
+  else arc.classList.remove("low-time");
+}
+
+function getTalkBoxStreak() {
+  try {
+    const data = JSON.parse(localStorage.getItem("talkbox_streak") || "{}");
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (data.last === today) return data.count || 0;
+    if (data.last === yesterday) return data.count || 0;
+    return 0;
+  } catch { return 0; }
+}
+
+function recordTalkBoxDone() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const data = JSON.parse(localStorage.getItem("talkbox_streak") || "{}");
+    if (data.last === today) return;
+    const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
+    localStorage.setItem("talkbox_streak", JSON.stringify({ last: today, count: newCount }));
+    const key = "talkbox_done_" + today;
+    localStorage.setItem(key, String(parseInt(localStorage.getItem(key) || "0", 10) + 1));
+  } catch {}
+}
+
+function tbUpdateStreakBadge() {
+  const streak = getTalkBoxStreak();
+  const badge = document.getElementById("tb-streak-badge");
+  if (!badge) return;
+  if (streak > 0) {
+    badge.textContent = "🔥 " + streak + " day streak";
+    badge.classList.add("visible");
+  } else {
+    badge.classList.remove("visible");
+  }
 }
 
 // ---- Start ----

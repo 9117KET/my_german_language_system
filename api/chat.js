@@ -459,6 +459,35 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    if (mode === "talkbox-feedback") {
+      const { prompt: cardPrompt, category } = req.body;
+      try {
+        const raw = await callGroq(
+          `A German learner was given this speaking prompt (category: ${category || "general"}):\n"${cardPrompt}"\n\n` +
+          `They spoke in German and this is the transcript:\n"${text}"\n\n` +
+          `Give brief, friendly feedback (2-3 sentences total). Structure:\n` +
+          `- feedback: 1-2 sentences on how well they addressed the prompt and their overall fluency\n` +
+          `- grammar_tip: one very short, specific grammar observation (e.g. "Watch the Dativ after 'mit'" or "Great use of Perfekt!") — max 10 words\n` +
+          `- vocab_note: one vocabulary observation — a word they used well, or a useful alternative they could try — max 12 words\n\n` +
+          `Be encouraging. Focus on progress, not perfection.\n` +
+          `Reply with ONLY this JSON, no markdown:\n` +
+          `{"feedback":"...","grammar_tip":"...","vocab_note":"..."}`
+        );
+        const result = JSON.parse(stripMarkdown(raw));
+        return res.json({
+          feedback: result.feedback || "Good effort — keep speaking!",
+          grammar_tip: result.grammar_tip || "",
+          vocab_note: result.vocab_note || "",
+        });
+      } catch {
+        return res.json({
+          feedback: "Great effort speaking in German! Consistency is key — keep going.",
+          grammar_tip: "",
+          vocab_note: "",
+        });
+      }
+    }
+
     return res.status(400).json({ error: "unknown mode" });
   } catch (err) {
     console.error("[api/chat]", err.message);
