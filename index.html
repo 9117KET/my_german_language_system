@@ -637,6 +637,14 @@
               <div class="game-card-desc">Find hidden German words in a letter grid.</div>
               <div class="game-card-cta">Play &rarr;</div>
             </div>
+            <div class="game-card" id="game-card-listeningblitz" onclick="openListeningBlitz()">
+              <div class="game-card-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+              </div>
+              <div class="game-card-name">Listening Blitz</div>
+              <div class="game-card-desc">Hear a phrase, find the missing word.</div>
+              <div class="game-card-cta">Play &rarr;</div>
+            </div>
             <div class="game-card" id="game-card-sentencebuilder" onclick="openSentenceBuilder()">
               <div class="game-card-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/><polyline points="17 15 20 18 17 21"/></svg>
@@ -684,6 +692,33 @@
           <div id="ws-word-list"></div>
           <div id="ws-grid-wrap"><div id="ws-grid"></div></div>
           <div id="ws-hint-msg" style="display:none"></div>
+        </div>
+
+        <!-- Listening Blitz board -->
+        <div id="listeningblitz-view" style="display:none">
+          <div id="lb-topbar">
+            <button id="lb-back-btn">&#8592; Games</button>
+            <div id="lb-score-display">0 / 0</div>
+            <div id="lb-streak-badge"></div>
+          </div>
+          <div id="lb-prompt-card">
+            <div id="lb-prompt-label">Listen and find the missing word:</div>
+            <div id="lb-sentence-display"></div>
+          </div>
+          <div id="lb-audio-controls">
+            <audio id="lb-audio" preload="auto"></audio>
+            <button id="lb-play-btn">&#9654; Play</button>
+            <button id="lb-replay-btn">&#8635; Replay</button>
+          </div>
+          <div id="lb-options-grid"></div>
+          <div id="lb-feedback-area" style="display:none">
+            <div id="lb-feedback-row">
+              <span id="lb-feedback-icon"></span>
+              <span id="lb-feedback-text"></span>
+            </div>
+            <div id="lb-full-sentence"></div>
+            <button id="lb-next-btn">Next &#8594;</button>
+          </div>
         </div>
 
         <!-- Sentence Builder board -->

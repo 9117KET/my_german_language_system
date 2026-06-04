@@ -925,6 +925,16 @@ const vocabCache = {};
 // Words mode state
 let wordsSRS = {};
 
+// Listening Blitz state
+let lbCurrentPhrase = null;
+let lbTargetWord = "";
+let lbTargetIdx = -1;
+let lbOptions = [];
+let lbSessionScore = 0;
+let lbSessionTotal = 0;
+let lbSeenIds = new Set();
+let lbChecked = false;
+
 // Sentence Builder state
 let sbCurrentPhrase = null;
 let sbBankWords = [];
@@ -4742,6 +4752,7 @@ function showGamesLanding() {
   document.getElementById("wordsearch-view").style.display = "none";
   document.getElementById("talkbox-view").style.display = "none";
   document.getElementById("sentencebuilder-view").style.display = "none";
+  document.getElementById("listeningblitz-view").style.display = "none";
 }
 
 function openWordSearch() {
@@ -5208,6 +5219,234 @@ function saveWsPuzzleState() {
       wsWsMode,
       ts: Date.now(),
     }));
+  } catch {}
+}
+
+// ---- Listening Blitz ----
+
+const LB_SKIP_WORDS = new Set([
+  "ich","sie","er","es","wir","ihr","ist","bin","hat","habe","haben","sein","war","waren",
+  "eine","einen","einem","einer","eines","der","die","das","dem","den","des",
+  "ein","kein","und","aber","oder","weil","dass","wenn","ob","nicht","auch","noch",
+  "ja","nein","so","wie","was","wo","wer","doch","mal","sich","mir","dir","uns","euch",
+  "in","an","auf","bei","von","zu","mit","für","aus","nach","über","unter","vor","hinter",
+  "am","im","ins","ans","zum","zur","beim","vom","durch","gegen","ohne","um",
+  "du","ich","mich","dich","ihn","ihm","ihr","ihnen","wir",
+]);
+
+function openListeningBlitz() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  ["progress-panel","vocab-panel","grammar-panel","words-panel","drills-panel",
+   "starters-panel","speak-panel","monologue-panel"].forEach(id => {
+    document.getElementById(id).style.display = "none";
+  });
+  document.getElementById("games-panel").style.display = "flex";
+  document.getElementById("games-landing").style.display = "none";
+  document.getElementById("wordsearch-view").style.display = "none";
+  document.getElementById("talkbox-view").style.display = "none";
+  document.getElementById("sentencebuilder-view").style.display = "none";
+  document.getElementById("listeningblitz-view").style.display = "flex";
+
+  lbSessionScore = 0;
+  lbSessionTotal = 0;
+  lbSeenIds = new Set();
+  lbChecked = false;
+
+  lbUpdateScore();
+  lbUpdateStreak();
+  lbNextPhrase();
+
+  document.getElementById("lb-back-btn").onclick = () => {
+    const audio = document.getElementById("lb-audio");
+    if (audio) { audio.pause(); audio.src = ""; }
+    showGamesLanding();
+  };
+  document.getElementById("lb-play-btn").onclick = lbPlayAudio;
+  document.getElementById("lb-replay-btn").onclick = lbPlayAudio;
+  document.getElementById("lb-next-btn").onclick = lbNextPhrase;
+}
+
+function lbGetPool() {
+  if (!PHRASES || !PHRASES.length) return [];
+  return PHRASES.filter(p => p.audio && p.german.split(/\s+/).length >= 5);
+}
+
+function lbNextPhrase() {
+  const audio = document.getElementById("lb-audio");
+  if (audio) { audio.pause(); audio.src = ""; }
+
+  const pool = lbGetPool();
+  const unseen = pool.filter(p => !lbSeenIds.has(p.id));
+  const candidates = unseen.length > 0 ? unseen : pool;
+  if (!candidates.length) return;
+  if (unseen.length === 0) lbSeenIds = new Set();
+
+  const phrase = candidates[Math.floor(Math.random() * candidates.length)];
+  lbCurrentPhrase = phrase;
+  lbSeenIds.add(phrase.id);
+  lbChecked = false;
+
+  const words = phrase.german.trim().split(/\s+/);
+  const { idx } = lbPickBlankIdx(words);
+  lbTargetIdx = idx;
+  lbTargetWord = words[idx];
+
+  lbOptions = lbBuildOptions(lbTargetWord, phrase.id);
+  lbRenderSentence(words, idx);
+  lbRenderOptions();
+
+  document.getElementById("lb-feedback-area").style.display = "none";
+  document.getElementById("lb-play-btn").style.display = "";
+  document.getElementById("lb-replay-btn").style.display = "none";
+
+  if (audio) {
+    audio.src = phrase.audio;
+    audio.load();
+    audio.play().catch(() => {});
+    document.getElementById("lb-play-btn").style.display = "none";
+    document.getElementById("lb-replay-btn").style.display = "";
+  }
+}
+
+function lbPickBlankIdx(words) {
+  const candidates = words
+    .map((w, i) => ({ w: w.replace(/[.,!?;:"„"'()]/g, "").toLowerCase(), i }))
+    .filter(({ w, i }) => w.length >= 4 && !LB_SKIP_WORDS.has(w) && i > 0);
+  if (candidates.length > 0) {
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    return { idx: pick.i };
+  }
+  return { idx: Math.max(1, Math.floor(words.length / 2)) };
+}
+
+function lbBuildOptions(target, excludeId) {
+  const pool = lbGetPool();
+  const allWords = [];
+  pool.forEach(p => {
+    if (p.id === excludeId) return;
+    p.german.trim().split(/\s+/).forEach(w => {
+      const clean = w.replace(/[.,!?;:"„"'()]/g, "");
+      if (clean.length >= 4 && !LB_SKIP_WORDS.has(clean.toLowerCase()) && clean !== target) {
+        allWords.push(clean);
+      }
+    });
+  });
+  const targetClean = target.replace(/[.,!?;:"„"'()]/g, "");
+  const suffix = target.slice(targetClean.length);
+  const shuffled = allWords.sort(() => Math.random() - 0.5);
+  const seen = new Set([targetClean.toLowerCase()]);
+  const distractors = [];
+  for (const w of shuffled) {
+    if (distractors.length >= 3) break;
+    if (!seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); distractors.push(w + suffix); }
+  }
+  while (distractors.length < 3) distractors.push("???");
+  const opts = [target, ...distractors];
+  return opts.sort(() => Math.random() - 0.5);
+}
+
+function lbRenderSentence(words, blankIdx) {
+  const display = document.getElementById("lb-sentence-display");
+  display.innerHTML = "";
+  words.forEach((w, i) => {
+    if (i > 0) display.appendChild(document.createTextNode(" "));
+    if (i === blankIdx) {
+      const span = document.createElement("span");
+      span.id = "lb-blank";
+      span.className = "lb-blank";
+      span.textContent = "___";
+      display.appendChild(span);
+    } else {
+      display.appendChild(document.createTextNode(w));
+    }
+  });
+}
+
+function lbRenderOptions() {
+  const grid = document.getElementById("lb-options-grid");
+  grid.innerHTML = "";
+  lbOptions.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "lb-option-btn";
+    btn.textContent = opt;
+    btn.onclick = () => lbSelectOption(opt, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function lbSelectOption(chosen, btn) {
+  if (lbChecked) return;
+  lbChecked = true;
+  lbSessionTotal++;
+
+  const cleanChosen = chosen.replace(/[.,!?;:"„"'()]/g, "").toLowerCase();
+  const cleanTarget = lbTargetWord.replace(/[.,!?;:"„"'()]/g, "").toLowerCase();
+  const correct = cleanChosen === cleanTarget;
+
+  document.querySelectorAll(".lb-option-btn").forEach(b => {
+    const bClean = b.textContent.replace(/[.,!?;:"„"'()]/g, "").toLowerCase();
+    if (bClean === cleanTarget) b.classList.add("lb-opt-correct");
+    else b.classList.add("lb-opt-disabled");
+    b.disabled = true;
+  });
+  if (!correct) btn.classList.add("lb-opt-wrong");
+
+  const blank = document.getElementById("lb-blank");
+  if (blank) { blank.textContent = lbTargetWord; blank.className = correct ? "lb-blank lb-revealed-correct" : "lb-blank lb-revealed-wrong"; }
+
+  const icon = document.getElementById("lb-feedback-icon");
+  const text = document.getElementById("lb-feedback-text");
+  icon.textContent = correct ? "✓" : "✗";
+  icon.className = correct ? "lb-correct" : "lb-wrong";
+  text.textContent = correct ? "Correct!" : "Not quite.";
+
+  document.getElementById("lb-full-sentence").textContent = lbCurrentPhrase.english;
+  document.getElementById("lb-feedback-area").style.display = "flex";
+
+  if (correct) { lbSessionScore++; recordLbDone(); lbUpdateStreak(); }
+  lbUpdateScore();
+}
+
+function lbPlayAudio() {
+  const audio = document.getElementById("lb-audio");
+  if (!audio || !lbCurrentPhrase) return;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+}
+
+function lbUpdateScore() {
+  document.getElementById("lb-score-display").textContent = lbSessionScore + " / " + lbSessionTotal;
+}
+
+function lbUpdateStreak() {
+  const streak = getLbStreak();
+  const badge = document.getElementById("lb-streak-badge");
+  if (!badge) return;
+  if (streak > 0) { badge.textContent = "🔥 " + streak + " day streak"; badge.classList.add("visible"); }
+  else badge.classList.remove("visible");
+}
+
+function getLbStreak() {
+  try {
+    const data = JSON.parse(localStorage.getItem("lb_streak") || "{}");
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (data.last === today || data.last === yesterday) return data.count || 0;
+    return 0;
+  } catch { return 0; }
+}
+
+function recordLbDone() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const data = JSON.parse(localStorage.getItem("lb_streak") || "{}");
+    if (data.last === today) return;
+    const newCount = data.last === yesterday ? (data.count || 0) + 1 : 1;
+    localStorage.setItem("lb_streak", JSON.stringify({ last: today, count: newCount }));
   } catch {}
 }
 
