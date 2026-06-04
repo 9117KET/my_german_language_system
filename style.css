@@ -2720,6 +2720,32 @@ select option {
   line-height: 1.65;
 }
 
+#speak-sample-wrap {
+  background: rgba(74, 158, 255, 0.07);
+  border: 1px solid rgba(74, 158, 255, 0.25);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#speak-sample-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+#speak-sample-text {
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.6;
+  font-style: italic;
+}
+
 #speak-feedback-actions {
   display: flex;
   flex-direction: column;
@@ -3783,6 +3809,32 @@ select option {
   font-size: 0.9rem;
   color: var(--text);
   line-height: 1.6;
+}
+
+#tb-sample-wrap {
+  background: rgba(74, 158, 255, 0.07);
+  border: 1px solid rgba(74, 158, 255, 0.25);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#tb-sample-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+#tb-sample-text {
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.6;
+  font-style: italic;
 }
 
 .tb-tag-row {

@@ -3085,6 +3085,7 @@ function initSpeakPanel() {
   renderSpeakPrompt();
   updateSpeakStreak();
   document.getElementById("speak-feedback-area").style.display = "none";
+  document.getElementById("speak-sample-wrap").style.display = "none";
   document.getElementById("speak-improve-area").style.display = "none";
   document.getElementById("speak-improve-btn").style.display = "none";
   document.getElementById("speak-transcript-area").style.display = "none";
@@ -3264,6 +3265,10 @@ async function speakTimeUp() {
       const data = await res.json();
       document.getElementById("speak-feedback-text").textContent =
         data.feedback || "Good effort! Keep practicing.";
+      if (data.sample) {
+        document.getElementById("speak-sample-text").textContent = data.sample;
+        document.getElementById("speak-sample-wrap").style.display = "";
+      }
       document.getElementById("speak-improve-btn").style.display = "block";
     } catch {
       document.getElementById("speak-feedback-text").textContent =
@@ -3364,6 +3369,7 @@ function speakSkip() {
   speakPromptIndex = (speakPromptIndex + 1) % SPEAK_PROMPTS.length;
   renderSpeakPrompt();
   document.getElementById("speak-feedback-area").style.display = "none";
+  document.getElementById("speak-sample-wrap").style.display = "none";
   document.getElementById("speak-improve-area").style.display = "none";
   document.getElementById("speak-improve-btn").style.display = "none";
   document.getElementById("speak-transcript-area").style.display = "none";
@@ -5984,6 +5990,7 @@ function tbResetToDrawState() {
   document.getElementById("tb-transcript-area").style.display = "none";
   document.getElementById("tb-transcript-text").textContent = "";
   document.getElementById("tb-feedback-area").style.display = "none";
+  document.getElementById("tb-sample-wrap").style.display = "none";
   document.getElementById("tb-start-btn").textContent = "▶ Start Speaking";
   document.getElementById("tb-start-btn").disabled = false;
   document.getElementById("tb-start-btn").classList.remove("recording");
@@ -6143,6 +6150,10 @@ async function tbTimeUp() {
       });
       const data = await res.json();
       document.getElementById("tb-feedback-text").textContent = data.feedback || "Good effort — keep speaking!";
+      if (data.sample) {
+        document.getElementById("tb-sample-text").textContent = data.sample;
+        document.getElementById("tb-sample-wrap").style.display = "";
+      }
       if (data.grammar_tip) {
         document.getElementById("tb-grammar-tip").textContent = "Grammar: " + data.grammar_tip;
         document.getElementById("tb-grammar-tip").style.display = "";
@@ -6169,6 +6180,7 @@ function tbRetry() {
   document.getElementById("tb-transcript-text").textContent = "";
   document.getElementById("tb-transcript-area").style.display = "none";
   document.getElementById("tb-feedback-area").style.display = "none";
+  document.getElementById("tb-sample-wrap").style.display = "none";
   document.getElementById("tb-start-btn").textContent = "▶ Start Speaking";
   document.getElementById("tb-start-btn").disabled = false;
   document.getElementById("tb-start-btn").classList.remove("recording");

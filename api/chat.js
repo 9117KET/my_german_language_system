@@ -8,7 +8,7 @@ const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9";
 // llama-3.1-8b-instant: fast, free, 14,400 req/day, excellent for translation
 const GROQ_MODEL = "llama-3.1-8b-instant";
 
-async function callGroq(prompt, retried = false) {
+async function callGroq(prompt, retried = false, maxTokens = 200) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -18,7 +18,7 @@ async function callGroq(prompt, retried = false) {
     body: JSON.stringify({
       model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 200,
+      max_tokens: maxTokens,
       temperature: 0.3,
     }),
     signal: AbortSignal.timeout(12000),
@@ -291,19 +291,21 @@ module.exports = async function handler(req, res) {
       try {
         const raw = await callGroq(
           `A German learner was given this speaking scenario:\n"${scenario}"\n\n` +
-          `They spoke for 60 seconds and this is what was transcribed:\n"${text}"\n\n` +
-          `Give brief, encouraging fluency feedback (2-3 sentences max). Focus on:\n` +
-          `- Did they attempt to address the scenario? (yes/partly/no)\n` +
-          `- One specific thing they did well (a phrase, structure, or vocabulary choice)\n` +
-          `- One concrete tip to improve fluency next time (not a grammar lecture - think mindset or sentence-starting strategy)\n\n` +
-          `Do NOT rewrite their sentences. Do NOT list every error. The goal is building confidence to speak, not grammar perfection.\n` +
-          `Reply with ONLY this JSON, no markdown:\n` +
-          `{"feedback":"2-3 encouraging sentences with one strength and one fluency tip"}`
+          `They spoke in German and this was transcribed:\n"${text}"\n\n` +
+          `Your task — reply ONLY this JSON, no markdown:\n` +
+          `{\n` +
+          `  "sample": "A corrected, natural German version of what they said. Fix grammar, word order, and phrasing while keeping their ideas and voice. Write as a B1-B2 learner would naturally say it — 2-4 conversational sentences. If the transcript is empty or very short, write a short natural German response to the scenario anyway.",\n` +
+          `  "feedback": "1-2 sentences in English: name one specific thing they did well (quote a word or phrase they used), then give one concrete improvement tip."\n` +
+          `}`,
+          false, 400
         );
         const result = JSON.parse(stripMarkdown(raw));
-        return res.json({ feedback: result.feedback });
+        return res.json({
+          feedback: result.feedback || "Good effort! Keep practicing.",
+          sample: result.sample || "",
+        });
       } catch {
-        return res.json({ feedback: "Great effort speaking for 60 seconds! Keep going - fluency comes from repetition." });
+        return res.json({ feedback: "Great effort speaking! Keep going — fluency comes from repetition.", sample: "" });
       }
     }
 
@@ -464,24 +466,27 @@ module.exports = async function handler(req, res) {
       try {
         const raw = await callGroq(
           `A German learner was given this speaking prompt (category: ${category || "general"}):\n"${cardPrompt}"\n\n` +
-          `They spoke in German and this is the transcript:\n"${text}"\n\n` +
-          `Give brief, friendly feedback (2-3 sentences total). Structure:\n` +
-          `- feedback: 1-2 sentences on how well they addressed the prompt and their overall fluency\n` +
-          `- grammar_tip: one very short, specific grammar observation (e.g. "Watch the Dativ after 'mit'" or "Great use of Perfekt!") — max 10 words\n` +
-          `- vocab_note: one vocabulary observation — a word they used well, or a useful alternative they could try — max 12 words\n\n` +
-          `Be encouraging. Focus on progress, not perfection.\n` +
-          `Reply with ONLY this JSON, no markdown:\n` +
-          `{"feedback":"...","grammar_tip":"...","vocab_note":"..."}`
+          `They responded in German (transcript):\n"${text}"\n\n` +
+          `Your task — reply ONLY this JSON, no markdown:\n` +
+          `{\n` +
+          `  "sample": "A model German response to the prompt — natural, complete, B1-B2 level, 2-4 sentences. Build on any good phrases from their attempt but fix errors and fill gaps. Write as a real person would answer, not a textbook.",\n` +
+          `  "feedback": "One encouraging sentence in English naming something specific they did well or attempted.",\n` +
+          `  "grammar_tip": "One very short grammar observation in English — max 10 words.",\n` +
+          `  "vocab_note": "One vocabulary tip in English — a word they used well or a useful alternative — max 12 words."\n` +
+          `}`,
+          false, 420
         );
         const result = JSON.parse(stripMarkdown(raw));
         return res.json({
           feedback: result.feedback || "Good effort — keep speaking!",
+          sample: result.sample || "",
           grammar_tip: result.grammar_tip || "",
           vocab_note: result.vocab_note || "",
         });
       } catch {
         return res.json({
           feedback: "Great effort speaking in German! Consistency is key — keep going.",
+          sample: "",
           grammar_tip: "",
           vocab_note: "",
         });
