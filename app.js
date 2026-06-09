@@ -1269,6 +1269,7 @@ function init() {
   setupDrillsPanel();
   initGamesPanel();
   setupTodayPanel();
+  setupStoriesPanel();
   // Land on the Today dashboard (mode defaults to "today")
   showTodayPanel();
   updateTabBadges();
@@ -1276,7 +1277,7 @@ function init() {
 
 // ---- Render (player) ----
 function renderCard(autoPlay = false) {
-  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games" || mode === "today") return;
+  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games" || mode === "today" || mode === "stories") return;
 
   if (!queue.length) {
     audio.pause();
@@ -1499,7 +1500,7 @@ function showAIPanel() {
 // ---- Mobile bottom nav: 4 primary tabs + "More" sheet ----
 const MOBILE_PRIMARY_MODES = ["today", "recall", "speak", "ai"];
 const MORE_SHEET_GROUPS = [
-  { label: "Practice", modes: ["listen", "shadow"] },
+  { label: "Practice", modes: ["listen", "shadow", "stories"] },
   { label: "Conversation", modes: ["starters", "monologue"] },
   { label: "Vocabulary", modes: ["words", "vocab"] },
   { label: "Grammar", modes: ["grammar", "drills"] },
@@ -1591,10 +1592,14 @@ function setupEvents() {
       tabEls.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
       document.getElementById("today-panel").style.display = "none";
+      document.getElementById("stories-panel").style.display = "none";
 
       if (newMode === "today") {
         mode = "today";
         showTodayPanel();
+      } else if (newMode === "stories") {
+        mode = "stories";
+        showStoriesPanel();
       } else if (newMode === "ai") {
         mode = "ai";
         showAIPanel();
@@ -1823,7 +1828,7 @@ function setupEvents() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games" || mode === "today") return;
+    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games" || mode === "today" || mode === "stories") return;
     if (e.key === "Escape") { document.getElementById("vocab-modal").style.display = "none"; return; }
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
@@ -2905,6 +2910,31 @@ function renderVocabResult(data) {
   document.getElementById("vocab-def").textContent = data.definition || "";
   document.getElementById("vocab-example-text").textContent = data.example || "";
   document.getElementById("vocab-tip-text").textContent = data.tip || "";
+
+  // Offer to add to the Words SRS when the word exists in the word list
+  const addBtn = document.getElementById("vocab-add-btn");
+  if (addBtn) {
+    const lookup = (data.word || "").toLowerCase().trim();
+    const match = (typeof WORDS !== "undefined" ? WORDS : [])
+      .find(w => w.german.toLowerCase() === lookup);
+    if (match && !wordsSRS[String(match.id)]) {
+      addBtn.style.display = "block";
+      addBtn.disabled = false;
+      addBtn.textContent = "+ Add to Words";
+      addBtn.onclick = () => {
+        // Due immediately so it surfaces in the next review session
+        wordsSRS[String(match.id)] = {
+          interval: 0, easeFactor: 2.5, dueDate: todayStr(),
+          lastReviewed: null, totalReviews: 0, totalCorrect: 0, archived: false,
+        };
+        saveWordsSRS();
+        addBtn.textContent = "Saved ✓ (due now)";
+        addBtn.disabled = true;
+      };
+    } else {
+      addBtn.style.display = "none";
+    }
+  }
 }
 
 // ---- Vocab Tab ----
@@ -3826,7 +3856,7 @@ function showTodayPanel() {
   hideRecallSpecificEls();
   aiPanel.style.display = "none";
   ["progress-panel", "vocab-panel", "grammar-panel", "words-panel", "drills-panel",
-   "starters-panel", "speak-panel", "monologue-panel", "games-panel"].forEach(id => {
+   "starters-panel", "speak-panel", "monologue-panel", "games-panel", "stories-panel"].forEach(id => {
     document.getElementById(id).style.display = "none";
   });
   document.getElementById("today-panel").style.display = "flex";
@@ -4045,6 +4075,284 @@ function updateTabBadges() {
     dot.textContent = wordDue > 99 ? "99+" : String(wordDue);
     dot.classList.toggle("visible", wordDue > 0);
   }
+}
+
+// ---- Stories: AI graded reader that recycles SRS vocabulary ----
+
+let currentStory = null;
+let storyPlayAllActive = false;
+
+function getStoriesReadCount() {
+  try { return parseInt(localStorage.getItem("stories_read_count") || "0", 10); } catch { return 0; }
+}
+
+function recordStoryRead() {
+  try {
+    localStorage.setItem("stories_read_count", String(getStoriesReadCount() + 1));
+  } catch {}
+  updateStoriesReadBadge();
+}
+
+function updateStoriesReadBadge() {
+  const n = getStoriesReadCount();
+  const badge = document.getElementById("stories-read-badge");
+  if (!badge) return;
+  if (n > 0) {
+    badge.textContent = `📚 ${n} read`;
+    badge.classList.add("visible");
+  } else {
+    badge.classList.remove("visible");
+  }
+}
+
+function showStoriesPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  ["progress-panel", "vocab-panel", "grammar-panel", "words-panel", "drills-panel",
+   "starters-panel", "speak-panel", "monologue-panel", "games-panel", "today-panel"].forEach(id => {
+    document.getElementById(id).style.display = "none";
+  });
+  document.getElementById("stories-panel").style.display = "flex";
+  updateStoriesReadBadge();
+  renderStoryVocabPreview();
+  // Restore the last generated story so a reload doesn't cost another generation
+  if (!currentStory) {
+    try { currentStory = JSON.parse(localStorage.getItem("lastStory") || "null"); } catch {}
+    if (currentStory) renderStory(false);
+  }
+}
+
+// Words worth recycling: due first, then weak (low ease), then new at level
+function pickStoryTargetWords(level) {
+  const tierFor = { a1: 1, a2: 2, b1: 3, b2: 4, c1: 4 };
+  const pool = (typeof WORDS !== "undefined" ? WORDS : []);
+  const due = [], weak = [], fresh = [];
+  for (const w of pool) {
+    const st = getWordStatus(w.id);
+    if (st === "due") due.push(w);
+    else if (st !== "new" && getWordRecord(w.id).easeFactor < 2.3) weak.push(w);
+    else if (st === "new" && w.tier === tierFor[level]) fresh.push(w);
+  }
+  const picked = [...due.slice(0, 5), ...weak.slice(0, 2)];
+  const shuffledFresh = fresh.sort(() => Math.random() - 0.5);
+  while (picked.length < 8 && shuffledFresh.length) picked.push(shuffledFresh.pop());
+  return picked.slice(0, 8);
+}
+
+function renderStoryVocabPreview() {
+  const level = document.getElementById("story-level-select").value;
+  const words = pickStoryTargetWords(level);
+  const el = document.getElementById("story-vocab-preview");
+  if (!words.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<span class="story-vocab-label">Will recycle:</span> ` +
+    words.map(w => `<span class="story-vocab-chip" title="${w.english}">${w.german}</span>`).join("");
+}
+
+async function generateStory() {
+  const level = document.getElementById("story-level-select").value;
+  const storyType = document.getElementById("story-type-select").value;
+  const topic = document.getElementById("story-topic-select").value;
+  const targets = pickStoryTargetWords(level);
+
+  const btn = document.getElementById("story-generate-btn");
+  btn.disabled = true;
+  storyStopPlayAll();
+  document.getElementById("story-loading").style.display = "block";
+  document.getElementById("story-error").style.display = "none";
+  document.getElementById("story-view").style.display = "none";
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "story",
+        level,
+        storyType,
+        topic,
+        targetWords: targets.map(w => w.german),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Server error");
+    currentStory = { ...data, quizDone: false };
+    try { localStorage.setItem("lastStory", JSON.stringify(currentStory)); } catch {}
+    renderStory(true);
+  } catch (err) {
+    const errEl = document.getElementById("story-error");
+    errEl.textContent = err.message || "Could not generate a story right now. Try again.";
+    errEl.style.display = "block";
+  }
+
+  document.getElementById("story-loading").style.display = "none";
+  btn.disabled = false;
+}
+
+function storyWrapTapWords(text) {
+  return text.split(/(\s+)/).map(tok =>
+    /^\s+$/.test(tok) ? tok :
+    `<span class="tap-word" data-word="${tok.replace(/[.,!?;:'"„“”»«()–—]/g, "")}">${tok}</span>`
+  ).join("");
+}
+
+function renderStory(scrollToTop) {
+  if (!currentStory) return;
+  document.getElementById("story-view").style.display = "flex";
+  document.getElementById("story-title").textContent = currentStory.title || "Eine Geschichte";
+  document.getElementById("story-level-chip").textContent = (currentStory.level || "b1").toUpperCase();
+
+  const usedWords = (currentStory.used_words || []).map(w => w.toLowerCase());
+  document.getElementById("story-body").innerHTML = currentStory.sentences.map((s, i) => `
+    <div class="story-sentence" data-idx="${i}">
+      <button class="story-sent-play" data-idx="${i}" aria-label="Play sentence">&#9654;</button>
+      <div class="story-sent-main">
+        <div class="story-sent-de">${storyWrapTapWords(s.de)}</div>
+        <div class="story-sent-en">${s.en || ""}</div>
+      </div>
+    </div>`).join("");
+
+  // Highlight recycled target words (stem match so inflected forms count:
+  // "warten" -> "wartet", "Schlüssel" -> "Schlüssels")
+  if (usedWords.length) {
+    const stems = usedWords
+      .map(t => t.toLowerCase().replace(/^(der|die|das)\s+/, "").replace(/e?n$/, ""))
+      .filter(s => s.length >= 3);
+    document.querySelectorAll("#story-body .tap-word").forEach(el => {
+      const w = (el.dataset.word || "").toLowerCase();
+      if (stems.some(s => w.startsWith(s))) {
+        el.classList.add("story-target-word");
+      }
+    });
+  }
+
+  renderStoryQuiz();
+  document.getElementById("story-show-en-btn").textContent = "Show English";
+  document.getElementById("story-body").classList.remove("show-english");
+  if (scrollToTop) document.getElementById("story-title").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderStoryQuiz() {
+  const quiz = document.getElementById("story-quiz");
+  const list = document.getElementById("story-quiz-list");
+  const resultEl = document.getElementById("story-quiz-result");
+  resultEl.style.display = "none";
+  if (!currentStory.questions || !currentStory.questions.length) {
+    quiz.style.display = "none";
+    return;
+  }
+  quiz.style.display = "flex";
+  list.innerHTML = currentStory.questions.map((q, qi) => `
+    <div class="story-quiz-q" data-qi="${qi}">
+      <div class="story-quiz-question">${qi + 1}. ${q.q}</div>
+      <div class="story-quiz-options">
+        ${q.options.map((opt, oi) =>
+          `<button class="story-quiz-opt" data-qi="${qi}" data-oi="${oi}">${opt}</button>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+function handleStoryQuizAnswer(qi, oi, btn) {
+  const q = currentStory.questions[qi];
+  const wrap = btn.closest(".story-quiz-q");
+  if (wrap.dataset.answered) return;
+  wrap.dataset.answered = "1";
+  wrap.querySelectorAll(".story-quiz-opt").forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.answer) b.classList.add("quiz-correct");
+    else if (i === oi) b.classList.add("quiz-wrong");
+  });
+  wrap.dataset.correct = oi === q.answer ? "1" : "0";
+
+  const answered = document.querySelectorAll('.story-quiz-q[data-answered]');
+  if (answered.length === currentStory.questions.length) {
+    const right = [...answered].filter(w => w.dataset.correct === "1").length;
+    const resultEl = document.getElementById("story-quiz-result");
+    resultEl.style.display = "block";
+    resultEl.textContent = right === answered.length
+      ? `${right}/${answered.length} richtig — perfekt! 🎉`
+      : `${right}/${answered.length} richtig. Lies die Stelle noch einmal!`;
+    if (!currentStory.quizDone) {
+      currentStory.quizDone = true;
+      try { localStorage.setItem("lastStory", JSON.stringify(currentStory)); } catch {}
+      recordStoryRead();
+    }
+  }
+}
+
+function storySpeakSentence(idx) {
+  storyStopPlayAll();
+  const s = currentStory && currentStory.sentences[idx];
+  if (!s) return;
+  speakGerman(s.de);
+}
+
+function storyStopPlayAll() {
+  storyPlayAllActive = false;
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  const btn = document.getElementById("story-play-all-btn");
+  if (btn) btn.innerHTML = "&#9654; Play all";
+  document.querySelectorAll(".story-sentence.playing").forEach(el => el.classList.remove("playing"));
+}
+
+function storyPlayAll() {
+  if (!currentStory || !window.speechSynthesis) return;
+  if (storyPlayAllActive) { storyStopPlayAll(); return; }
+  storyPlayAllActive = true;
+  document.getElementById("story-play-all-btn").innerHTML = "&#9632; Stop";
+  window.speechSynthesis.cancel();
+
+  const sentences = currentStory.sentences;
+  const playNext = (i) => {
+    if (!storyPlayAllActive || i >= sentences.length) { storyStopPlayAll(); return; }
+    document.querySelectorAll(".story-sentence.playing").forEach(el => el.classList.remove("playing"));
+    const row = document.querySelector(`.story-sentence[data-idx="${i}"]`);
+    if (row) { row.classList.add("playing"); row.scrollIntoView({ behavior: "smooth", block: "center" }); }
+    const utt = new SpeechSynthesisUtterance(sentences[i].de);
+    utt.lang = "de-DE";
+    utt.rate = 0.9;
+    utt.onend = () => setTimeout(() => playNext(i + 1), 350);
+    utt.onerror = () => storyStopPlayAll();
+    window.speechSynthesis.speak(utt);
+  };
+  playNext(0);
+}
+
+function setupStoriesPanel() {
+  document.getElementById("story-generate-btn").addEventListener("click", generateStory);
+  document.getElementById("story-new-btn").addEventListener("click", () => {
+    storyStopPlayAll();
+    document.getElementById("story-view").style.display = "none";
+    renderStoryVocabPreview();
+    document.getElementById("stories-setup").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  document.getElementById("story-level-select").addEventListener("change", renderStoryVocabPreview);
+  document.getElementById("story-play-all-btn").addEventListener("click", storyPlayAll);
+  document.getElementById("story-show-en-btn").addEventListener("click", () => {
+    const body = document.getElementById("story-body");
+    const showing = body.classList.toggle("show-english");
+    document.getElementById("story-show-en-btn").textContent = showing ? "Hide English" : "Show English";
+  });
+
+  // Delegated: word taps open the vocab popup, sentence taps toggle translation,
+  // play buttons speak the sentence, quiz options grade themselves.
+  document.getElementById("stories-panel").addEventListener("click", (e) => {
+    const playBtn = e.target.closest(".story-sent-play");
+    if (playBtn) { storySpeakSentence(parseInt(playBtn.dataset.idx, 10)); return; }
+    const quizOpt = e.target.closest(".story-quiz-opt");
+    if (quizOpt) {
+      handleStoryQuizAnswer(parseInt(quizOpt.dataset.qi, 10), parseInt(quizOpt.dataset.oi, 10), quizOpt);
+      return;
+    }
+    if (e.target.classList.contains("tap-word")) {
+      const word = e.target.dataset.word;
+      if (word) openVocabPopup(word);
+      return;
+    }
+    const sentence = e.target.closest(".story-sentence");
+    if (sentence) sentence.classList.toggle("show-en");
+  });
 }
 
 // ---- Grammar Tab ----

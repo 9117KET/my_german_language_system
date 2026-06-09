@@ -40,6 +40,10 @@
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
         <span class="tab-label">Shadow</span>
       </div>
+      <div class="tab" data-mode="stories">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span class="tab-label">Stories</span>
+      </div>
       <div class="nav-group-label">Conversation</div>
       <div class="tab" data-mode="ai">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.5" fill="currentColor" stroke="none"/><path d="M9 15a3 3 0 0 0 6 0"/></svg>
@@ -642,6 +646,68 @@
         </div>
       </div>
 
+      <!-- Stories: AI graded reader -->
+      <div id="stories-panel" style="display:none">
+        <div id="stories-header">
+          <div id="stories-title-row">
+            <h2 class="stories-title">Stories</h2>
+            <div id="stories-read-badge"></div>
+          </div>
+          <p class="stories-subtitle">AI stories at your level that recycle the words you're learning. Tap any word to look it up; tap a sentence for the translation.</p>
+        </div>
+
+        <div id="stories-setup">
+          <div id="stories-controls">
+            <select id="story-level-select">
+              <option value="a1">A1</option>
+              <option value="a2">A2</option>
+              <option value="b1" selected>B1</option>
+              <option value="b2">B2</option>
+              <option value="c1">C1</option>
+            </select>
+            <select id="story-type-select">
+              <option value="story">Story</option>
+              <option value="dialogue">Dialogue</option>
+            </select>
+            <select id="story-topic-select">
+              <option value="">Surprise me</option>
+              <option value="everyday life and routines">Alltag</option>
+              <option value="university life and studying">Uni-Leben</option>
+              <option value="travel and getting around in Germany">Reisen</option>
+              <option value="work, jobs and office life">Arbeit</option>
+              <option value="friendship and social plans">Freunde</option>
+              <option value="food, cooking and restaurants">Essen</option>
+              <option value="a small mystery or unexpected event">Mysteriös</option>
+            </select>
+          </div>
+          <div id="story-vocab-preview"></div>
+          <button id="story-generate-btn">&#10024; Generate story</button>
+        </div>
+
+        <div id="story-loading" style="display:none">Writing your story&hellip;</div>
+        <div id="story-error" style="display:none"></div>
+
+        <div id="story-view" style="display:none">
+          <div id="story-title-row">
+            <div id="story-title"></div>
+            <span id="story-level-chip"></span>
+          </div>
+          <div id="story-toolbar">
+            <button id="story-play-all-btn">&#9654; Play all</button>
+            <button id="story-show-en-btn">Show English</button>
+          </div>
+          <div id="story-body"></div>
+          <div id="story-quiz" style="display:none">
+            <div id="story-quiz-title">Check your understanding</div>
+            <div id="story-quiz-list"></div>
+            <div id="story-quiz-result" style="display:none"></div>
+          </div>
+          <div id="story-actions">
+            <button id="story-new-btn">New story &#8594;</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Today guided session panel -->
       <div id="today-panel" style="display:none">
         <div id="today-header">
@@ -1037,6 +1103,7 @@
       <div id="vocab-def"></div>
       <div id="vocab-example-text"></div>
       <div id="vocab-tip-text"></div>
+      <button id="vocab-add-btn" style="display:none">+ Add to Words</button>
     </div>
   </div>
 </div>

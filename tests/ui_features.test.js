@@ -1381,8 +1381,8 @@ describe("mobile more-nav — index.html", () => {
     }
   });
 
-  test("all 14 mode tabs still exist", () => {
-    const modes = ["today", "listen", "shadow", "recall", "ai", "progress", "vocab", "grammar",
+  test("all 15 mode tabs still exist", () => {
+    const modes = ["today", "listen", "shadow", "stories", "recall", "ai", "progress", "vocab", "grammar",
       "words", "drills", "starters", "speak", "monologue", "games"];
     for (const m of modes) {
       assert.ok(html.includes(`data-mode="${m}"`), `Missing tab: ${m}`);
@@ -1414,7 +1414,7 @@ describe("mobile more-nav — app.js", () => {
     const start = appJs.indexOf("const MORE_SHEET_GROUPS");
     const end = appJs.indexOf("];", start);
     const block = appJs.slice(start, end);
-    for (const m of ["listen", "shadow", "starters", "monologue", "words", "vocab", "grammar", "drills", "games", "progress"]) {
+    for (const m of ["listen", "shadow", "stories", "starters", "monologue", "words", "vocab", "grammar", "drills", "games", "progress"]) {
       assert.ok(block.includes(`"${m}"`), `Mode missing from MORE_SHEET_GROUPS: ${m}`);
     }
   });
@@ -1537,9 +1537,8 @@ describe("today session — app.js", () => {
   });
 
   test("today mode included in renderCard and keydown guards", () => {
-    const guards = appJs.match(/mode === "games"(\)| \|\| mode === "today")/g) || [];
-    assert.ok(appJs.includes('mode === "games" || mode === "today") return;'),
-      "today missing from mode guards");
+    const guards = appJs.match(/mode === "games" \|\| mode === "today"/g) || [];
+    assert.ok(guards.length >= 2, "today missing from mode guards");
   });
 
   test("grading paths feed the session counters", () => {
@@ -1600,6 +1599,133 @@ describe("drill mistake bank — app.js", () => {
 
   test("bank persists under drillMistakeBank key", () => {
     assert.ok(appJs.includes('"drillMistakeBank"'), "drillMistakeBank key missing");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Stories: AI graded reader
+// ---------------------------------------------------------------------------
+
+describe("stories — index.html", () => {
+  const html = readFile("index.html");
+
+  test("stories tab exists in nav", () => {
+    assert.ok(html.includes('data-mode="stories"'), "Stories tab not found");
+  });
+
+  test("#stories-panel and its parts exist", () => {
+    for (const id of ["stories-panel", "stories-setup", "story-level-select", "story-type-select",
+      "story-topic-select", "story-vocab-preview", "story-generate-btn", "story-loading",
+      "story-error", "story-view", "story-title", "story-body", "story-quiz",
+      "story-quiz-list", "story-play-all-btn", "story-show-en-btn", "story-new-btn"]) {
+      assert.ok(html.includes(`id="${id}"`), `Missing #${id}`);
+    }
+  });
+
+  test("level select covers a1-c1 and defaults to b1", () => {
+    const start = html.indexOf('id="story-level-select"');
+    const block = html.slice(start, html.indexOf("</select>", start));
+    for (const lvl of ["a1", "a2", "b1", "b2", "c1"]) {
+      assert.ok(block.includes(`value="${lvl}"`), `Missing level ${lvl}`);
+    }
+    assert.ok(block.includes('value="b1" selected'), "b1 should be default");
+  });
+
+  test("vocab modal has add-to-words button", () => {
+    assert.ok(html.includes('id="vocab-add-btn"'), "Missing #vocab-add-btn");
+  });
+});
+
+describe("stories — app.js", () => {
+  const appJs = readFile("app.js");
+
+  test("core story functions are defined", () => {
+    for (const fn of ["showStoriesPanel", "pickStoryTargetWords", "generateStory",
+      "renderStory", "renderStoryQuiz", "handleStoryQuizAnswer", "storyPlayAll",
+      "storyStopPlayAll", "setupStoriesPanel", "storyWrapTapWords"]) {
+      assert.ok(appJs.includes(`function ${fn}(`), `${fn} not defined`);
+    }
+  });
+
+  test("setupStoriesPanel is called in init()", () => {
+    const start = appJs.indexOf("function init()");
+    const end = appJs.indexOf("function renderCard");
+    assert.ok(appJs.slice(start, end).includes("setupStoriesPanel()"), "setupStoriesPanel not called in init");
+  });
+
+  test("stories mode included in renderCard and keydown guards", () => {
+    const matches = appJs.match(/mode === "today" \|\| mode === "stories"\) return;/g) || [];
+    assert.ok(matches.length >= 2, "stories missing from mode guards");
+  });
+
+  test("stories mode handled in setupEvents tab click", () => {
+    assert.ok(appJs.includes('newMode === "stories"'), "stories not handled in tab click");
+  });
+
+  test("target word picker prefers due then weak then new at level", () => {
+    const p = appJs.indexOf("function pickStoryTargetWords");
+    const block = appJs.slice(p, p + 1200);
+    assert.ok(block.includes('getWordStatus(w.id)'), "must use word SRS status");
+    assert.ok(block.includes("easeFactor"), "must consider weak words by ease factor");
+    assert.ok(block.includes("tier"), "must fall back to tier-appropriate new words");
+  });
+
+  test("generateStory posts story mode with level and target words", () => {
+    const p = appJs.indexOf("async function generateStory");
+    const block = appJs.slice(p, p + 1800);
+    assert.ok(block.includes('mode: "story"'), "must post mode story");
+    assert.ok(block.includes("targetWords"), "must send target words");
+    assert.ok(block.includes("storyType"), "must send story type");
+  });
+
+  test("last story persists in localStorage", () => {
+    assert.ok(appJs.includes('"lastStory"'), "lastStory key missing");
+    assert.ok(appJs.includes('"stories_read_count"'), "stories_read_count key missing");
+  });
+
+  test("quiz completion records a read", () => {
+    const p = appJs.indexOf("function handleStoryQuizAnswer");
+    const block = appJs.slice(p, p + 1500);
+    assert.ok(block.includes("recordStoryRead()"), "quiz completion must record a story read");
+  });
+
+  test("story words open the vocab popup via delegation", () => {
+    const p = appJs.indexOf("function setupStoriesPanel");
+    const block = appJs.slice(p, p + 2000);
+    assert.ok(block.includes("openVocabPopup"), "tap-words must open vocab popup");
+  });
+
+  test("vocab modal can add matched words to SRS as due", () => {
+    const p = appJs.indexOf("function renderVocabResult");
+    const block = appJs.slice(p, p + 2000);
+    assert.ok(block.includes("vocab-add-btn"), "renderVocabResult must wire the add button");
+    assert.ok(block.includes("dueDate: todayStr()"), "added words must be due immediately");
+  });
+});
+
+describe("stories — api/chat.js", () => {
+  const chatJs = readFile("api/chat.js");
+
+  test("story mode exists and runs before the text guard", () => {
+    const storyIdx = chatJs.indexOf('mode === "story"');
+    const guardIdx = chatJs.indexOf('if (!text || !text.trim())');
+    assert.ok(storyIdx !== -1, "story mode missing");
+    assert.ok(storyIdx < guardIdx, "story mode must not require learner text");
+  });
+
+  test("story mode uses level descriptions and target words", () => {
+    const p = chatJs.indexOf('mode === "story"');
+    const block = chatJs.slice(p, p + 3500);
+    assert.ok(block.includes("LEVEL_DESCRIPTIONS"), "must constrain by CEFR level");
+    assert.ok(block.includes("targetWords"), "must accept target words");
+    assert.ok(block.includes("comprehension questions"), "must request comprehension questions");
+  });
+
+  test("story mode validates sentences and clamps answers", () => {
+    const p = chatJs.indexOf('mode === "story"');
+    const block = chatJs.slice(p, p + 4000);
+    assert.ok(block.includes("Array.isArray(result.sentences)"), "must validate sentences array");
+    assert.ok(block.includes("catch"), "must have error fallback");
   });
 });
 

@@ -213,6 +213,64 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // story mode - generates a graded reader story, no learner text needed
+  if (mode === "story") {
+    const { level, storyType, topic, targetWords } = req.body || {};
+    const lvl = LEVEL_DESCRIPTIONS[level] ? level : "b1";
+    const sentenceCount = { a1: 8, a2: 10, b1: 12, b2: 14, c1: 14 }[lvl];
+    const words = Array.isArray(targetWords) ? targetWords.slice(0, 8).filter(w => typeof w === "string") : [];
+    const isDialogue = storyType === "dialogue";
+    const form = isDialogue
+      ? `a dialogue between two named people (prefix each sentence with the speaker's name and a colon, e.g. "Lena: ...")`
+      : `a short story with a small narrative arc (setup, a complication, a resolution)`;
+    try {
+      const systemPrompt =
+        `You are an author of German graded readers. You write engaging, natural German at exactly the requested CEFR level. ` +
+        `Learners must understand 95-98% of the words, so keep vocabulary at or below the level. Always return ONLY valid JSON.`;
+      const userPrompt =
+        `Write ${form} in German for a ${lvl.toUpperCase()} learner.\n` +
+        `Level constraint: ${LEVEL_DESCRIPTIONS[lvl]}\n` +
+        `Topic: ${topic || "everyday life in Germany (pick something concrete and slightly surprising)"}\n` +
+        (words.length ? `Weave these target words naturally into the text (use as many as fit, inflected forms are fine): ${words.join(", ")}\n` : "") +
+        `Length: exactly ${sentenceCount} sentences.\n\n` +
+        `Then write 3 comprehension questions IN GERMAN at the same level, each with 3 short answer options (exactly one correct).\n\n` +
+        `Return ONLY this JSON shape:\n` +
+        `{"title":"German title","title_en":"English title","sentences":[{"de":"German sentence","en":"English translation"}],` +
+        `"questions":[{"q":"German question","options":["opt A","opt B","opt C"],"answer":0}],` +
+        `"used_words":["target words you actually used"]}`;
+      const raw = await callGroqMessages([
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ], 1500);
+      const result = parseJSON(raw);
+      if (!result || !Array.isArray(result.sentences) || result.sentences.length < 3) {
+        throw new Error("Story generation returned invalid JSON");
+      }
+      const sentences = result.sentences
+        .filter(s => s && typeof s.de === "string" && s.de.trim())
+        .map(s => ({ de: s.de.trim(), en: (s.en || "").trim() }));
+      const questions = (Array.isArray(result.questions) ? result.questions : [])
+        .filter(q => q && q.q && Array.isArray(q.options) && q.options.length >= 2)
+        .slice(0, 3)
+        .map(q => ({
+          q: String(q.q),
+          options: q.options.slice(0, 3).map(String),
+          answer: Math.min(Math.max(parseInt(q.answer, 10) || 0, 0), Math.min(q.options.length, 3) - 1),
+        }));
+      return res.json({
+        title: result.title || "Eine Geschichte",
+        title_en: result.title_en || "",
+        level: lvl,
+        sentences,
+        questions,
+        used_words: Array.isArray(result.used_words) ? result.used_words : [],
+      });
+    } catch (err) {
+      console.error("[api/chat story]", err.message);
+      return res.status(500).json({ error: "Could not generate a story right now. Try again." });
+    }
+  }
+
   if (!text || !text.trim()) return res.status(400).json({ error: "No text provided" });
 
   try {
