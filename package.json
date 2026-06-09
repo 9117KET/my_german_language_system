@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "node --test tests/chat.test.js tests/deepgram-token.test.js tests/cefr.test.js tests/ui_features.test.js"
+    "test": "node --test tests/chat.test.js tests/deepgram-token.test.js tests/cefr.test.js tests/ui_features.test.js tests/games.test.js"
   },
   "engines": {
     "node": ">=18"

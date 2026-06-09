@@ -409,10 +409,9 @@ describe("games feature — style.css", () => {
   });
 
   test("#games-panel has mobile media query override", () => {
-    const mq = css.lastIndexOf("@media (max-width: 767px)");
-    assert.ok(mq !== -1, "No mobile media query found");
-    const mqBlock = css.slice(mq);
-    assert.ok(mqBlock.includes("#games-panel"), "#games-panel not in mobile media query");
+    // any mobile media query block that mentions #games-panel before the next @-rule
+    const re = /@media \(max-width: 767px\)[^@]*#games-panel/;
+    assert.ok(re.test(css), "#games-panel not in any mobile media query");
   });
 });
 

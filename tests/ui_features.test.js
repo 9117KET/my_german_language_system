@@ -1364,3 +1364,109 @@ describe("think in german — api/chat.js", () => {
     assert.ok(body.includes("catch"), "monologue-reflect must have error fallback");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Mobile bottom nav: 4 primary tabs + "More" sheet
+// ---------------------------------------------------------------------------
+
+describe("mobile more-nav — index.html", () => {
+  const html = readFile("index.html");
+
+  test("nav has group labels for desktop sidebar", () => {
+    for (const label of ["Practice", "Conversation", "Vocabulary", "Grammar", "Explore"]) {
+      assert.ok(
+        html.includes(`<div class="nav-group-label">${label}</div>`),
+        `Missing nav group label: ${label}`
+      );
+    }
+  });
+
+  test("all 13 mode tabs still exist", () => {
+    const modes = ["listen", "shadow", "recall", "ai", "progress", "vocab", "grammar",
+      "words", "drills", "starters", "speak", "monologue", "games"];
+    for (const m of modes) {
+      assert.ok(html.includes(`data-mode="${m}"`), `Missing tab: ${m}`);
+    }
+  });
+});
+
+describe("mobile more-nav — app.js", () => {
+  const appJs = readFile("app.js");
+
+  test("setupMobileMoreNav function is defined", () => {
+    assert.ok(appJs.includes("function setupMobileMoreNav()"), "setupMobileMoreNav not defined");
+  });
+
+  test("setupMobileMoreNav is called in init()", () => {
+    const start = appJs.indexOf("function init()");
+    const end = appJs.indexOf("function renderCard");
+    assert.ok(appJs.slice(start, end).includes("setupMobileMoreNav()"), "setupMobileMoreNav not called in init");
+  });
+
+  test("primary mobile modes are listen/recall/speak/ai", () => {
+    assert.ok(
+      /MOBILE_PRIMARY_MODES\s*=\s*\["listen",\s*"recall",\s*"speak",\s*"ai"\]/.test(appJs),
+      "MOBILE_PRIMARY_MODES mismatch"
+    );
+  });
+
+  test("more sheet groups cover every non-primary mode", () => {
+    const start = appJs.indexOf("const MORE_SHEET_GROUPS");
+    const end = appJs.indexOf("];", start);
+    const block = appJs.slice(start, end);
+    for (const m of ["shadow", "starters", "monologue", "words", "vocab", "grammar", "drills", "games", "progress"]) {
+      assert.ok(block.includes(`"${m}"`), `Mode missing from MORE_SHEET_GROUPS: ${m}`);
+    }
+  });
+
+  test("tab click handler closes sheet and syncs More state", () => {
+    const start = appJs.indexOf("tabEls.forEach(tab => {");
+    const end = appJs.indexOf("categorySelect.addEventListener", start);
+    const block = appJs.slice(start, end);
+    assert.ok(block.includes("closeMoreSheet()"), "tab click must close more sheet");
+    assert.ok(block.includes("updateMoreTabState()"), "tab click must sync More tab state");
+  });
+
+  test("programmatic tab switches sync More state", () => {
+    const pn = appJs.indexOf("function practiceNow");
+    assert.ok(appJs.slice(pn, pn + 400).includes("updateMoreTabState()"), "practiceNow must sync More state");
+    const gt = appJs.indexOf("function openGrammarTopic");
+    assert.ok(appJs.slice(gt, gt + 400).includes("updateMoreTabState()"), "openGrammarTopic must sync More state");
+  });
+});
+
+describe("mobile more-nav — style.css", () => {
+  const css = readFile("style.css");
+
+  test("more sheet styles exist", () => {
+    for (const sel of ["#more-sheet {", "#more-sheet-inner {", ".more-group-label {", ".more-item {", ".more-item.active {"]) {
+      assert.ok(css.includes(sel), `Missing CSS: ${sel}`);
+    }
+  });
+
+  test("more-tab hidden on desktop", () => {
+    assert.ok(css.includes("#more-tab { display: none; }"), "#more-tab must be hidden by default (desktop)");
+  });
+
+  test("mobile bar shows only primary tabs plus More", () => {
+    const mq = css.indexOf("MOBILE LAYOUT");
+    const block = css.slice(mq, mq + 4000);
+    assert.ok(block.includes("#mode-tabs .tab { display: none; }"), "non-primary tabs must be hidden on mobile");
+    for (const m of ["listen", "recall", "speak", "ai"]) {
+      assert.ok(block.includes(`.tab[data-mode="${m}"]`), `primary tab ${m} not shown on mobile`);
+    }
+    assert.ok(block.includes("#mode-tabs #more-tab"), "More tab not shown on mobile");
+  });
+
+  test("mobile tab bar no longer horizontally scrolls", () => {
+    const mq = css.indexOf("MOBILE LAYOUT");
+    const block = css.slice(mq, mq + 4000);
+    assert.ok(!block.includes("overflow-x: auto;\n    overflow-y: hidden;"), "tab bar should not scroll horizontally");
+  });
+
+  test("nav group labels hidden on mobile", () => {
+    const mq = css.indexOf("MOBILE LAYOUT");
+    const block = css.slice(mq, mq + 4000);
+    assert.ok(block.includes(".nav-group-label { display: none; }"), "group labels must be hidden on mobile");
+  });
+});

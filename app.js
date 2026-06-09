@@ -1255,6 +1255,7 @@ function init() {
   });
   buildQueue();
   renderCard();
+  setupMobileMoreNav();
   setupEvents();
   initAI();
   setupRecallSpeech();
@@ -1488,11 +1489,98 @@ function showAIPanel() {
   renderAISavedList();
 }
 
+// ---- Mobile bottom nav: 4 primary tabs + "More" sheet ----
+const MOBILE_PRIMARY_MODES = ["listen", "recall", "speak", "ai"];
+const MORE_SHEET_GROUPS = [
+  { label: "Practice", modes: ["shadow"] },
+  { label: "Conversation", modes: ["starters", "monologue"] },
+  { label: "Vocabulary", modes: ["words", "vocab"] },
+  { label: "Grammar", modes: ["grammar", "drills"] },
+  { label: "Explore", modes: ["games", "progress"] },
+];
+
+function setupMobileMoreNav() {
+  const nav = document.getElementById("mode-tabs");
+
+  const moreBtn = document.createElement("div");
+  moreBtn.className = "tab";
+  moreBtn.id = "more-tab";
+  moreBtn.innerHTML =
+    '<svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/>' +
+    '<circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>' +
+    '<circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>' +
+    '<span class="tab-label">More</span>';
+  nav.appendChild(moreBtn);
+
+  const sheet = document.createElement("div");
+  sheet.id = "more-sheet";
+  sheet.style.display = "none";
+  const inner = document.createElement("div");
+  inner.id = "more-sheet-inner";
+  sheet.appendChild(inner);
+
+  MORE_SHEET_GROUPS.forEach(group => {
+    const items = group.modes
+      .map(m => document.querySelector(`.tab[data-mode="${m}"]`))
+      .filter(Boolean);
+    if (!items.length) return;
+    const section = document.createElement("div");
+    section.className = "more-group";
+    const label = document.createElement("div");
+    label.className = "more-group-label";
+    label.textContent = group.label;
+    section.appendChild(label);
+    const row = document.createElement("div");
+    row.className = "more-group-items";
+    items.forEach(srcTab => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "more-item";
+      item.dataset.mode = srcTab.dataset.mode;
+      item.innerHTML = srcTab.innerHTML;
+      item.addEventListener("click", () => {
+        closeMoreSheet();
+        srcTab.click();
+      });
+      row.appendChild(item);
+    });
+    section.appendChild(row);
+    inner.appendChild(section);
+  });
+
+  document.body.appendChild(sheet);
+
+  moreBtn.addEventListener("click", () => {
+    const open = sheet.style.display !== "none";
+    if (open) { closeMoreSheet(); return; }
+    sheet.style.display = "flex";
+    updateMoreTabState();
+  });
+  sheet.addEventListener("click", e => {
+    if (e.target === sheet) closeMoreSheet();
+  });
+}
+
+function closeMoreSheet() {
+  const sheet = document.getElementById("more-sheet");
+  if (sheet) sheet.style.display = "none";
+}
+
+function updateMoreTabState() {
+  const moreBtn = document.getElementById("more-tab");
+  if (moreBtn) moreBtn.classList.toggle("active", !MOBILE_PRIMARY_MODES.includes(mode));
+  document.querySelectorAll(".more-item").forEach(item => {
+    item.classList.toggle("active", item.dataset.mode === mode);
+  });
+}
+
 // ---- Events (player) ----
 function setupEvents() {
   tabEls.forEach(tab => {
     tab.addEventListener("click", () => {
       const newMode = tab.dataset.mode;
+      closeMoreSheet();
       tabEls.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
 
@@ -1542,6 +1630,7 @@ function setupEvents() {
         buildQueue();
         renderCard();
       }
+      updateMoreTabState();
     });
   });
 
@@ -2436,6 +2525,7 @@ function practiceNow(phraseId) {
   practiceNowId = phraseId;
   mode = "recall";
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.mode === "recall"));
+  updateMoreTabState();
   sessionGot = 0; sessionMissed = 0; sessionTotal = 0;
   showPlayerPanel();
   buildQueue();
@@ -3687,6 +3777,7 @@ async function explainGrammar(topicId, topicTitle, btn) {
 function openGrammarTopic(tagId) {
   mode = "grammar";
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.mode === "grammar"));
+  updateMoreTabState();
   showGrammarPanel(tagId);
 }
 
