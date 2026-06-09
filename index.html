@@ -19,13 +19,18 @@
     </div>
     <nav id="mode-tabs">
       <div class="nav-group-label">Practice</div>
-      <div class="tab active" data-mode="listen">
+      <div class="tab active" data-mode="today">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>
+        <span class="tab-label">Today</span>
+      </div>
+      <div class="tab" data-mode="listen">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
         <span class="tab-label">Listen</span>
       </div>
       <div class="tab" data-mode="recall">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 1 0 8 8"/><path d="M12 6v6l4 2"/><path d="M18 2v4h4"/></svg>
         <span class="tab-label">Recall</span>
+        <span class="tab-badge"></span>
       </div>
       <div class="tab" data-mode="speak">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -52,6 +57,7 @@
       <div class="tab" data-mode="words">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
         <span class="tab-label">Words</span>
+        <span class="tab-badge"></span>
       </div>
       <div class="tab" data-mode="vocab">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -94,6 +100,16 @@
   </aside>
 
   <main class="app-main">
+
+    <div id="today-session-bar" style="display:none">
+      <div id="tsb-steps"></div>
+      <div id="tsb-label"></div>
+      <div id="tsb-actions">
+        <button id="tsb-next-btn" style="display:none">Continue &#8594;</button>
+        <button id="tsb-skip-btn" title="Skip this step">Skip</button>
+        <button id="tsb-end-btn" title="End session">&#x2715;</button>
+      </div>
+    </div>
 
     <div id="mobile-level-bar">
       <div class="level-chips">
@@ -623,6 +639,29 @@
           <div id="monologue-reflection-actions">
             <button id="monologue-another-btn">Another prompt &#x2192;</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Today guided session panel -->
+      <div id="today-panel" style="display:none">
+        <div id="today-header">
+          <div id="today-title-row">
+            <h2 class="today-title">Today</h2>
+            <div id="today-streak-badge"></div>
+          </div>
+          <p class="today-subtitle" id="today-date-line"></p>
+        </div>
+        <div id="today-summary">
+          <div class="today-stat"><div class="today-stat-val" id="today-phrases-due">0</div><div class="today-stat-lbl">Phrase reviews</div></div>
+          <div class="today-stat"><div class="today-stat-val" id="today-words-due">0</div><div class="today-stat-lbl">Words due</div></div>
+          <div class="today-stat"><div class="today-stat-val" id="today-mistakes-count">0</div><div class="today-stat-lbl">Drill mistakes</div></div>
+          <div class="today-stat"><div class="today-stat-val" id="today-streak-num">0</div><div class="today-stat-lbl">Day streak</div></div>
+        </div>
+        <button id="today-start-btn">&#9654; Start today's session</button>
+        <div id="today-plan"></div>
+        <div id="today-mistakes-hint" style="display:none">
+          <span id="today-mistakes-hint-text"></span>
+          <button id="today-fix-mistakes-btn">Fix them &#8594;</button>
         </div>
       </div>
 

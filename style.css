@@ -222,6 +222,212 @@ body {
   border-color: var(--accent-glow);
 }
 
+/* ---- Due-count tab badges ---- */
+.tab { position: relative; }
+.tab-badge {
+  display: none;
+  background: var(--red);
+  color: #0a0a0f;
+  font-size: 0.62rem;
+  font-weight: 800;
+  border-radius: 9px;
+  padding: 1px 6px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+.tab-badge.visible { display: inline-block; }
+.more-item { position: relative; }
+.more-item .tab-badge { position: absolute; top: 6px; right: 6px; }
+
+/* ---- Today session bar ---- */
+#today-session-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: rgba(74,158,255,0.12);
+  border-bottom: 1px solid var(--accent-glow);
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  flex-shrink: 0;
+}
+#tsb-steps { display: flex; gap: 5px; align-items: center; }
+.tsb-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--surface3);
+}
+.tsb-dot.current { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+.tsb-dot.done { background: var(--green); }
+#tsb-label {
+  flex: 1;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#tsb-actions { display: flex; gap: 6px; }
+#tsb-next-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  animation: tsb-pulse 1.6s ease-in-out infinite;
+}
+@keyframes tsb-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { box-shadow: 0 0 0 6px rgba(74,158,255,0); }
+}
+#tsb-skip-btn, #tsb-end-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#tsb-skip-btn:active, #tsb-end-btn:active { opacity: 0.7; }
+
+/* ---- Today panel ---- */
+#today-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+#today-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.today-title { font-size: 1.35rem; font-weight: 700; }
+#today-streak-badge {
+  display: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--yellow);
+  background: rgba(251,191,36,0.1);
+  border: 1px solid rgba(251,191,36,0.3);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+#today-streak-badge.visible { display: inline-block; }
+.today-subtitle {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+#today-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.today-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 8px;
+  text-align: center;
+}
+.today-stat-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+.today-stat-lbl {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+#today-start-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 15px 18px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: opacity 0.15s;
+}
+#today-start-btn:active { opacity: 0.8; }
+#today-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.today-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.today-plan-row.done { opacity: 0.55; }
+.today-plan-row.current { border-color: var(--accent); background: var(--accent-dim); }
+.today-plan-num {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--surface3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.today-plan-row.done .today-plan-num { background: var(--green); color: #0a0a0f; }
+.today-plan-name { font-weight: 600; font-size: 0.92rem; }
+.today-plan-detail {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  text-align: right;
+}
+#today-mistakes-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.35);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+}
+#today-fix-mistakes-btn {
+  margin-left: auto;
+  background: transparent;
+  color: var(--red);
+  border: 1px solid rgba(248,113,113,0.5);
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+/* Mistake-review card in Drills grid */
+.drill-mistakes-card {
+  border-color: rgba(248,113,113,0.45);
+}
+
 #mobile-level-bar {
   display: none;
 }
@@ -1815,12 +2021,20 @@ select option {
 
   /* Only primary tabs + More are visible in the bar */
   #mode-tabs .tab { display: none; }
-  #mode-tabs .tab[data-mode="listen"],
+  #mode-tabs .tab[data-mode="today"],
   #mode-tabs .tab[data-mode="recall"],
   #mode-tabs .tab[data-mode="speak"],
   #mode-tabs .tab[data-mode="ai"],
   #mode-tabs #more-tab {
     display: flex;
+  }
+
+  /* Badges sit on the icon corner when tabs are vertical */
+  #mode-tabs .tab .tab-badge {
+    position: absolute;
+    top: 2px;
+    right: 50%;
+    transform: translateX(22px);
   }
 
   .tab {
@@ -1880,6 +2094,15 @@ select option {
   /* Progress summary grid on mobile */
   #progress-summary {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Today panel on mobile */
+  #today-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .today-plan-detail {
+    font-size: 0.72rem;
+    max-width: 40%;
   }
 }
 

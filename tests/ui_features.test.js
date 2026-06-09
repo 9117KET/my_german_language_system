@@ -1381,8 +1381,8 @@ describe("mobile more-nav — index.html", () => {
     }
   });
 
-  test("all 13 mode tabs still exist", () => {
-    const modes = ["listen", "shadow", "recall", "ai", "progress", "vocab", "grammar",
+  test("all 14 mode tabs still exist", () => {
+    const modes = ["today", "listen", "shadow", "recall", "ai", "progress", "vocab", "grammar",
       "words", "drills", "starters", "speak", "monologue", "games"];
     for (const m of modes) {
       assert.ok(html.includes(`data-mode="${m}"`), `Missing tab: ${m}`);
@@ -1403,9 +1403,9 @@ describe("mobile more-nav — app.js", () => {
     assert.ok(appJs.slice(start, end).includes("setupMobileMoreNav()"), "setupMobileMoreNav not called in init");
   });
 
-  test("primary mobile modes are listen/recall/speak/ai", () => {
+  test("primary mobile modes are today/recall/speak/ai", () => {
     assert.ok(
-      /MOBILE_PRIMARY_MODES\s*=\s*\["listen",\s*"recall",\s*"speak",\s*"ai"\]/.test(appJs),
+      /MOBILE_PRIMARY_MODES\s*=\s*\["today",\s*"recall",\s*"speak",\s*"ai"\]/.test(appJs),
       "MOBILE_PRIMARY_MODES mismatch"
     );
   });
@@ -1414,7 +1414,7 @@ describe("mobile more-nav — app.js", () => {
     const start = appJs.indexOf("const MORE_SHEET_GROUPS");
     const end = appJs.indexOf("];", start);
     const block = appJs.slice(start, end);
-    for (const m of ["shadow", "starters", "monologue", "words", "vocab", "grammar", "drills", "games", "progress"]) {
+    for (const m of ["listen", "shadow", "starters", "monologue", "words", "vocab", "grammar", "drills", "games", "progress"]) {
       assert.ok(block.includes(`"${m}"`), `Mode missing from MORE_SHEET_GROUPS: ${m}`);
     }
   });
@@ -1452,7 +1452,7 @@ describe("mobile more-nav — style.css", () => {
     const mq = css.indexOf("MOBILE LAYOUT");
     const block = css.slice(mq, mq + 4000);
     assert.ok(block.includes("#mode-tabs .tab { display: none; }"), "non-primary tabs must be hidden on mobile");
-    for (const m of ["listen", "recall", "speak", "ai"]) {
+    for (const m of ["today", "recall", "speak", "ai"]) {
       assert.ok(block.includes(`.tab[data-mode="${m}"]`), `primary tab ${m} not shown on mobile`);
     }
     assert.ok(block.includes("#mode-tabs #more-tab"), "More tab not shown on mobile");
@@ -1468,5 +1468,152 @@ describe("mobile more-nav — style.css", () => {
     const mq = css.indexOf("MOBILE LAYOUT");
     const block = css.slice(mq, mq + 4000);
     assert.ok(block.includes(".nav-group-label { display: none; }"), "group labels must be hidden on mobile");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Today guided session, due badges, drill mistake bank
+// ---------------------------------------------------------------------------
+
+describe("today session — index.html", () => {
+  const html = readFile("index.html");
+
+  test("today tab exists and is the default active tab", () => {
+    assert.ok(html.includes('class="tab active" data-mode="today"'), "Today tab must be active by default");
+  });
+
+  test("#today-panel and its parts exist", () => {
+    for (const id of ["today-panel", "today-summary", "today-start-btn", "today-plan",
+      "today-phrases-due", "today-words-due", "today-mistakes-count", "today-streak-num",
+      "today-mistakes-hint", "today-fix-mistakes-btn"]) {
+      assert.ok(html.includes(`id="${id}"`), `Missing #${id}`);
+    }
+  });
+
+  test("session bar exists with steps, label, and action buttons", () => {
+    for (const id of ["today-session-bar", "tsb-steps", "tsb-label", "tsb-next-btn", "tsb-skip-btn", "tsb-end-btn"]) {
+      assert.ok(html.includes(`id="${id}"`), `Missing #${id}`);
+    }
+  });
+
+  test("recall and words tabs carry badge spans", () => {
+    const matches = html.match(/<span class="tab-badge"><\/span>/g) || [];
+    assert.ok(matches.length >= 2, "Expected badge spans on recall and words tabs");
+  });
+});
+
+describe("today session — app.js", () => {
+  const appJs = readFile("app.js");
+
+  test("TODAY_STEPS covers phrases, words, speak, think in order", () => {
+    const start = appJs.indexOf("const TODAY_STEPS");
+    const end = appJs.indexOf("];", start);
+    const block = appJs.slice(start, end);
+    const order = ["phrases", "words", "speak", "think"];
+    let pos = -1;
+    for (const id of order) {
+      const next = block.indexOf(`id: "${id}"`);
+      assert.ok(next > pos, `TODAY_STEPS out of order or missing: ${id}`);
+      pos = next;
+    }
+  });
+
+  test("core session functions are defined", () => {
+    for (const fn of ["showTodayPanel", "renderTodayPanel", "startTodaySession",
+      "enterTodayStep", "advanceTodayStep", "completeTodaySession", "endTodaySession",
+      "renderTodaySessionBar", "setupTodayPanel", "updateTabBadges"]) {
+      assert.ok(appJs.includes(`function ${fn}(`), `${fn} not defined`);
+    }
+  });
+
+  test("mode defaults to today and init lands on the Today panel", () => {
+    assert.ok(appJs.includes('let mode = "today";'), "default mode must be today");
+    const start = appJs.indexOf("function init()");
+    const end = appJs.indexOf("function renderCard");
+    const block = appJs.slice(start, end);
+    assert.ok(block.includes("setupTodayPanel()"), "setupTodayPanel not called in init");
+    assert.ok(block.includes("showTodayPanel()"), "showTodayPanel not called in init");
+    assert.ok(block.includes("updateTabBadges()"), "updateTabBadges not called in init");
+  });
+
+  test("today mode included in renderCard and keydown guards", () => {
+    const guards = appJs.match(/mode === "games"(\)| \|\| mode === "today")/g) || [];
+    assert.ok(appJs.includes('mode === "games" || mode === "today") return;'),
+      "today missing from mode guards");
+  });
+
+  test("grading paths feed the session counters", () => {
+    const gotIt = appJs.indexOf("function updateOnGotIt");
+    assert.ok(appJs.slice(gotIt, gotIt + 600).includes("todayOnPhraseGraded()"), "updateOnGotIt must call todayOnPhraseGraded");
+    const missed = appJs.indexOf("function updateOnMissed");
+    assert.ok(appJs.slice(missed, missed + 600).includes("todayOnPhraseGraded()"), "updateOnMissed must call todayOnPhraseGraded");
+    const word = appJs.indexOf("function handleWordSRS");
+    assert.ok(appJs.slice(word, word + 400).includes("todayOnWordGraded()"), "handleWordSRS must call todayOnWordGraded");
+    const speak = appJs.indexOf("async function speakTimeUp");
+    assert.ok(appJs.slice(speak, speak + 500).includes("todayOnSpeakDone()"), "speakTimeUp must call todayOnSpeakDone");
+    const mono = appJs.indexOf("async function submitMonologue");
+    assert.ok(appJs.slice(mono, mono + 1600).includes("todayOnThinkDone()"), "submitMonologue must call todayOnThinkDone");
+  });
+
+  test("saving SRS data refreshes the tab badges", () => {
+    const p = appJs.indexOf("function saveSrsData()");
+    assert.ok(appJs.slice(p, p + 200).includes("updateTabBadges()"), "saveSrsData must refresh badges");
+    const w = appJs.indexOf("function saveWordsSRS()");
+    assert.ok(appJs.slice(w, w + 200).includes("updateTabBadges()"), "saveWordsSRS must refresh badges");
+  });
+
+  test("today streak uses its own localStorage key", () => {
+    assert.ok(appJs.includes('"today_streak"'), "today_streak key missing");
+  });
+});
+
+describe("drill mistake bank — app.js", () => {
+  const appJs = readFile("app.js");
+
+  test("bank CRUD functions are defined", () => {
+    for (const fn of ["getDrillMistakeBank", "saveDrillMistakeBank", "addDrillMistake",
+      "clearDrillMistake", "openMistakeReviewSession", "buildDrillQueueItem"]) {
+      assert.ok(appJs.includes(`function ${fn}(`), `${fn} not defined`);
+    }
+  });
+
+  test("answerDrill records misses and clears on correct", () => {
+    const p = appJs.indexOf("function answerDrill");
+    const block = appJs.slice(p, p + 1200);
+    assert.ok(block.includes("clearDrillMistake(item.srcItem)"), "answerDrill must clear mistakes on correct");
+    assert.ok(block.includes("addDrillMistake("), "answerDrill must record mistakes");
+  });
+
+  test("grammar sprint records misses and clears on correct", () => {
+    const p = appJs.indexOf("function gsPickAnswer");
+    const block = appJs.slice(p, p + 1200);
+    assert.ok(block.includes("addDrillMistake("), "gsPickAnswer must record mistakes");
+    assert.ok(block.includes("clearDrillMistake(item)"), "gsPickAnswer must clear mistakes on correct");
+  });
+
+  test("drills panel renders a mistake review card when bank is non-empty", () => {
+    const p = appJs.indexOf("function renderDrillSetsPanel");
+    const block = appJs.slice(p, p + 1500);
+    assert.ok(block.includes("drill-mistakes-card"), "mistake review card missing from drills grid");
+    assert.ok(block.includes("openMistakeReviewSession"), "mistake card must open review session");
+  });
+
+  test("bank persists under drillMistakeBank key", () => {
+    assert.ok(appJs.includes('"drillMistakeBank"'), "drillMistakeBank key missing");
+  });
+});
+
+describe("today session — style.css", () => {
+  const css = readFile("style.css");
+
+  test("today panel and session bar styles exist", () => {
+    for (const sel of ["#today-panel {", "#today-session-bar {", ".today-stat {",
+      ".today-plan-row {", "#today-start-btn {", ".tsb-dot {", ".tab-badge {"]) {
+      assert.ok(css.includes(sel), `Missing CSS: ${sel}`);
+    }
+  });
+
+  test("badge hidden until marked visible", () => {
+    assert.ok(css.includes(".tab-badge.visible"), ".tab-badge.visible rule missing");
   });
 });

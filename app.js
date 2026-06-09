@@ -881,7 +881,7 @@ const STARTERS = [
 ];
 
 // ---- State ----
-let mode = "listen";
+let mode = "today";
 let category = "all";
 let shuffle = false;
 let autoAdvance = true;
@@ -1127,6 +1127,7 @@ function getNextInterval(interval, ef, correct) {
 
 function saveSrsData() {
   localStorage.setItem("srsData", JSON.stringify(srsData));
+  updateTabBadges();
 }
 
 function updateOnGotIt(id) {
@@ -1143,6 +1144,7 @@ function updateOnGotIt(id) {
     totalCorrect: r.totalCorrect + 1
   };
   saveSrsData();
+  todayOnPhraseGraded();
 }
 
 function updateOnMissed(id) {
@@ -1157,6 +1159,7 @@ function updateOnMissed(id) {
     totalReviews: r.totalReviews + 1
   };
   saveSrsData();
+  todayOnPhraseGraded();
 }
 
 function migrateMissedWeights() {
@@ -1265,11 +1268,15 @@ function init() {
   setupMonologuePanel();
   setupDrillsPanel();
   initGamesPanel();
+  setupTodayPanel();
+  // Land on the Today dashboard (mode defaults to "today")
+  showTodayPanel();
+  updateTabBadges();
 }
 
 // ---- Render (player) ----
 function renderCard(autoPlay = false) {
-  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games") return;
+  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games" || mode === "today") return;
 
   if (!queue.length) {
     audio.pause();
@@ -1490,9 +1497,9 @@ function showAIPanel() {
 }
 
 // ---- Mobile bottom nav: 4 primary tabs + "More" sheet ----
-const MOBILE_PRIMARY_MODES = ["listen", "recall", "speak", "ai"];
+const MOBILE_PRIMARY_MODES = ["today", "recall", "speak", "ai"];
 const MORE_SHEET_GROUPS = [
-  { label: "Practice", modes: ["shadow"] },
+  { label: "Practice", modes: ["listen", "shadow"] },
   { label: "Conversation", modes: ["starters", "monologue"] },
   { label: "Vocabulary", modes: ["words", "vocab"] },
   { label: "Grammar", modes: ["grammar", "drills"] },
@@ -1583,8 +1590,12 @@ function setupEvents() {
       closeMoreSheet();
       tabEls.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
+      document.getElementById("today-panel").style.display = "none";
 
-      if (newMode === "ai") {
+      if (newMode === "today") {
+        mode = "today";
+        showTodayPanel();
+      } else if (newMode === "ai") {
         mode = "ai";
         showAIPanel();
       } else if (newMode === "progress") {
@@ -1812,7 +1823,7 @@ function setupEvents() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games") return;
+    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games" || mode === "today") return;
     if (e.key === "Escape") { document.getElementById("vocab-modal").style.display = "none"; return; }
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
@@ -2592,6 +2603,27 @@ function openDrillMode(tag) {
   renderDrillCard();
 }
 
+function buildDrillQueueItem(item, srcSetKey) {
+  const sentenceHtml = item.sentence.replace("___", '<span class="drill-blank">___</span>');
+  const answerShown = item.sentence.startsWith("___")
+    ? item.answer.charAt(0).toUpperCase() + item.answer.slice(1)
+    : item.answer;
+  const revealedText = item.sentence.replace("___", answerShown);
+  const revealedHtml = item.sentence.replace("___", `<strong style="color:var(--green)">${answerShown}</strong>`);
+  const options = [item.answer, ...item.distractors].sort(() => Math.random() - 0.5);
+  return {
+    display: sentenceHtml,
+    blank: item.answer,
+    options,
+    phraseId: null,
+    german: revealedText,
+    germanHtml: revealedHtml,
+    rule: item.rule,
+    srcItem: item,
+    srcSetKey: srcSetKey || null,
+  };
+}
+
 function openDrillSetSession(setKey) {
   const set = DRILL_SETS[setKey];
   if (!set || !set.items || !set.items.length) return;
@@ -2599,27 +2631,69 @@ function openDrillSetSession(setKey) {
   drillSetKey = setKey;
   drillSessionCorrect = 0;
   drillSessionTotal = 0;
-  drillQueue = [...set.items].sort(() => Math.random() - 0.5).map(item => {
-    const sentenceHtml = item.sentence.replace("___", '<span class="drill-blank">___</span>');
-    const revealedText = item.sentence.startsWith("___")
-      ? item.sentence.replace("___", item.answer.charAt(0).toUpperCase() + item.answer.slice(1))
-      : item.sentence.replace("___", item.answer);
-    const revealedHtml = item.sentence.startsWith("___")
-      ? item.sentence.replace("___", `<strong style="color:var(--green)">${item.answer.charAt(0).toUpperCase() + item.answer.slice(1)}</strong>`)
-      : item.sentence.replace("___", `<strong style="color:var(--green)">${item.answer}</strong>`);
-    const options = [item.answer, ...item.distractors].sort(() => Math.random() - 0.5);
-    return {
-      display: sentenceHtml,
-      blank: item.answer,
-      options,
-      phraseId: null,
-      german: revealedText,
-      germanHtml: revealedHtml,
-      rule: item.rule,
-    };
-  });
+  drillQueue = [...set.items].sort(() => Math.random() - 0.5).map(item => buildDrillQueueItem(item, setKey));
   drillIdx = 0;
   document.getElementById("drill-tag-chip").innerHTML = `<span class="grammar-chip">${set.label}</span>`;
+  document.getElementById("drill-score-label").textContent = "";
+  document.getElementById("drill-progress-label").textContent = `1 / ${drillQueue.length}`;
+  document.getElementById("drill-modal").style.display = "flex";
+  renderDrillCard();
+}
+
+// ---- Drill mistake bank ----
+// Wrong answers from drill sets and Grammar Sprint land here; a correct
+// answer anywhere clears the item again.
+
+function getDrillMistakeBank() {
+  try { return JSON.parse(localStorage.getItem("drillMistakeBank") || "{}"); } catch { return {}; }
+}
+
+function saveDrillMistakeBank(bank) {
+  localStorage.setItem("drillMistakeBank", JSON.stringify(bank));
+}
+
+function addDrillMistake(setKey, item) {
+  if (!item || !item.sentence) return;
+  const bank = getDrillMistakeBank();
+  const prev = bank[item.sentence];
+  bank[item.sentence] = {
+    setKey: setKey || (prev && prev.setKey) || null,
+    sentence: item.sentence,
+    answer: item.answer,
+    distractors: item.distractors || [],
+    rule: item.rule || "",
+    misses: ((prev && prev.misses) || 0) + 1,
+    ts: Date.now(),
+  };
+  saveDrillMistakeBank(bank);
+}
+
+function clearDrillMistake(item) {
+  if (!item || !item.sentence) return;
+  const bank = getDrillMistakeBank();
+  if (bank[item.sentence]) {
+    delete bank[item.sentence];
+    saveDrillMistakeBank(bank);
+  }
+}
+
+function findDrillSetKeyForItem(item) {
+  for (const [key, set] of Object.entries(DRILL_SETS || {})) {
+    if ((set.items || []).some(i => i.sentence === item.sentence)) return key;
+  }
+  return null;
+}
+
+function openMistakeReviewSession() {
+  const entries = Object.values(getDrillMistakeBank()).sort((a, b) => b.ts - a.ts).slice(0, 20);
+  if (!entries.length) return;
+  drillTag = null;
+  drillSetKey = "__mistakes__";
+  drillSessionCorrect = 0;
+  drillSessionTotal = 0;
+  drillQueue = entries.sort(() => Math.random() - 0.5).map(item => buildDrillQueueItem(item, item.setKey));
+  drillIdx = 0;
+  document.getElementById("drill-tag-chip").innerHTML = `<span class="grammar-chip">Mistake Review</span>`;
   document.getElementById("drill-score-label").textContent = "";
   document.getElementById("drill-progress-label").textContent = `1 / ${drillQueue.length}`;
   document.getElementById("drill-modal").style.display = "flex";
@@ -2649,8 +2723,16 @@ function renderDrillSetsPanel() {
   updateDrillsStreakBadge();
   const grid = document.getElementById("drills-set-grid");
   if (!grid) return;
+  const mistakeCount = Object.keys(getDrillMistakeBank()).length;
+  const mistakesCard = mistakeCount > 0
+    ? `<div class="drill-set-card drill-mistakes-card" onclick="openMistakeReviewSession()" style="--set-color:#f87171">
+        <div class="drill-set-name">&#9888; Review Mistakes</div>
+        <div class="drill-set-subtitle">Items you got wrong recently. Answer correctly to clear them.</div>
+        <div class="drill-set-count">${mistakeCount} to fix &rarr;</div>
+      </div>`
+    : "";
   const setKeys = Object.keys(DRILL_SETS);
-  grid.innerHTML = setKeys.map(key => {
+  grid.innerHTML = mistakesCard + setKeys.map(key => {
     const s = DRILL_SETS[key];
     return `<div class="drill-set-card" onclick="openDrillSetSession('${key}')" style="--set-color:${s.color}">
       <div class="drill-set-name">${s.label}</div>
@@ -2713,11 +2795,14 @@ function renderDrillCard() {
     document.getElementById("drill-next").style.display = "none";
     document.getElementById("drill-progress-label").textContent = "Complete!";
     document.getElementById("drill-score-label").textContent = "";
-    if (mode === "drills") updateDrillsStreakBadge();
+    if (mode === "drills") renderDrillSetsPanel();
+    if (mode === "today") renderTodayPanel();
     return;
   }
   const item = drillQueue[drillIdx];
-  const chipLabel = drillSetKey ? (DRILL_SETS[drillSetKey] || {}).label : drillTag;
+  const chipLabel = drillSetKey === "__mistakes__"
+    ? "Mistake Review"
+    : drillSetKey ? (DRILL_SETS[drillSetKey] || {}).label : drillTag;
   document.getElementById("drill-tag-chip").innerHTML = `<span class="grammar-chip">${chipLabel || ""}</span>`;
   document.getElementById("drill-progress-label").textContent = `${drillIdx + 1} / ${drillQueue.length}`;
   document.getElementById("drill-score-label").textContent = drillSessionTotal > 0 ? `${drillSessionCorrect} ✓` : "";
@@ -2742,6 +2827,10 @@ function answerDrill(chosen) {
   if (item.phraseId != null) {
     if (isCorrect) updateOnGotIt(item.phraseId);
     else updateOnMissed(item.phraseId);
+  }
+  if (item.srcItem) {
+    if (isCorrect) clearDrillMistake(item.srcItem);
+    else addDrillMistake(drillSetKey === "__mistakes__" ? item.srcSetKey : drillSetKey, item.srcItem);
   }
   if (isCorrect) drillSessionCorrect++;
   drillSessionTotal++;
@@ -3331,6 +3420,7 @@ async function speakTimeUp() {
   setSpeakArc(0);
   recordSpeakDone();
   updateSpeakStreak();
+  todayOnSpeakDone();
 
   document.getElementById("speak-actions").style.display = "none";
   document.getElementById("speak-start-btn").disabled = false;
@@ -3632,6 +3722,7 @@ async function submitMonologue() {
   recordMonologueDone();
   updateMonologueCount();
   updateMonologueStreak();
+  todayOnThinkDone();
   document.getElementById("monologue-reflection-area").style.display = "flex";
   btn.textContent = "Reflect →";
   btn.disabled = false;
@@ -3665,6 +3756,295 @@ function setupMonologuePanel() {
     monologuePromptIndex = (monologuePromptIndex + 1) % MONOLOGUE_PROMPTS.length;
     initMonologuePanel();
   });
+}
+
+// ---- Today: guided daily session ----
+// One ~15-minute flow: due phrase reviews -> due words -> 1 Speak scenario
+// -> 1 Think prompt. Steps advance via the sticky session bar.
+
+const TODAY_STEPS = [
+  { id: "phrases", label: "Phrases", tabMode: "recall" },
+  { id: "words", label: "Words", tabMode: "words" },
+  { id: "speak", label: "Speak", tabMode: "speak" },
+  { id: "think", label: "Think", tabMode: "monologue" },
+];
+const TODAY_PHRASE_TARGET = 8;
+const TODAY_WORD_TARGET = 10;
+
+let todaySession = null;
+
+function countDuePhrases() {
+  let due = 0, fresh = 0;
+  (typeof PHRASES !== "undefined" ? PHRASES : []).forEach(p => {
+    const st = getStatus(p.id);
+    if (st === "due") due++;
+    else if (st === "new") fresh++;
+  });
+  return { due, fresh };
+}
+
+function countDueWords() {
+  let due = 0, fresh = 0;
+  (typeof WORDS !== "undefined" ? WORDS : []).forEach(w => {
+    const st = getWordStatus(w.id);
+    if (st === "due") due++;
+    else if (st === "new") fresh++;
+  });
+  return { due, fresh };
+}
+
+function getTodayStreak() {
+  try {
+    const data = JSON.parse(localStorage.getItem("today_streak") || "{}");
+    const today = todayStr();
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (data.last === today || data.last === yesterday) return data.count || 0;
+    return 0;
+  } catch { return 0; }
+}
+
+function isTodaySessionDoneToday() {
+  try {
+    return JSON.parse(localStorage.getItem("today_streak") || "{}").last === todayStr();
+  } catch { return false; }
+}
+
+function recordTodaySessionDone() {
+  try {
+    const today = todayStr();
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const data = JSON.parse(localStorage.getItem("today_streak") || "{}");
+    if (data.last === today) return;
+    const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
+    localStorage.setItem("today_streak", JSON.stringify({ last: today, count: newCount }));
+  } catch {}
+}
+
+function showTodayPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  ["progress-panel", "vocab-panel", "grammar-panel", "words-panel", "drills-panel",
+   "starters-panel", "speak-panel", "monologue-panel", "games-panel"].forEach(id => {
+    document.getElementById(id).style.display = "none";
+  });
+  document.getElementById("today-panel").style.display = "flex";
+  renderTodayPanel();
+}
+
+function renderTodayPanel() {
+  const phrases = countDuePhrases();
+  const words = countDueWords();
+  const mistakes = Object.keys(getDrillMistakeBank()).length;
+  const streak = getTodayStreak();
+  const doneToday = isTodaySessionDoneToday();
+
+  document.getElementById("today-date-line").textContent =
+    new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  document.getElementById("today-phrases-due").textContent = phrases.due;
+  document.getElementById("today-words-due").textContent = words.due;
+  document.getElementById("today-mistakes-count").textContent = mistakes;
+  document.getElementById("today-streak-num").textContent = streak;
+
+  const badge = document.getElementById("today-streak-badge");
+  if (streak > 0) {
+    badge.textContent = "🔥 " + streak + " day streak";
+    badge.classList.add("visible");
+  } else {
+    badge.classList.remove("visible");
+  }
+
+  const btn = document.getElementById("today-start-btn");
+  if (todaySession) btn.textContent = "▶ Resume session";
+  else if (doneToday) btn.textContent = "✓ Done today — go again";
+  else btn.textContent = "▶ Start today's session (~15 min)";
+
+  const phraseTotal = Math.min(TODAY_PHRASE_TARGET, phrases.due + phrases.fresh);
+  const wordTotal = Math.min(TODAY_WORD_TARGET, words.due + words.fresh);
+  const details = {
+    phrases: phraseTotal > 0 ? `${phraseTotal} cards · ${phrases.due} due` : "nothing due",
+    words: wordTotal > 0 ? `${wordTotal} words · ${words.due} due` : "nothing due",
+    speak: "1 scenario · 60 seconds",
+    think: "1 prompt · write freely",
+  };
+  document.getElementById("today-plan").innerHTML = TODAY_STEPS.map((s, i) => {
+    const done = todaySession ? i < todaySession.step : doneToday;
+    const current = todaySession && i === todaySession.step;
+    return `<div class="today-plan-row${done ? " done" : ""}${current ? " current" : ""}">
+      <span class="today-plan-num">${done ? "✓" : i + 1}</span>
+      <span class="today-plan-name">${s.label}</span>
+      <span class="today-plan-detail">${details[s.id]}</span>
+    </div>`;
+  }).join("");
+
+  const hint = document.getElementById("today-mistakes-hint");
+  if (mistakes > 0) {
+    document.getElementById("today-mistakes-hint-text").textContent =
+      `${mistakes} drill mistake${mistakes !== 1 ? "s" : ""} waiting for review.`;
+    hint.style.display = "flex";
+  } else {
+    hint.style.display = "none";
+  }
+}
+
+function startTodaySession() {
+  const phrases = countDuePhrases();
+  const words = countDueWords();
+  todaySession = {
+    step: 0,
+    phrasesDone: 0,
+    phrasesTarget: Math.min(TODAY_PHRASE_TARGET, phrases.due + phrases.fresh),
+    wordsDone: 0,
+    wordsTarget: Math.min(TODAY_WORD_TARGET, words.due + words.fresh),
+    speakDone: false,
+    thinkDone: false,
+  };
+  enterTodayStep();
+}
+
+function todayStepComplete() {
+  if (!todaySession) return false;
+  const s = TODAY_STEPS[todaySession.step];
+  if (!s) return false;
+  if (s.id === "phrases") return todaySession.phrasesDone >= todaySession.phrasesTarget;
+  if (s.id === "words") return todaySession.wordsDone >= todaySession.wordsTarget;
+  if (s.id === "speak") return todaySession.speakDone;
+  if (s.id === "think") return todaySession.thinkDone;
+  return false;
+}
+
+function todayStepHasNothingToDo() {
+  const s = TODAY_STEPS[todaySession.step];
+  if (s.id === "phrases") return todaySession.phrasesTarget === 0;
+  if (s.id === "words") return todaySession.wordsTarget === 0;
+  return false;
+}
+
+function enterTodayStep() {
+  if (!todaySession) return;
+  while (todaySession.step < TODAY_STEPS.length && todayStepHasNothingToDo()) {
+    todaySession.step++;
+  }
+  if (todaySession.step >= TODAY_STEPS.length) {
+    completeTodaySession();
+    return;
+  }
+  const s = TODAY_STEPS[todaySession.step];
+  const tab = document.querySelector(`.tab[data-mode="${s.tabMode}"]`);
+  if (tab) tab.click();
+  renderTodaySessionBar();
+}
+
+function renderTodaySessionBar() {
+  if (!todaySession) return;
+  document.getElementById("today-session-bar").style.display = "flex";
+  document.getElementById("tsb-steps").innerHTML = TODAY_STEPS.map((s, i) => {
+    const cls = i < todaySession.step ? "tsb-dot done"
+      : i === todaySession.step ? "tsb-dot current" : "tsb-dot";
+    return `<span class="${cls}"></span>`;
+  }).join("");
+  const s = TODAY_STEPS[todaySession.step];
+  let label = s.label;
+  if (s.id === "phrases") label = `Phrases ${todaySession.phrasesDone}/${todaySession.phrasesTarget}`;
+  else if (s.id === "words") label = `Words ${todaySession.wordsDone}/${todaySession.wordsTarget}`;
+  else if (s.id === "speak") label = "Speak: finish 1 scenario";
+  else if (s.id === "think") label = "Think: submit 1 prompt";
+  const complete = todayStepComplete();
+  document.getElementById("tsb-label").textContent = complete ? `${s.label} done ✓` : label;
+  document.getElementById("tsb-next-btn").style.display = complete ? "inline-block" : "none";
+  document.getElementById("tsb-skip-btn").style.display = complete ? "none" : "inline-block";
+  document.getElementById("tsb-next-btn").textContent =
+    todaySession.step === TODAY_STEPS.length - 1 ? "Finish 🎉" : "Continue →";
+}
+
+function advanceTodayStep() {
+  if (!todaySession) return;
+  todaySession.step++;
+  if (todaySession.step >= TODAY_STEPS.length) completeTodaySession();
+  else enterTodayStep();
+}
+
+function completeTodaySession() {
+  recordTodaySessionDone();
+  todaySession = null;
+  document.getElementById("today-session-bar").style.display = "none";
+  const todayTab = document.querySelector('.tab[data-mode="today"]');
+  if (todayTab) todayTab.click();
+}
+
+function endTodaySession() {
+  todaySession = null;
+  document.getElementById("today-session-bar").style.display = "none";
+  if (mode === "today") renderTodayPanel();
+}
+
+// Hooks called from the grading paths of each step's mode
+function todayOnPhraseGraded() {
+  if (!todaySession || mode !== "recall") return;
+  if (TODAY_STEPS[todaySession.step].id !== "phrases") return;
+  todaySession.phrasesDone++;
+  renderTodaySessionBar();
+}
+
+function todayOnWordGraded() {
+  if (!todaySession || mode !== "words") return;
+  if (TODAY_STEPS[todaySession.step].id !== "words") return;
+  todaySession.wordsDone++;
+  renderTodaySessionBar();
+}
+
+function todayOnSpeakDone() {
+  if (!todaySession || TODAY_STEPS[todaySession.step].id !== "speak") return;
+  todaySession.speakDone = true;
+  renderTodaySessionBar();
+}
+
+function todayOnThinkDone() {
+  if (!todaySession || TODAY_STEPS[todaySession.step].id !== "think") return;
+  todaySession.thinkDone = true;
+  renderTodaySessionBar();
+}
+
+function setupTodayPanel() {
+  document.getElementById("today-start-btn").addEventListener("click", () => {
+    if (todaySession) enterTodayStep();
+    else startTodaySession();
+  });
+  document.getElementById("tsb-next-btn").addEventListener("click", advanceTodayStep);
+  document.getElementById("tsb-skip-btn").addEventListener("click", advanceTodayStep);
+  document.getElementById("tsb-end-btn").addEventListener("click", endTodaySession);
+  document.getElementById("today-fix-mistakes-btn").addEventListener("click", () => {
+    const tab = document.querySelector('.tab[data-mode="drills"]');
+    if (tab) tab.click();
+  });
+}
+
+// ---- Due-count tab badges ----
+function updateTabBadges() {
+  const setBadge = (modeName, count) => {
+    document.querySelectorAll(`[data-mode="${modeName}"] .tab-badge`).forEach(el => {
+      el.textContent = count > 99 ? "99+" : String(count);
+      el.classList.toggle("visible", count > 0);
+    });
+  };
+  const phraseDue = countDuePhrases().due;
+  const wordDue = countDueWords().due;
+  setBadge("recall", phraseDue);
+  setBadge("words", wordDue);
+
+  // Words lives in the More sheet on mobile - surface its due count there
+  const moreBtn = document.getElementById("more-tab");
+  if (moreBtn) {
+    let dot = moreBtn.querySelector(".tab-badge");
+    if (!dot) {
+      dot = document.createElement("span");
+      dot.className = "tab-badge";
+      moreBtn.appendChild(dot);
+    }
+    dot.textContent = wordDue > 99 ? "99+" : String(wordDue);
+    dot.classList.toggle("visible", wordDue > 0);
+  }
 }
 
 // ---- Grammar Tab ----
@@ -4445,6 +4825,7 @@ function loadWordsSRS() {
 
 function saveWordsSRS() {
   localStorage.setItem("wordsSRS", JSON.stringify(wordsSRS));
+  updateTabBadges();
 }
 
 function getWordRecord(id) {
@@ -4703,6 +5084,7 @@ function handleWordSRS(rating) {
   if (!wordsQueue.length) return;
   const w = wordsQueue[wordsIndex];
   updateWordSRS(w.id, rating);
+  todayOnWordGraded();
   wordsSessionTotal++;
   if (rating !== "miss") wordsSessionCorrect++;
   if (wordsIndex < wordsQueue.length - 1) {
@@ -5472,6 +5854,9 @@ function gsPickAnswer(chosen, item, btn) {
     const ruleEl = document.getElementById("gs-rule-display");
     ruleEl.textContent = item.rule;
     ruleEl.style.display = "block";
+    addDrillMistake(gsSet !== "all" ? gsSet : findDrillSetKeyForItem(item), item);
+  } else {
+    clearDrillMistake(item);
   }
 
   gsUpdatePlayStats();
