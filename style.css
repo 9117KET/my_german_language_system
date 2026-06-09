@@ -617,6 +617,92 @@ body {
   touch-action: manipulation;
 }
 
+/* ---- Error profile (My Mistakes) section in Progress ---- */
+#error-profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+#error-profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#error-profile-title { font-weight: 700; font-size: 0.95rem; }
+#error-log-count { font-size: 0.75rem; color: var(--text-dim); }
+#error-profile-sub { font-size: 0.78rem; color: var(--text-dim); }
+#error-profile-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+#error-profile-actions button {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#error-profile-actions button:disabled { opacity: 0.5; cursor: default; }
+#error-analyze-btn, #error-practice-btn {
+  background: var(--accent-dim) !important;
+  color: var(--accent) !important;
+  border-color: var(--accent-glow) !important;
+}
+#error-clear-btn { color: var(--text-dim) !important; }
+#error-profile-status {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  animation: story-pulse 1.4s ease-in-out infinite;
+}
+#error-profile-status.is-error { color: var(--red); animation: none; }
+#error-patterns { display: flex; flex-direction: column; gap: 8px; }
+.error-pattern-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.error-pattern-title { font-weight: 700; font-size: 0.88rem; color: var(--accent); }
+.error-pattern-desc { font-size: 0.82rem; line-height: 1.5; }
+.error-pattern-tip { font-size: 0.8rem; color: var(--yellow); }
+.error-pattern-examples { display: flex; flex-direction: column; gap: 2px; }
+.error-pattern-examples span { font-size: 0.82rem; color: var(--text-dim); font-style: italic; }
+#error-log-list { display: flex; flex-direction: column; gap: 8px; }
+.error-log-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.error-log-top { display: flex; justify-content: space-between; }
+.error-log-source {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+.error-log-date { font-size: 0.7rem; color: var(--text-dim); }
+.error-log-original {
+  font-size: 0.84rem;
+  color: var(--red);
+  text-decoration: line-through;
+  text-decoration-color: rgba(248,113,113,0.5);
+}
+.error-log-corrected { font-size: 0.86rem; color: var(--green); }
+.error-log-explanation { font-size: 0.76rem; color: var(--text-dim); }
+
 /* Vocab modal add-to-words button */
 #vocab-add-btn {
   margin-top: 12px;

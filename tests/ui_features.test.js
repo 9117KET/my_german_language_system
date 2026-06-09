@@ -1729,6 +1729,114 @@ describe("stories — api/chat.js", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Unified error log and weakness profile
+// ---------------------------------------------------------------------------
+
+describe("error profile — index.html", () => {
+  const html = readFile("index.html");
+
+  test("error profile section exists in Progress panel", () => {
+    for (const id of ["error-profile-section", "error-log-count", "error-analyze-btn",
+      "error-practice-btn", "error-toggle-list-btn", "error-clear-btn",
+      "error-patterns", "error-log-list", "error-profile-status"]) {
+      assert.ok(html.includes(`id="${id}"`), `Missing #${id}`);
+    }
+  });
+
+  test("error section lives inside the progress panel", () => {
+    const progStart = html.indexOf('id="progress-panel"');
+    const progEnd = html.indexOf('id="vocab-panel"');
+    const section = html.indexOf('id="error-profile-section"');
+    assert.ok(section > progStart && section < progEnd, "error section must be inside #progress-panel");
+  });
+});
+
+describe("error profile — app.js", () => {
+  const appJs = readFile("app.js");
+
+  test("error log functions are defined", () => {
+    for (const fn of ["getErrorLog", "logError", "renderErrorProfileSection",
+      "renderErrorPatterns", "analyzeErrorProfile", "practiceErrorDrills",
+      "openErrorDrillSession", "setupErrorProfileSection"]) {
+      assert.ok(appJs.includes(`function ${fn}(`), `${fn} not defined`);
+    }
+  });
+
+  test("log is capped and deduplicated", () => {
+    const p = appJs.indexOf("function logError");
+    const block = appJs.slice(p, p + 900);
+    assert.ok(appJs.includes("ERROR_LOG_MAX"), "ERROR_LOG_MAX missing");
+    assert.ok(block.includes("log.some(e => e.original === original"), "must dedupe identical corrections");
+    assert.ok(block.includes("original.toLowerCase() === corrected.toLowerCase()"), "must skip non-corrections");
+  });
+
+  test("all six correction paths feed the log", () => {
+    assert.ok(/logError\(aiMode, result\.original/.test(appJs), "correct/write path must log");
+    assert.ok(/logError\("chat",/.test(appJs), "chat correction path must log");
+    assert.ok(/logError\("recall",/.test(appJs), "recall-check path must log");
+    assert.ok(/logError\("speak",/.test(appJs), "speak sample path must log");
+    assert.ok(/logError\("talkbox",/.test(appJs), "talkbox sample path must log");
+  });
+
+  test("chat path skips translation prompts", () => {
+    const p = appJs.indexOf('logError("chat"');
+    const before = appJs.slice(p - 300, p);
+    assert.ok(before.includes("try saying"), "must filter 'try saying' translation corrections");
+  });
+
+  test("practice opens a drill session from generated drills", () => {
+    const p = appJs.indexOf("function openErrorDrillSession");
+    const block = appJs.slice(p, p + 800);
+    assert.ok(block.includes('"__errorlog__"'), "must use the __errorlog__ set key");
+    assert.ok(block.includes("buildDrillQueueItem"), "must reuse the drill queue builder");
+  });
+
+  test("progress panel renders the error section", () => {
+    const p = appJs.indexOf("function showProgressPanel");
+    const block = appJs.slice(p, p + 1200);
+    assert.ok(block.includes("renderErrorProfileSection()"), "showProgressPanel must render error section");
+  });
+
+  test("analysis result is cached by error count", () => {
+    assert.ok(appJs.includes('"errorProfileCache"'), "errorProfileCache key missing");
+  });
+
+  test("setupErrorProfileSection is called in init()", () => {
+    const start = appJs.indexOf("function init()");
+    const end = appJs.indexOf("function renderCard");
+    assert.ok(appJs.slice(start, end).includes("setupErrorProfileSection()"), "not wired in init");
+  });
+});
+
+describe("error profile — api/chat.js", () => {
+  const chatJs = readFile("api/chat.js");
+
+  test("error-profile mode exists and validates input", () => {
+    const p = chatJs.indexOf('mode === "error-profile"');
+    assert.ok(p !== -1, "error-profile mode missing");
+    const block = chatJs.slice(p, p + 2500);
+    assert.ok(block.includes("Array.isArray(errors)"), "must validate errors array");
+    assert.ok(block.includes("patterns"), "must return patterns");
+    assert.ok(block.includes("catch"), "must have error fallback");
+  });
+
+  test("error-drills mode builds gap-fills from corrected sentences", () => {
+    const p = chatJs.indexOf('mode === "error-drills"');
+    assert.ok(p !== -1, "error-drills mode missing");
+    const block = chatJs.slice(p, p + 3000);
+    assert.ok(block.includes('d.sentence.includes("___")'), "must validate gap marker");
+    assert.ok(block.includes("distractors"), "must include distractors");
+    assert.ok(block.includes("catch"), "must have error fallback");
+  });
+
+  test("both error modes run before the text guard", () => {
+    const guardIdx = chatJs.indexOf('if (!text || !text.trim())');
+    assert.ok(chatJs.indexOf('mode === "error-profile"') < guardIdx, "error-profile must not require text");
+    assert.ok(chatJs.indexOf('mode === "error-drills"') < guardIdx, "error-drills must not require text");
+  });
+});
+
 describe("today session — style.css", () => {
   const css = readFile("style.css");
 

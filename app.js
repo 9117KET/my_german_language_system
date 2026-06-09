@@ -1270,6 +1270,7 @@ function init() {
   initGamesPanel();
   setupTodayPanel();
   setupStoriesPanel();
+  setupErrorProfileSection();
   // Land on the Today dashboard (mode defaults to "today")
   showTodayPanel();
   updateTabBadges();
@@ -2015,6 +2016,9 @@ async function sendToAI(text) {
     lastAIResult = result;
     aiSpinner.style.display = "none";
     renderAIResult(result);
+    if ((aiMode === "correct" || aiMode === "write") && result.is_correct === false) {
+      logError(aiMode, result.original, result.corrected, result.explanation);
+    }
     if (aiMode !== "write") {
       const ttsText = aiMode === "translate" ? result.german : result.corrected;
       playBase64Audio(result.audio_base64, ttsText);
@@ -2259,6 +2263,9 @@ function setupRecallSpeech() {
       });
       const result = await res.json();
 
+      if (!result.is_correct) {
+        logError("recall", text, p.german, result.feedback);
+      }
       const badge = result.is_correct
         ? `<div class="recall-feedback-correct">✓ Correct!</div>`
         : `<div class="recall-feedback-wrong">✗ Not quite</div>`;
@@ -2473,6 +2480,7 @@ function showProgressPanel() {
   document.getElementById("games-panel").style.display = "none";
   document.getElementById("progress-panel").style.display = "flex";
   renderProgressTab();
+  renderErrorProfileSection();
 }
 
 function paginationHTML(page, total, pageSize, prevFn, nextFn) {
@@ -2805,8 +2813,8 @@ function renderDrillCard() {
     return;
   }
   const item = drillQueue[drillIdx];
-  const chipLabel = drillSetKey === "__mistakes__"
-    ? "Mistake Review"
+  const chipLabel = drillSetKey === "__mistakes__" ? "Mistake Review"
+    : drillSetKey === "__errorlog__" ? "My Mistakes"
     : drillSetKey ? (DRILL_SETS[drillSetKey] || {}).label : drillTag;
   document.getElementById("drill-tag-chip").innerHTML = `<span class="grammar-chip">${chipLabel || ""}</span>`;
   document.getElementById("drill-progress-label").textContent = `${drillIdx + 1} / ${drillQueue.length}`;
@@ -3478,6 +3486,7 @@ async function speakTimeUp() {
       if (data.sample) {
         document.getElementById("speak-sample-text").textContent = data.sample;
         document.getElementById("speak-sample-wrap").style.display = "";
+        logError("speak", transcript, data.sample, data.feedback);
       }
       document.getElementById("speak-improve-btn").style.display = "block";
     } catch {
@@ -4355,6 +4364,172 @@ function setupStoriesPanel() {
   });
 }
 
+// ---- Unified error log: every correction the app produces lands here ----
+
+const ERROR_LOG_MAX = 100;
+const ERROR_SOURCE_LABELS = {
+  chat: "Chat", correct: "Correct", write: "Write",
+  recall: "Recall", speak: "Speak", talkbox: "Talk Box",
+};
+
+function getErrorLog() {
+  try { return JSON.parse(localStorage.getItem("errorLog") || "[]"); } catch { return []; }
+}
+
+function saveErrorLog(log) {
+  localStorage.setItem("errorLog", JSON.stringify(log));
+}
+
+function logError(source, original, corrected, explanation) {
+  original = String(original || "").trim();
+  corrected = String(corrected || "").trim();
+  if (!original || !corrected) return;
+  if (original.toLowerCase() === corrected.toLowerCase()) return;
+  const log = getErrorLog();
+  if (log.some(e => e.original === original && e.corrected === corrected)) return;
+  log.push({ ts: Date.now(), source, original, corrected, explanation: String(explanation || "").trim() });
+  while (log.length > ERROR_LOG_MAX) log.shift();
+  saveErrorLog(log);
+}
+
+function renderErrorProfileSection() {
+  const section = document.getElementById("error-profile-section");
+  if (!section) return;
+  const log = getErrorLog();
+  if (!log.length) { section.style.display = "none"; return; }
+  section.style.display = "flex";
+  document.getElementById("error-log-count").textContent =
+    `${log.length} logged${log.length >= ERROR_LOG_MAX ? " (max)" : ""}`;
+
+  // Restore a cached analysis if it still matches the log size
+  const patternsEl = document.getElementById("error-patterns");
+  if (patternsEl.style.display === "none") {
+    try {
+      const cache = JSON.parse(localStorage.getItem("errorProfileCache") || "null");
+      if (cache && cache.errorCount === log.length && Array.isArray(cache.patterns)) {
+        renderErrorPatterns(cache.patterns);
+      }
+    } catch {}
+  }
+}
+
+function renderErrorPatterns(patterns) {
+  const el = document.getElementById("error-patterns");
+  el.style.display = "flex";
+  el.innerHTML = patterns.map((p, i) => `
+    <div class="error-pattern-card">
+      <div class="error-pattern-title">${i + 1}. ${p.title}</div>
+      <div class="error-pattern-desc">${p.description}</div>
+      ${p.tip ? `<div class="error-pattern-tip">💡 ${p.tip}</div>` : ""}
+      ${(p.examples || []).length ? `<div class="error-pattern-examples">${p.examples.map(ex => `<span>${ex}</span>`).join("")}</div>` : ""}
+    </div>`).join("");
+}
+
+function renderErrorLogList() {
+  const el = document.getElementById("error-log-list");
+  const log = getErrorLog().slice(-20).reverse();
+  el.innerHTML = log.map(e => `
+    <div class="error-log-item">
+      <div class="error-log-top">
+        <span class="error-log-source">${ERROR_SOURCE_LABELS[e.source] || e.source}</span>
+        <span class="error-log-date">${new Date(e.ts).toLocaleDateString()}</span>
+      </div>
+      <div class="error-log-original">${e.original}</div>
+      <div class="error-log-corrected">${e.corrected}</div>
+      ${e.explanation ? `<div class="error-log-explanation">${e.explanation}</div>` : ""}
+    </div>`).join("");
+}
+
+function setErrorProfileStatus(msg, isError) {
+  const el = document.getElementById("error-profile-status");
+  if (!msg) { el.style.display = "none"; return; }
+  el.style.display = "block";
+  el.textContent = msg;
+  el.classList.toggle("is-error", !!isError);
+}
+
+async function analyzeErrorProfile() {
+  const log = getErrorLog();
+  if (!log.length) return;
+  const btn = document.getElementById("error-analyze-btn");
+  btn.disabled = true;
+  setErrorProfileStatus("Analyzing your mistakes…");
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "error-profile", errors: log.slice(-30) }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Server error");
+    renderErrorPatterns(data.patterns || []);
+    try {
+      localStorage.setItem("errorProfileCache", JSON.stringify({ ts: Date.now(), errorCount: log.length, patterns: data.patterns }));
+    } catch {}
+    setErrorProfileStatus("");
+  } catch (err) {
+    setErrorProfileStatus(err.message || "Analysis failed. Try again.", true);
+  }
+  btn.disabled = false;
+}
+
+async function practiceErrorDrills() {
+  const log = getErrorLog();
+  if (!log.length) return;
+  const btn = document.getElementById("error-practice-btn");
+  btn.disabled = true;
+  setErrorProfileStatus("Building drills from your mistakes…");
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "error-drills", errors: log.slice(-12) }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Server error");
+    if (!data.drills || !data.drills.length) throw new Error("No drills could be built. Collect a few more mistakes first.");
+    setErrorProfileStatus("");
+    openErrorDrillSession(data.drills);
+  } catch (err) {
+    setErrorProfileStatus(err.message || "Could not build drills. Try again.", true);
+  }
+  btn.disabled = false;
+}
+
+function openErrorDrillSession(drills) {
+  drillTag = null;
+  drillSetKey = "__errorlog__";
+  drillSessionCorrect = 0;
+  drillSessionTotal = 0;
+  drillQueue = drills.map(item => buildDrillQueueItem(item, null));
+  drillIdx = 0;
+  document.getElementById("drill-tag-chip").innerHTML = `<span class="grammar-chip">My Mistakes</span>`;
+  document.getElementById("drill-score-label").textContent = "";
+  document.getElementById("drill-progress-label").textContent = `1 / ${drillQueue.length}`;
+  document.getElementById("drill-modal").style.display = "flex";
+  renderDrillCard();
+}
+
+function setupErrorProfileSection() {
+  document.getElementById("error-analyze-btn").addEventListener("click", analyzeErrorProfile);
+  document.getElementById("error-practice-btn").addEventListener("click", practiceErrorDrills);
+  document.getElementById("error-toggle-list-btn").addEventListener("click", () => {
+    const el = document.getElementById("error-log-list");
+    const showing = el.style.display !== "none";
+    el.style.display = showing ? "none" : "flex";
+    document.getElementById("error-toggle-list-btn").textContent = showing ? "Show list" : "Hide list";
+    if (!showing) renderErrorLogList();
+  });
+  document.getElementById("error-clear-btn").addEventListener("click", () => {
+    if (!confirm("Clear all logged mistakes?")) return;
+    localStorage.removeItem("errorLog");
+    localStorage.removeItem("errorProfileCache");
+    document.getElementById("error-patterns").style.display = "none";
+    document.getElementById("error-log-list").style.display = "none";
+    renderErrorProfileSection();
+  });
+}
+
 // ---- Grammar Tab ----
 
 function showGrammarPanel(filterTag = null) {
@@ -4874,6 +5049,10 @@ async function sendConvoMessage(text) {
     showChatTyping(false);
 
     convoMessages[convoMessages.length - 1].correction = data.correction || null;
+    // Log real German errors (skip the "say this in German" translation prompts)
+    if (data.correction && !/try saying/i.test(data.correction.explanation || "")) {
+      logError("chat", data.correction.original, data.correction.corrected, data.correction.explanation);
+    }
     convoMessages.push({ role: "assistant", text: data.reply, correction: null, needs_repetition: data.needs_repetition || false, audio_base64: data.audio_base64 || null, timestamp: new Date().toISOString() });
     convoHistory.push({ role: "assistant", content: data.reply });
 
@@ -6937,6 +7116,7 @@ async function tbTimeUp() {
       if (data.sample) {
         document.getElementById("tb-sample-text").textContent = data.sample;
         document.getElementById("tb-sample-wrap").style.display = "";
+        logError("talkbox", transcript, data.sample, data.feedback);
       }
       if (data.grammar_tip) {
         document.getElementById("tb-grammar-tip").textContent = "Grammar: " + data.grammar_tip;

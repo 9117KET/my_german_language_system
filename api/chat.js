@@ -271,6 +271,88 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // error-profile mode - clusters the learner's logged mistakes into weakness patterns
+  if (mode === "error-profile") {
+    const { errors } = req.body || {};
+    if (!Array.isArray(errors) || !errors.length) {
+      return res.status(400).json({ error: "No errors provided" });
+    }
+    try {
+      const errorList = errors.slice(-30).map((e, i) =>
+        `${i + 1}. [${e.source || "unknown"}] They said: "${e.original}" -> Corrected: "${e.corrected}"${e.explanation ? ` (${e.explanation})` : ""}`
+      ).join("\n");
+      const raw = await callGroqMessages([
+        { role: "system", content: "You are a German language diagnostician. You find recurring error patterns in a learner's mistakes. Always return ONLY valid JSON." },
+        { role: "user", content:
+          `Here are recent mistakes from a B1-B2 German learner (their attempt -> the correction):\n\n${errorList}\n\n` +
+          `Identify the 2-3 most important RECURRING grammar/vocabulary patterns behind these mistakes. ` +
+          `Order by how much fixing it would improve their German.\n\n` +
+          `Return ONLY this JSON:\n` +
+          `{"patterns":[{"title":"short pattern name, e.g. 'Dativ after prepositions'",` +
+          `"description":"2 sentences in English: what they keep doing wrong and the rule",` +
+          `"tip":"one memorable tip in English",` +
+          `"examples":["one short correct German example sentence","another"]}]}`,
+        },
+      ], 900);
+      const result = parseJSON(raw);
+      const patterns = (result && Array.isArray(result.patterns) ? result.patterns : [])
+        .slice(0, 3)
+        .map(p => ({
+          title: String(p.title || "Pattern"),
+          description: String(p.description || ""),
+          tip: String(p.tip || ""),
+          examples: Array.isArray(p.examples) ? p.examples.slice(0, 2).map(String) : [],
+        }));
+      if (!patterns.length) throw new Error("No patterns returned");
+      return res.json({ patterns });
+    } catch (err) {
+      console.error("[api/chat error-profile]", err.message);
+      return res.status(500).json({ error: "Could not analyze your mistakes right now. Try again." });
+    }
+  }
+
+  // error-drills mode - turns the learner's own mistakes into gap-fill drills
+  if (mode === "error-drills") {
+    const { errors } = req.body || {};
+    if (!Array.isArray(errors) || !errors.length) {
+      return res.status(400).json({ error: "No errors provided" });
+    }
+    try {
+      const errorList = errors.slice(-12).map((e, i) =>
+        `${i + 1}. They said: "${e.original}" -> Corrected: "${e.corrected}"${e.explanation ? ` (${e.explanation})` : ""}`
+      ).join("\n");
+      const raw = await callGroqMessages([
+        { role: "system", content: "You write German gap-fill drills targeted at a learner's own mistakes. Always return ONLY valid JSON." },
+        { role: "user", content:
+          `Here are a German learner's recent corrected mistakes:\n\n${errorList}\n\n` +
+          `Create up to 8 gap-fill drills from the CORRECTED sentences. For each: take the corrected sentence ` +
+          `(or a short natural variation of it), replace the word the learner originally got wrong with "___", ` +
+          `and give 3 plausible wrong options targeting the same confusion.\n` +
+          `Keep sentences short (max 12 words). The answer must be exactly the word removed.\n\n` +
+          `Return ONLY this JSON:\n` +
+          `{"drills":[{"sentence":"German sentence with ___ for the gap","answer":"the missing word",` +
+          `"distractors":["wrong1","wrong2","wrong3"],"rule":"one short English sentence naming the rule"}]}`,
+        },
+      ], 1200);
+      const result = parseJSON(raw);
+      const drills = (result && Array.isArray(result.drills) ? result.drills : [])
+        .filter(d => d && typeof d.sentence === "string" && d.sentence.includes("___") &&
+                     d.answer && Array.isArray(d.distractors) && d.distractors.length >= 2)
+        .slice(0, 8)
+        .map(d => ({
+          sentence: d.sentence.trim(),
+          answer: String(d.answer).trim(),
+          distractors: d.distractors.slice(0, 3).map(String),
+          rule: String(d.rule || ""),
+        }));
+      if (!drills.length) throw new Error("No usable drills returned");
+      return res.json({ drills });
+    } catch (err) {
+      console.error("[api/chat error-drills]", err.message);
+      return res.status(500).json({ error: "Could not build drills from your mistakes right now. Try again." });
+    }
+  }
+
   if (!text || !text.trim()) return res.status(400).json({ error: "No text provided" });
 
   try {
