@@ -2016,7 +2016,7 @@ async function sendToAI(text) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: aiMode === "write" ? "write-check" : aiMode, text }),
     });
-    const result = await res.json();
+    const result = await parseApiResponse(res);
     if (!res.ok) throw new Error(result.error || "Server error");
 
     lastAIResult = result;
@@ -2072,6 +2072,22 @@ function renderAIResult(result) {
       <div class="ai-explanation">${result.explanation}</div>
     `;
   }
+}
+
+// All /api/chat responses are parsed through here so a missing backend
+// produces a clear message instead of a cryptic JSON parse error.
+// A plain static server (python -m http.server, Live Server, file://)
+// has no /api functions - only the deployed Vercel app or `vercel dev` does.
+async function parseApiResponse(res) {
+  const raw = (await res.text() || "").trim();
+  if (raw.startsWith("{") || raw.startsWith("[")) {
+    try { return JSON.parse(raw); } catch {}
+  }
+  throw new Error(
+    `AI backend not reachable (HTTP ${res.status}). ` +
+    `If you opened the app from a local static server, the /api functions don't exist there - ` +
+    `use the deployed site or run "vercel dev".`
+  );
 }
 
 function speakGerman(text) {
@@ -2267,7 +2283,7 @@ function setupRecallSpeech() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "recall-check", text, targetEnglish: p.english }),
       });
-      const result = await res.json();
+      const result = await parseApiResponse(res);
 
       if (!result.is_correct) {
         logError("recall", text, p.german, result.feedback);
@@ -2904,7 +2920,7 @@ async function openVocabPopup(word) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "vocab", text: word }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     if (!res.ok) throw new Error(data.error || "Server error");
     vocabCache[word] = data;
     renderVocabResult(data);
@@ -3486,7 +3502,7 @@ async function speakTimeUp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "speak-check", text: transcript, prompt }),
       });
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       document.getElementById("speak-feedback-text").textContent =
         data.feedback || "Good effort! Keep practicing.";
       if (data.sample) {
@@ -3525,7 +3541,7 @@ async function speakGetImproved() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "speak-improve", text: transcript, prompt }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
 
     document.getElementById("speak-improve-text").textContent = data.improved || transcript;
 
@@ -3756,7 +3772,7 @@ async function submitMonologue() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "monologue-reflect", text, prompt }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     document.getElementById("monologue-reflection-text").textContent =
       data.reflection || "Good thinking! Keep writing in German every day.";
   } catch {
@@ -4192,7 +4208,7 @@ async function generateStory() {
         targetWords: targets.map(w => w.german),
       }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     if (!res.ok) throw new Error(data.error || "Server error");
     currentStory = { ...data, quizDone: false };
     try { localStorage.setItem("lastStory", JSON.stringify(currentStory)); } catch {}
@@ -4473,7 +4489,7 @@ async function examSbStart() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "exam-sprachbausteine" }),
     });
-    if (res.ok) data = await res.json();
+    if (res.ok) data = await parseApiResponse(res);
   } catch {}
   if (!data || !data.items) data = EXAM_SB_FALLBACK;
   btn.disabled = false;
@@ -4641,7 +4657,7 @@ async function examWriteSubmit() {
         points: examWriteTask.points,
       }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     if (!res.ok) throw new Error(data.error || "Server error");
 
     document.getElementById("exam-write-scores").innerHTML = examScoreChips(data.scores || {}, {
@@ -4826,7 +4842,7 @@ async function examSpeakFinish() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "exam-speak-feedback", text: transcript, topic: examSpeakTopic ? examSpeakTopic.de : "" }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     if (!res.ok) throw new Error(data.error || "Server error");
 
     document.getElementById("exam-speak-scores").innerHTML = examScoreChips(data.scores || {}, {
@@ -4993,7 +5009,7 @@ async function analyzeErrorProfile() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "error-profile", errors: log.slice(-30) }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     if (!res.ok) throw new Error(data.error || "Server error");
     renderErrorPatterns(data.patterns || []);
     try {
@@ -5018,7 +5034,7 @@ async function practiceErrorDrills() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "error-drills", errors: log.slice(-12) }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     if (!res.ok) throw new Error(data.error || "Server error");
     if (!data.drills || !data.drills.length) throw new Error("No drills could be built. Collect a few more mistakes first.");
     setErrorProfileStatus("");
@@ -5157,7 +5173,7 @@ async function explainGrammar(topicId, topicTitle, btn) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "grammar", text: topicTitle }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     if (!res.ok) throw new Error(data.error || "Server error");
     const expDiv = document.createElement("div");
     expDiv.className = "gt-ai-explanation";
@@ -5529,7 +5545,7 @@ async function fetchAIGreeting() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "greeting", scenario: convoScenario, teacherMode, languageLevel }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     showChatTyping(false);
     if (!res.ok) throw new Error(data.error || "Server error");
 
@@ -5577,7 +5593,7 @@ async function sendConvoMessage(text) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     if (!res.ok) throw new Error(data.error || "Server error");
     showChatTyping(false);
 
@@ -5617,7 +5633,7 @@ async function requestHint() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "hint", text: "hint", history: convoHistory.slice(-6), scenario: convoScenario }),
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     const hints = Array.isArray(data.hints) ? data.hints : [];
     hintChips.innerHTML = hints.map(h =>
       `<button class="hint-chip" onclick="selectHint(this, '${h.replace(/'/g, "\\'")}')">${h}</button>`
@@ -7644,7 +7660,7 @@ async function tbTimeUp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "talkbox-feedback", text: transcript, prompt: cardPrompt, category }),
       });
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       document.getElementById("tb-feedback-text").textContent = data.feedback || "Good effort — keep speaking!";
       if (data.sample) {
         document.getElementById("tb-sample-text").textContent = data.sample;

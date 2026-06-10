@@ -2002,6 +2002,32 @@ describe("telc exam — api/chat.js", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// API response hardening
+// ---------------------------------------------------------------------------
+
+describe("api response parsing — app.js", () => {
+  const appJs = readFile("app.js");
+
+  test("parseApiResponse helper is defined and explains missing backend", () => {
+    assert.ok(appJs.includes("async function parseApiResponse(res)"), "parseApiResponse not defined");
+    assert.ok(appJs.includes("AI backend not reachable"), "helper must explain unreachable backend");
+    assert.ok(appJs.includes('"vercel dev"'), "helper must mention vercel dev");
+  });
+
+  test("no raw res.json() calls remain on /api responses", () => {
+    const raw = (appJs.match(/await res\.json\(\)/g) || []).length;
+    assert.equal(raw, 0, `Found ${raw} raw res.json() calls - use parseApiResponse(res)`);
+  });
+
+  test("helper still surfaces server JSON error bodies", () => {
+    const p = appJs.indexOf("async function parseApiResponse");
+    const block = appJs.slice(p, p + 700);
+    assert.ok(block.includes("JSON.parse"), "must parse JSON bodies regardless of status");
+    assert.ok(block.includes('startsWith("{")'), "must detect JSON bodies before throwing");
+  });
+});
+
 describe("today session — style.css", () => {
   const css = readFile("style.css");
 
