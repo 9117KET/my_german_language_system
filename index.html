@@ -76,6 +76,11 @@
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span class="tab-label">Drills</span>
       </div>
+      <div class="nav-group-label">Exam</div>
+      <div class="tab" data-mode="exam">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        <span class="tab-label">telc B2</span>
+      </div>
       <div class="nav-group-label">Explore</div>
       <div class="tab" data-mode="games">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 2l-4 5-4-5"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
@@ -725,6 +730,153 @@
         </div>
       </div>
 
+      <!-- telc B2 exam simulator -->
+      <div id="exam-panel" style="display:none">
+
+        <div id="exam-landing">
+          <div id="exam-header">
+            <div id="exam-title-row">
+              <h2 class="exam-title">telc B2 Simulator</h2>
+              <div id="exam-done-badge"></div>
+            </div>
+            <p class="exam-subtitle">Timed replicas of real telc Deutsch B2 exam tasks, graded on the official criteria.</p>
+          </div>
+          <div id="exam-task-grid">
+            <div class="exam-task-card" id="exam-card-sb">
+              <div class="exam-task-part">Schriftliche Prüfung</div>
+              <div class="exam-task-name">Sprachbausteine</div>
+              <div class="exam-task-desc">Formal letter with 10 grammar gaps. 3 options each.</div>
+              <div class="exam-task-meta">10 Min &middot; auto-graded</div>
+            </div>
+            <div class="exam-task-card" id="exam-card-write">
+              <div class="exam-task-part">Schriftliche Prüfung</div>
+              <div class="exam-task-name">Schriftlicher Ausdruck</div>
+              <div class="exam-task-desc">Formal letter covering 4 Leitpunkte: Beschwerde, Anfrage, Bewerbung, Leserbrief.</div>
+              <div class="exam-task-meta">30 Min &middot; AI-graded on telc criteria</div>
+            </div>
+            <div class="exam-task-card" id="exam-card-speak">
+              <div class="exam-task-part">Mündliche Prüfung &middot; Teil 1</div>
+              <div class="exam-task-name">Präsentation</div>
+              <div class="exam-task-desc">Speak about a topic for 2 minutes: experiences, home country, pros &amp; cons, opinion.</div>
+              <div class="exam-task-meta">1 Min prep + 2 Min speaking</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sprachbausteine view -->
+        <div id="exam-sb-view" style="display:none">
+          <div class="exam-topbar">
+            <button class="exam-back-btn" id="exam-sb-back">&#8592; Tasks</button>
+            <div class="exam-timer" id="exam-sb-timer" style="display:none">10:00</div>
+          </div>
+          <div id="exam-sb-start">
+            <h3 class="exam-view-title">Sprachbausteine</h3>
+            <p class="exam-view-desc">A formal letter with 10 gaps. Choose the correct option for each gap. In the real exam you have about 10 minutes for this part.</p>
+            <button class="exam-primary-btn" id="exam-sb-start-btn">Start test</button>
+          </div>
+          <div id="exam-sb-test" style="display:none">
+            <div id="exam-sb-letter-title"></div>
+            <div id="exam-sb-text"></div>
+            <div id="exam-sb-items"></div>
+            <button class="exam-primary-btn" id="exam-sb-submit-btn" disabled>Submit answers</button>
+          </div>
+          <div id="exam-sb-result" style="display:none">
+            <div id="exam-sb-score"></div>
+            <div id="exam-sb-review"></div>
+            <button class="exam-primary-btn" id="exam-sb-again-btn">New test</button>
+          </div>
+        </div>
+
+        <!-- Schriftlicher Ausdruck view -->
+        <div id="exam-write-view" style="display:none">
+          <div class="exam-topbar">
+            <button class="exam-back-btn" id="exam-write-back">&#8592; Tasks</button>
+            <div class="exam-timer" id="exam-write-timer" style="display:none">30:00</div>
+          </div>
+          <div id="exam-write-setup">
+            <h3 class="exam-view-title">Schriftlicher Ausdruck</h3>
+            <p class="exam-view-desc">Write a formal letter covering all 4 Leitpunkte. In the real exam you have 30 minutes. Aim for 150+ words.</p>
+            <select id="exam-write-type">
+              <option value="">Random task</option>
+              <option value="Beschwerde">Beschwerde (complaint)</option>
+              <option value="Anfrage">Anfrage (inquiry)</option>
+              <option value="Bewerbung">Bewerbung (application)</option>
+              <option value="Leserbrief">Leserbrief (letter to the editor)</option>
+            </select>
+            <button class="exam-primary-btn" id="exam-write-start-btn">Start task</button>
+          </div>
+          <div id="exam-write-work" style="display:none">
+            <div id="exam-write-task-card">
+              <div id="exam-write-task-title"></div>
+              <div id="exam-write-situation"></div>
+              <ul id="exam-write-points"></ul>
+            </div>
+            <textarea id="exam-write-input" placeholder="Sehr geehrte Damen und Herren, ..." rows="12"></textarea>
+            <div id="exam-write-meta-row">
+              <span id="exam-write-wordcount">0 words</span>
+              <button class="exam-primary-btn" id="exam-write-submit-btn" disabled>Submit letter</button>
+            </div>
+          </div>
+          <div id="exam-write-grading" style="display:none">Grading your letter against telc criteria&hellip;</div>
+          <div id="exam-write-result" style="display:none">
+            <div id="exam-write-scores"></div>
+            <div id="exam-write-points-covered"></div>
+            <div id="exam-write-overall"></div>
+            <div id="exam-write-corrections"></div>
+            <div id="exam-write-model-wrap">
+              <button id="exam-write-model-toggle">Show model letter</button>
+              <div id="exam-write-model" style="display:none"></div>
+            </div>
+            <button class="exam-primary-btn" id="exam-write-again-btn">New task</button>
+          </div>
+        </div>
+
+        <!-- Präsentation view -->
+        <div id="exam-speak-view" style="display:none">
+          <div class="exam-topbar">
+            <button class="exam-back-btn" id="exam-speak-back">&#8592; Tasks</button>
+            <div class="exam-timer" id="exam-speak-timer" style="display:none">2:00</div>
+            <div id="exam-speak-phase"></div>
+          </div>
+          <div id="exam-speak-setup">
+            <h3 class="exam-view-title">Präsentation (Teil 1)</h3>
+            <p class="exam-view-desc">You get a topic and 1 minute to prepare, then speak for up to 2 minutes following the telc structure.</p>
+            <div id="exam-speak-topic-card">
+              <div id="exam-speak-topic-label">Ihr Thema</div>
+              <div id="exam-speak-topic"></div>
+              <div id="exam-speak-topic-en"></div>
+            </div>
+            <ul id="exam-speak-structure"></ul>
+            <div id="exam-speak-setup-actions">
+              <button id="exam-speak-newtopic-btn">Other topic</button>
+              <button class="exam-primary-btn" id="exam-speak-prep-btn">Start 1 min prep</button>
+            </div>
+          </div>
+          <div id="exam-speak-live" style="display:none">
+            <div id="exam-speak-live-topic"></div>
+            <div id="exam-speak-status"></div>
+            <button class="exam-primary-btn" id="exam-speak-talk-btn" style="display:none">&#9654; Start speaking</button>
+            <button id="exam-speak-stop-btn" style="display:none">&#9632; Finish early</button>
+            <div id="exam-speak-transcript-wrap" style="display:none">
+              <div class="exam-small-label">What I heard:</div>
+              <div id="exam-speak-transcript"></div>
+            </div>
+          </div>
+          <div id="exam-speak-grading" style="display:none">Grading your presentation&hellip;</div>
+          <div id="exam-speak-result" style="display:none">
+            <div id="exam-speak-scores"></div>
+            <div id="exam-speak-overall"></div>
+            <div id="exam-speak-corrections"></div>
+            <div id="exam-speak-model-wrap">
+              <div class="exam-small-label">Model outline</div>
+              <div id="exam-speak-model"></div>
+            </div>
+            <button class="exam-primary-btn" id="exam-speak-again-btn">New topic</button>
+          </div>
+        </div>
+
+      </div>
+
       <!-- Today guided session panel -->
       <div id="today-panel" style="display:none">
         <div id="today-header">
@@ -1143,6 +1295,8 @@ if (typeof PHRASES === 'undefined') { window.PHRASES = []; }
 <script src="games_data.js" onerror="window.GAME_ISLAND_SETS={}"></script>
 <script>if (typeof TALKBOX_CARDS === 'undefined') { window.TALKBOX_CARDS = {}; }</script>
 <script src="talkbox_data.js" onerror="window.TALKBOX_CARDS={}"></script>
+<script>if (typeof EXAM_WRITE_TASKS === 'undefined') { window.EXAM_WRITE_TASKS = []; window.EXAM_SPEAK_TOPICS = []; window.EXAM_SPEAK_STRUCTURE = []; window.EXAM_SB_FALLBACK = null; }</script>
+<script src="exam_data.js"></script>
 <script src="app.js"></script>
 
 </body>

@@ -1271,6 +1271,7 @@ function init() {
   setupTodayPanel();
   setupStoriesPanel();
   setupErrorProfileSection();
+  setupExamPanel();
   // Land on the Today dashboard (mode defaults to "today")
   showTodayPanel();
   updateTabBadges();
@@ -1278,7 +1279,7 @@ function init() {
 
 // ---- Render (player) ----
 function renderCard(autoPlay = false) {
-  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games" || mode === "today" || mode === "stories") return;
+  if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games" || mode === "today" || mode === "stories" || mode === "exam") return;
 
   if (!queue.length) {
     audio.pause();
@@ -1505,6 +1506,7 @@ const MORE_SHEET_GROUPS = [
   { label: "Conversation", modes: ["starters", "monologue"] },
   { label: "Vocabulary", modes: ["words", "vocab"] },
   { label: "Grammar", modes: ["grammar", "drills"] },
+  { label: "Exam", modes: ["exam"] },
   { label: "Explore", modes: ["games", "progress"] },
 ];
 
@@ -1594,6 +1596,7 @@ function setupEvents() {
       tab.classList.add("active");
       document.getElementById("today-panel").style.display = "none";
       document.getElementById("stories-panel").style.display = "none";
+      document.getElementById("exam-panel").style.display = "none";
 
       if (newMode === "today") {
         mode = "today";
@@ -1601,6 +1604,9 @@ function setupEvents() {
       } else if (newMode === "stories") {
         mode = "stories";
         showStoriesPanel();
+      } else if (newMode === "exam") {
+        mode = "exam";
+        showExamPanel();
       } else if (newMode === "ai") {
         mode = "ai";
         showAIPanel();
@@ -1829,7 +1835,7 @@ function setupEvents() {
   });
 
   document.addEventListener("keydown", (e) => {
-    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games" || mode === "today" || mode === "stories") return;
+    if (mode === "ai" || mode === "progress" || mode === "vocab" || mode === "grammar" || mode === "words" || mode === "starters" || mode === "speak" || mode === "monologue" || mode === "drills" || mode === "games" || mode === "today" || mode === "stories" || mode === "exam") return;
     if (e.key === "Escape") { document.getElementById("vocab-modal").style.display = "none"; return; }
     if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); advance(1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); advance(-1); }
@@ -3865,7 +3871,8 @@ function showTodayPanel() {
   hideRecallSpecificEls();
   aiPanel.style.display = "none";
   ["progress-panel", "vocab-panel", "grammar-panel", "words-panel", "drills-panel",
-   "starters-panel", "speak-panel", "monologue-panel", "games-panel", "stories-panel"].forEach(id => {
+   "starters-panel", "speak-panel", "monologue-panel", "games-panel", "stories-panel",
+   "exam-panel"].forEach(id => {
     document.getElementById(id).style.display = "none";
   });
   document.getElementById("today-panel").style.display = "flex";
@@ -4120,7 +4127,8 @@ function showStoriesPanel() {
   hideRecallSpecificEls();
   aiPanel.style.display = "none";
   ["progress-panel", "vocab-panel", "grammar-panel", "words-panel", "drills-panel",
-   "starters-panel", "speak-panel", "monologue-panel", "games-panel", "today-panel"].forEach(id => {
+   "starters-panel", "speak-panel", "monologue-panel", "games-panel", "today-panel",
+   "exam-panel"].forEach(id => {
     document.getElementById(id).style.display = "none";
   });
   document.getElementById("stories-panel").style.display = "flex";
@@ -4362,6 +4370,531 @@ function setupStoriesPanel() {
     const sentence = e.target.closest(".story-sentence");
     if (sentence) sentence.classList.toggle("show-en");
   });
+}
+
+// ---- telc B2 Exam Simulator ----
+
+let examSbData = null;
+let examSbAnswers = {};
+let examSbTimerInt = null;
+let examSbSecondsLeft = 0;
+
+let examWriteTask = null;
+let examWriteTimerInt = null;
+let examWriteSecondsLeft = 0;
+
+let examSpeakTopic = null;
+let examSpeakTimerInt = null;
+let examSpeakSecondsLeft = 0;
+let examSpeakWS = null;
+let examSpeakStream = null;
+let examSpeakRecorder = null;
+let examSpeakChunks = [];
+
+function getExamTasksDone() {
+  try { return parseInt(localStorage.getItem("exam_tasks_done") || "0", 10); } catch { return 0; }
+}
+
+function recordExamTaskDone() {
+  try { localStorage.setItem("exam_tasks_done", String(getExamTasksDone() + 1)); } catch {}
+  updateExamDoneBadge();
+}
+
+function updateExamDoneBadge() {
+  const n = getExamTasksDone();
+  const badge = document.getElementById("exam-done-badge");
+  if (!badge) return;
+  if (n > 0) { badge.textContent = `🎓 ${n} done`; badge.classList.add("visible"); }
+  else badge.classList.remove("visible");
+}
+
+function fmtExamTime(s) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function stopExamTimers() {
+  if (examSbTimerInt) { clearInterval(examSbTimerInt); examSbTimerInt = null; }
+  if (examWriteTimerInt) { clearInterval(examWriteTimerInt); examWriteTimerInt = null; }
+  if (examSpeakTimerInt) { clearInterval(examSpeakTimerInt); examSpeakTimerInt = null; }
+}
+
+function showExamPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  ["progress-panel", "vocab-panel", "grammar-panel", "words-panel", "drills-panel",
+   "starters-panel", "speak-panel", "monologue-panel", "games-panel", "today-panel",
+   "stories-panel"].forEach(id => {
+    document.getElementById(id).style.display = "none";
+  });
+  document.getElementById("exam-panel").style.display = "flex";
+  showExamLanding();
+}
+
+function showExamLanding() {
+  stopExamTimers();
+  examStopRecording();
+  document.getElementById("exam-landing").style.display = "flex";
+  document.getElementById("exam-sb-view").style.display = "none";
+  document.getElementById("exam-write-view").style.display = "none";
+  document.getElementById("exam-speak-view").style.display = "none";
+  updateExamDoneBadge();
+}
+
+// --- Sprachbausteine ---
+
+function openExamSb() {
+  document.getElementById("exam-landing").style.display = "none";
+  document.getElementById("exam-sb-view").style.display = "flex";
+  document.getElementById("exam-sb-start").style.display = "flex";
+  document.getElementById("exam-sb-test").style.display = "none";
+  document.getElementById("exam-sb-result").style.display = "none";
+  document.getElementById("exam-sb-timer").style.display = "none";
+}
+
+function examShuffleItemOptions(item) {
+  const order = [0, 1, 2].slice(0, item.options.length).sort(() => Math.random() - 0.5);
+  return {
+    ...item,
+    options: order.map(i => item.options[i]),
+    answer: order.indexOf(item.answer),
+  };
+}
+
+async function examSbStart() {
+  const btn = document.getElementById("exam-sb-start-btn");
+  btn.disabled = true;
+  btn.textContent = "Generating test…";
+  let data = null;
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "exam-sprachbausteine" }),
+    });
+    if (res.ok) data = await res.json();
+  } catch {}
+  if (!data || !data.items) data = EXAM_SB_FALLBACK;
+  btn.disabled = false;
+  btn.textContent = "Start test";
+  if (!data) return;
+
+  examSbData = { ...data, items: data.items.map(examShuffleItemOptions) };
+  examSbAnswers = {};
+  document.getElementById("exam-sb-start").style.display = "none";
+  document.getElementById("exam-sb-result").style.display = "none";
+  document.getElementById("exam-sb-test").style.display = "flex";
+  document.getElementById("exam-sb-letter-title").textContent = examSbData.title || "";
+  document.getElementById("exam-sb-text").innerHTML = (examSbData.text || "")
+    .replace(/\n/g, "<br>")
+    .replace(/\[(\d+)\]/g, '<span class="exam-sb-gap">[$1]</span>');
+  document.getElementById("exam-sb-items").innerHTML = examSbData.items.map((it, qi) => `
+    <div class="exam-sb-item" data-qi="${qi}">
+      <span class="exam-sb-item-num">${it.num}</span>
+      <div class="exam-sb-options">
+        ${it.options.map((opt, oi) =>
+          `<button class="exam-sb-opt" data-qi="${qi}" data-oi="${oi}">${opt}</button>`).join("")}
+      </div>
+    </div>`).join("");
+  document.getElementById("exam-sb-submit-btn").disabled = true;
+
+  examSbSecondsLeft = 600;
+  const timerEl = document.getElementById("exam-sb-timer");
+  timerEl.style.display = "block";
+  timerEl.classList.remove("low");
+  timerEl.textContent = fmtExamTime(examSbSecondsLeft);
+  examSbTimerInt = setInterval(() => {
+    examSbSecondsLeft--;
+    timerEl.textContent = fmtExamTime(Math.max(0, examSbSecondsLeft));
+    if (examSbSecondsLeft <= 60) timerEl.classList.add("low");
+    if (examSbSecondsLeft <= 0) { clearInterval(examSbTimerInt); examSbTimerInt = null; examSbSubmit(); }
+  }, 1000);
+}
+
+function examSbPick(qi, oi) {
+  examSbAnswers[qi] = oi;
+  document.querySelectorAll(`.exam-sb-opt[data-qi="${qi}"]`).forEach((b, i) => {
+    b.classList.toggle("selected", i === oi);
+  });
+  document.getElementById("exam-sb-submit-btn").disabled =
+    Object.keys(examSbAnswers).length < examSbData.items.length;
+}
+
+function examSbSubmit() {
+  if (!examSbData) return;
+  stopExamTimers();
+  document.getElementById("exam-sb-timer").style.display = "none";
+  let right = 0;
+  const review = examSbData.items.map((it, qi) => {
+    const chosen = examSbAnswers[qi];
+    const correct = chosen === it.answer;
+    if (correct) right++;
+    else if (it.sentence && it.sentence.includes("___")) {
+      // wrong exam items resurface as drill-bank mistakes
+      addDrillMistake(null, {
+        sentence: it.sentence,
+        answer: it.options[it.answer],
+        distractors: it.options.filter((_, i) => i !== it.answer),
+        rule: it.rule,
+      });
+    }
+    return `
+      <div class="exam-sb-review-item ${correct ? "ok" : "bad"}">
+        <div class="exam-sb-review-top">
+          <span>${it.num}. ${correct ? "✓" : "✗"}</span>
+          <span class="exam-sb-review-answer">${it.options[it.answer]}</span>
+          ${!correct && chosen != null ? `<span class="exam-sb-review-yours">you: ${it.options[chosen]}</span>` : ""}
+          ${chosen == null ? `<span class="exam-sb-review-yours">no answer</span>` : ""}
+        </div>
+        ${it.rule ? `<div class="exam-sb-review-rule">${it.rule}</div>` : ""}
+      </div>`;
+  }).join("");
+
+  document.getElementById("exam-sb-test").style.display = "none";
+  document.getElementById("exam-sb-result").style.display = "flex";
+  const pct = Math.round((right / examSbData.items.length) * 100);
+  document.getElementById("exam-sb-score").innerHTML =
+    `<div class="exam-score-big">${right} / ${examSbData.items.length}</div>
+     <div class="exam-score-sub">${pct >= 60 ? "Bestanden-Niveau ✓ (telc pass mark is 60%)" : "Below the 60% telc pass mark — review the rules below"}</div>`;
+  document.getElementById("exam-sb-review").innerHTML = review;
+  recordExamTaskDone();
+}
+
+// --- Schriftlicher Ausdruck ---
+
+function openExamWrite() {
+  document.getElementById("exam-landing").style.display = "none";
+  document.getElementById("exam-write-view").style.display = "flex";
+  document.getElementById("exam-write-setup").style.display = "flex";
+  document.getElementById("exam-write-work").style.display = "none";
+  document.getElementById("exam-write-grading").style.display = "none";
+  document.getElementById("exam-write-result").style.display = "none";
+  document.getElementById("exam-write-timer").style.display = "none";
+}
+
+function examWriteStart() {
+  const type = document.getElementById("exam-write-type").value;
+  const pool = type ? EXAM_WRITE_TASKS.filter(t => t.type === type) : EXAM_WRITE_TASKS;
+  if (!pool.length) return;
+  examWriteTask = pool[Math.floor(Math.random() * pool.length)];
+
+  document.getElementById("exam-write-setup").style.display = "none";
+  document.getElementById("exam-write-work").style.display = "flex";
+  document.getElementById("exam-write-task-title").textContent = `${examWriteTask.type}: ${examWriteTask.title}`;
+  document.getElementById("exam-write-situation").textContent = examWriteTask.situation;
+  document.getElementById("exam-write-points").innerHTML =
+    examWriteTask.points.map(p => `<li>${p}</li>`).join("");
+  const input = document.getElementById("exam-write-input");
+  input.value = "";
+  document.getElementById("exam-write-wordcount").textContent = "0 words";
+  document.getElementById("exam-write-submit-btn").disabled = true;
+
+  examWriteSecondsLeft = 1800;
+  const timerEl = document.getElementById("exam-write-timer");
+  timerEl.style.display = "block";
+  timerEl.classList.remove("low");
+  timerEl.textContent = fmtExamTime(examWriteSecondsLeft);
+  examWriteTimerInt = setInterval(() => {
+    examWriteSecondsLeft--;
+    timerEl.textContent = fmtExamTime(Math.max(0, examWriteSecondsLeft));
+    if (examWriteSecondsLeft <= 300) timerEl.classList.add("low");
+    if (examWriteSecondsLeft <= 0) {
+      clearInterval(examWriteTimerInt); examWriteTimerInt = null;
+      if (!document.getElementById("exam-write-submit-btn").disabled) examWriteSubmit();
+    }
+  }, 1000);
+}
+
+function examCountWords(text) {
+  return text.trim() ? text.trim().split(/\s+/).length : 0;
+}
+
+const EXAM_SCORE_LABELS = { A: "A — very good", B: "B — acceptable", C: "C — not yet" };
+
+function examScoreChips(scores, labels) {
+  return Object.entries(labels).map(([key, label]) => {
+    const grade = String(scores[key] || "?").toUpperCase().charAt(0);
+    return `<div class="exam-score-chip grade-${grade}">
+      <span class="exam-score-chip-label">${label}</span>
+      <span class="exam-score-chip-grade">${EXAM_SCORE_LABELS[grade] || grade}</span>
+    </div>`;
+  }).join("");
+}
+
+async function examWriteSubmit() {
+  const text = document.getElementById("exam-write-input").value.trim();
+  if (!text || !examWriteTask) return;
+  stopExamTimers();
+  document.getElementById("exam-write-timer").style.display = "none";
+  document.getElementById("exam-write-work").style.display = "none";
+  document.getElementById("exam-write-grading").style.display = "block";
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "exam-write-feedback",
+        text,
+        task: `${examWriteTask.type}: ${examWriteTask.situation}`,
+        points: examWriteTask.points,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Server error");
+
+    document.getElementById("exam-write-scores").innerHTML = examScoreChips(data.scores || {}, {
+      inhalt: "Inhalt", kommunikation: "Kommunikative Gestaltung",
+      korrektheit: "Korrektheit", wortschatz: "Wortschatz",
+    });
+    const covered = data.points_covered || [];
+    document.getElementById("exam-write-points-covered").innerHTML = covered.length
+      ? `<div class="exam-small-label">Leitpunkte:</div>` + examWriteTask.points.map((p, i) =>
+          `<div class="exam-point-row">${covered[i] ? "✓" : "✗"} ${p}</div>`).join("")
+      : "";
+    document.getElementById("exam-write-overall").textContent = data.overall || "";
+    const corrections = data.corrections || [];
+    corrections.forEach(c => logError("exam", c.original, c.corrected, c.explanation));
+    document.getElementById("exam-write-corrections").innerHTML = corrections.length
+      ? `<div class="exam-small-label">Corrections (saved to My Mistakes):</div>` + corrections.map(c => `
+          <div class="exam-correction">
+            <div class="error-log-original">${c.original}</div>
+            <div class="error-log-corrected">${c.corrected}</div>
+            ${c.explanation ? `<div class="error-log-explanation">${c.explanation}</div>` : ""}
+          </div>`).join("")
+      : "";
+    document.getElementById("exam-write-model").textContent = data.model || "";
+    document.getElementById("exam-write-model").style.display = "none";
+    document.getElementById("exam-write-model-toggle").textContent = "Show model letter";
+    document.getElementById("exam-write-grading").style.display = "none";
+    document.getElementById("exam-write-result").style.display = "flex";
+    recordExamTaskDone();
+  } catch (err) {
+    document.getElementById("exam-write-grading").style.display = "none";
+    document.getElementById("exam-write-work").style.display = "flex";
+    alert(err.message || "Grading failed - your letter is still in the box. Try submitting again.");
+  }
+}
+
+// --- Präsentation (Mündliche Prüfung Teil 1) ---
+
+function examPickSpeakTopic() {
+  examSpeakTopic = EXAM_SPEAK_TOPICS[Math.floor(Math.random() * EXAM_SPEAK_TOPICS.length)];
+  document.getElementById("exam-speak-topic").textContent = examSpeakTopic ? examSpeakTopic.de : "";
+  document.getElementById("exam-speak-topic-en").textContent = examSpeakTopic ? examSpeakTopic.en : "";
+}
+
+function openExamSpeak() {
+  document.getElementById("exam-landing").style.display = "none";
+  document.getElementById("exam-speak-view").style.display = "flex";
+  document.getElementById("exam-speak-setup").style.display = "flex";
+  document.getElementById("exam-speak-live").style.display = "none";
+  document.getElementById("exam-speak-grading").style.display = "none";
+  document.getElementById("exam-speak-result").style.display = "none";
+  document.getElementById("exam-speak-timer").style.display = "none";
+  document.getElementById("exam-speak-phase").textContent = "";
+  document.getElementById("exam-speak-structure").innerHTML =
+    EXAM_SPEAK_STRUCTURE.map(s => `<li>${s}</li>`).join("");
+  examPickSpeakTopic();
+}
+
+function examSpeakStartPrep() {
+  document.getElementById("exam-speak-setup").style.display = "none";
+  document.getElementById("exam-speak-live").style.display = "flex";
+  document.getElementById("exam-speak-live-topic").textContent = examSpeakTopic ? examSpeakTopic.de : "";
+  document.getElementById("exam-speak-status").textContent = "Sammeln Sie Ideen: Erfahrungen, Heimatland, Vor- und Nachteile, Meinung.";
+  document.getElementById("exam-speak-talk-btn").style.display = "none";
+  document.getElementById("exam-speak-stop-btn").style.display = "none";
+  document.getElementById("exam-speak-transcript-wrap").style.display = "none";
+  document.getElementById("exam-speak-transcript").textContent = "";
+  document.getElementById("exam-speak-phase").textContent = "Vorbereitung";
+
+  examSpeakSecondsLeft = 60;
+  const timerEl = document.getElementById("exam-speak-timer");
+  timerEl.style.display = "block";
+  timerEl.classList.remove("low");
+  timerEl.textContent = fmtExamTime(examSpeakSecondsLeft);
+  examSpeakTimerInt = setInterval(() => {
+    examSpeakSecondsLeft--;
+    timerEl.textContent = fmtExamTime(Math.max(0, examSpeakSecondsLeft));
+    if (examSpeakSecondsLeft <= 10) timerEl.classList.add("low");
+    if (examSpeakSecondsLeft <= 0) {
+      clearInterval(examSpeakTimerInt); examSpeakTimerInt = null;
+      examSpeakReadyToTalk();
+    }
+  }, 1000);
+}
+
+function examSpeakReadyToTalk() {
+  document.getElementById("exam-speak-phase").textContent = "Präsentation";
+  document.getElementById("exam-speak-status").textContent = "Sprechen Sie bis zu 2 Minuten über Ihr Thema.";
+  document.getElementById("exam-speak-talk-btn").style.display = "inline-block";
+  document.getElementById("exam-speak-timer").classList.remove("low");
+  document.getElementById("exam-speak-timer").textContent = "2:00";
+}
+
+async function examSpeakStartTalking() {
+  document.getElementById("exam-speak-talk-btn").style.display = "none";
+  document.getElementById("exam-speak-stop-btn").style.display = "inline-block";
+  document.getElementById("exam-speak-status").textContent = "Aufnahme läuft… sprechen Sie!";
+  document.getElementById("exam-speak-transcript-wrap").style.display = "block";
+  await examStartRecording();
+
+  examSpeakSecondsLeft = 120;
+  const timerEl = document.getElementById("exam-speak-timer");
+  timerEl.textContent = fmtExamTime(examSpeakSecondsLeft);
+  examSpeakTimerInt = setInterval(() => {
+    examSpeakSecondsLeft--;
+    timerEl.textContent = fmtExamTime(Math.max(0, examSpeakSecondsLeft));
+    if (examSpeakSecondsLeft <= 20) timerEl.classList.add("low");
+    if (examSpeakSecondsLeft <= 0) examSpeakFinish();
+  }, 1000);
+}
+
+async function examStartRecording() {
+  examSpeakChunks = [];
+  const transcriptEl = document.getElementById("exam-speak-transcript");
+  const pushChunk = (t) => {
+    if (!t) return;
+    examSpeakChunks.push(t);
+    transcriptEl.textContent = examSpeakChunks.join(" ");
+  };
+  try {
+    const tokenRes = await fetch("/api/deepgram-token", { method: "POST" });
+    if (!tokenRes.ok) throw new Error("token");
+    const { key } = await tokenRes.json();
+    examSpeakStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const wsUrl = "wss://api.deepgram.com/v1/listen?language=de&model=nova-2-general&interim_results=true&endpointing=800&vad_events=true&encoding=linear16&sample_rate=16000";
+    examSpeakWS = new WebSocket(wsUrl, ["token", key]);
+    examSpeakWS.onopen = () => {
+      examSpeakRecorder = new MediaRecorder(examSpeakStream, { mimeType: "audio/webm;codecs=opus" });
+      examSpeakRecorder.ondataavailable = (e) => {
+        if (examSpeakWS && examSpeakWS.readyState === WebSocket.OPEN && e.data.size > 0) examSpeakWS.send(e.data);
+      };
+      examSpeakRecorder.start(100);
+    };
+    examSpeakWS.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "Results" && msg.is_final) {
+        pushChunk((msg.channel?.alternatives?.[0]?.transcript || "").trim());
+      }
+    };
+    examSpeakWS.onerror = () => {};
+  } catch {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      const sr = new SR();
+      sr.lang = "de-DE";
+      sr.interimResults = false;
+      sr.continuous = true;
+      sr.onresult = (ev) => pushChunk(ev.results[ev.results.length - 1][0].transcript.trim());
+      sr.start();
+      examSpeakWS = { _sr: sr, close: () => sr.stop() };
+    }
+  }
+}
+
+function examStopRecording() {
+  if (examSpeakRecorder && examSpeakRecorder.state !== "inactive") examSpeakRecorder.stop();
+  if (examSpeakWS) { examSpeakWS.close(); examSpeakWS = null; }
+  if (examSpeakStream) { examSpeakStream.getTracks().forEach(t => t.stop()); examSpeakStream = null; }
+  examSpeakRecorder = null;
+}
+
+async function examSpeakFinish() {
+  stopExamTimers();
+  examStopRecording();
+  document.getElementById("exam-speak-timer").style.display = "none";
+  document.getElementById("exam-speak-stop-btn").style.display = "none";
+
+  const transcript = examSpeakChunks.join(" ").trim();
+  if (transcript.length <= 5) {
+    document.getElementById("exam-speak-status").textContent =
+      "No speech detected. Check your microphone and try again.";
+    document.getElementById("exam-speak-talk-btn").style.display = "inline-block";
+    document.getElementById("exam-speak-timer").style.display = "block";
+    document.getElementById("exam-speak-timer").textContent = "2:00";
+    return;
+  }
+
+  document.getElementById("exam-speak-live").style.display = "none";
+  document.getElementById("exam-speak-grading").style.display = "block";
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "exam-speak-feedback", text: transcript, topic: examSpeakTopic ? examSpeakTopic.de : "" }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Server error");
+
+    document.getElementById("exam-speak-scores").innerHTML = examScoreChips(data.scores || {}, {
+      aufgabe: "Aufgabenbewältigung", fluessigkeit: "Flüssigkeit",
+      korrektheit: "Korrektheit", ausdruck: "Ausdruck",
+    });
+    document.getElementById("exam-speak-overall").textContent = data.overall || "";
+    const corrections = data.corrections || [];
+    corrections.forEach(c => logError("exam", c.original, c.corrected, c.explanation));
+    document.getElementById("exam-speak-corrections").innerHTML = corrections.length
+      ? `<div class="exam-small-label">Corrections (saved to My Mistakes):</div>` + corrections.map(c => `
+          <div class="exam-correction">
+            <div class="error-log-original">${c.original}</div>
+            <div class="error-log-corrected">${c.corrected}</div>
+            ${c.explanation ? `<div class="error-log-explanation">${c.explanation}</div>` : ""}
+          </div>`).join("")
+      : "";
+    document.getElementById("exam-speak-model").textContent = data.model || "";
+    document.getElementById("exam-speak-grading").style.display = "none";
+    document.getElementById("exam-speak-result").style.display = "flex";
+    recordExamTaskDone();
+  } catch (err) {
+    document.getElementById("exam-speak-grading").style.display = "none";
+    document.getElementById("exam-speak-live").style.display = "flex";
+    document.getElementById("exam-speak-status").textContent =
+      (err.message || "Grading failed.") + " Your transcript is kept - try finishing again.";
+    document.getElementById("exam-speak-talk-btn").style.display = "none";
+    document.getElementById("exam-speak-stop-btn").style.display = "inline-block";
+  }
+}
+
+function setupExamPanel() {
+  document.getElementById("exam-card-sb").addEventListener("click", openExamSb);
+  document.getElementById("exam-card-write").addEventListener("click", openExamWrite);
+  document.getElementById("exam-card-speak").addEventListener("click", openExamSpeak);
+  document.getElementById("exam-sb-back").addEventListener("click", showExamLanding);
+  document.getElementById("exam-write-back").addEventListener("click", showExamLanding);
+  document.getElementById("exam-speak-back").addEventListener("click", showExamLanding);
+
+  document.getElementById("exam-sb-start-btn").addEventListener("click", examSbStart);
+  document.getElementById("exam-sb-submit-btn").addEventListener("click", examSbSubmit);
+  document.getElementById("exam-sb-again-btn").addEventListener("click", openExamSb);
+  document.getElementById("exam-sb-items").addEventListener("click", (e) => {
+    const opt = e.target.closest(".exam-sb-opt");
+    if (opt) examSbPick(parseInt(opt.dataset.qi, 10), parseInt(opt.dataset.oi, 10));
+  });
+
+  document.getElementById("exam-write-start-btn").addEventListener("click", examWriteStart);
+  document.getElementById("exam-write-submit-btn").addEventListener("click", examWriteSubmit);
+  document.getElementById("exam-write-again-btn").addEventListener("click", openExamWrite);
+  document.getElementById("exam-write-input").addEventListener("input", (e) => {
+    const words = examCountWords(e.target.value);
+    document.getElementById("exam-write-wordcount").textContent = `${words} words`;
+    document.getElementById("exam-write-submit-btn").disabled = words < 50;
+  });
+  document.getElementById("exam-write-model-toggle").addEventListener("click", () => {
+    const el = document.getElementById("exam-write-model");
+    const showing = el.style.display !== "none";
+    el.style.display = showing ? "none" : "block";
+    document.getElementById("exam-write-model-toggle").textContent =
+      showing ? "Show model letter" : "Hide model letter";
+  });
+
+  document.getElementById("exam-speak-newtopic-btn").addEventListener("click", examPickSpeakTopic);
+  document.getElementById("exam-speak-prep-btn").addEventListener("click", examSpeakStartPrep);
+  document.getElementById("exam-speak-talk-btn").addEventListener("click", examSpeakStartTalking);
+  document.getElementById("exam-speak-stop-btn").addEventListener("click", examSpeakFinish);
+  document.getElementById("exam-speak-again-btn").addEventListener("click", openExamSpeak);
 }
 
 // ---- Unified error log: every correction the app produces lands here ----

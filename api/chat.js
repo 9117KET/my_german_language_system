@@ -353,6 +353,124 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // exam-sprachbausteine - generates a telc B2 Sprachbausteine gap test
+  if (mode === "exam-sprachbausteine") {
+    try {
+      const raw = await callGroqMessages([
+        { role: "system", content: "You write telc Deutsch B2 'Sprachbausteine Teil 1' practice tests: a formal German letter with exactly 10 numbered grammar gaps. Always return ONLY valid JSON." },
+        { role: "user", content:
+          `Write a formal German letter (B2 level, 100-140 words) with exactly 10 gaps marked [1] through [10].\n` +
+          `Pick a realistic scenario (complaint, inquiry, application, cancellation...).\n` +
+          `Each gap tests ONE grammar point: prepositions, conjunctions, pronouns, articles/cases, verb forms, or fixed formal phrases.\n` +
+          `For each gap give 3 options where exactly ONE is correct, plus the standalone sentence containing the gap.\n\n` +
+          `Return ONLY this JSON:\n` +
+          `{"title":"short letter title","text":"the full letter with [1]...[10] markers",` +
+          `"items":[{"num":1,"options":["a","b","c"],"answer":0,"rule":"one short English sentence naming the rule",` +
+          `"sentence":"the single sentence containing ___ instead of the gap"}]}`,
+        },
+      ], 1600);
+      const result = parseJSON(raw);
+      const items = (result && Array.isArray(result.items) ? result.items : [])
+        .filter(it => it && Array.isArray(it.options) && it.options.length >= 2 &&
+                      typeof it.answer === "number" && it.answer >= 0 && it.answer < it.options.length)
+        .slice(0, 10)
+        .map((it, i) => ({
+          num: i + 1,
+          options: it.options.slice(0, 3).map(String),
+          answer: it.answer,
+          rule: String(it.rule || ""),
+          sentence: String(it.sentence || "").includes("___") ? String(it.sentence) : "",
+        }));
+      if (!result || typeof result.text !== "string" || items.length < 6) {
+        throw new Error("Sprachbausteine generation returned invalid JSON");
+      }
+      return res.json({ title: result.title || "Formeller Brief", text: result.text, items });
+    } catch (err) {
+      console.error("[api/chat exam-sb]", err.message);
+      return res.status(500).json({ error: "Could not generate a test right now." });
+    }
+  }
+
+  // exam-write-feedback - grades a telc B2 Schriftlicher Ausdruck letter
+  if (mode === "exam-write-feedback") {
+    const { task, points } = req.body || {};
+    if (!text || !text.trim()) return res.status(400).json({ error: "No letter provided" });
+    try {
+      const raw = await callGroqMessages([
+        { role: "system", content: "You are a strict but fair telc Deutsch B2 examiner grading 'Schriftlicher Ausdruck' (formal letter). Always return ONLY valid JSON." },
+        { role: "user", content:
+          `The task:\n"${task || "Formal letter"}"\n` +
+          `Required content points:\n${(points || []).map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\n` +
+          `The learner's letter:\n"""${text}"""\n\n` +
+          `Grade it like a telc B2 examiner on these criteria, each scored A (very good), B (acceptable), C (insufficient):\n` +
+          `- inhalt: Are all 4 content points addressed appropriately?\n` +
+          `- kommunikation: Structure, register (formal!), connectors, letter conventions (greeting, closing)\n` +
+          `- korrektheit: Grammar accuracy\n` +
+          `- wortschatz: Range and precision of vocabulary\n\n` +
+          `Also list up to 5 concrete corrections (their sentence -> corrected) and write a short model letter (B2 level, covers all points, 120-160 words).\n\n` +
+          `Return ONLY this JSON:\n` +
+          `{"scores":{"inhalt":"A|B|C","kommunikation":"A|B|C","korrektheit":"A|B|C","wortschatz":"A|B|C"},` +
+          `"points_covered":[true,false,true,true],` +
+          `"overall":"2-3 sentences in English: overall verdict and the single most important thing to improve",` +
+          `"corrections":[{"original":"...","corrected":"...","explanation":"short English rule"}],` +
+          `"model":"the model letter in German"}`,
+        },
+      ], 1700);
+      const result = parseJSON(raw);
+      if (!result || !result.scores) throw new Error("Invalid grading JSON");
+      return res.json({
+        scores: result.scores,
+        points_covered: Array.isArray(result.points_covered) ? result.points_covered.slice(0, 4) : [],
+        overall: String(result.overall || ""),
+        corrections: (Array.isArray(result.corrections) ? result.corrections : [])
+          .filter(c => c && c.original && c.corrected).slice(0, 5),
+        model: String(result.model || ""),
+      });
+    } catch (err) {
+      console.error("[api/chat exam-write]", err.message);
+      return res.status(500).json({ error: "Could not grade your letter right now." });
+    }
+  }
+
+  // exam-speak-feedback - grades a telc B2 presentation (Muendliche Pruefung Teil 1)
+  if (mode === "exam-speak-feedback") {
+    const { topic } = req.body || {};
+    if (!text || !text.trim()) return res.status(400).json({ error: "No transcript provided" });
+    try {
+      const raw = await callGroqMessages([
+        { role: "system", content: "You are a telc Deutsch B2 examiner grading the short presentation (Muendliche Pruefung Teil 1). Always return ONLY valid JSON." },
+        { role: "user", content:
+          `Presentation topic: "${topic || "unknown"}"\n` +
+          `Expected structure: introduction, own experiences, situation in their home country, pros/cons + own opinion.\n\n` +
+          `Transcript of the learner's presentation:\n"""${text}"""\n\n` +
+          `Grade like a telc B2 examiner, each criterion A (very good), B (acceptable), C (insufficient):\n` +
+          `- aufgabe: Task fulfillment - did they cover the expected structure and stay on topic?\n` +
+          `- fluessigkeit: Flow and length (estimate from transcript - very short = C)\n` +
+          `- korrektheit: Grammar accuracy\n` +
+          `- ausdruck: Vocabulary range, B2-level structures, connectors\n\n` +
+          `Also: up to 4 concrete corrections from their speech, and a model outline of 4-6 German sentences they could have said.\n\n` +
+          `Return ONLY this JSON:\n` +
+          `{"scores":{"aufgabe":"A|B|C","fluessigkeit":"A|B|C","korrektheit":"A|B|C","ausdruck":"A|B|C"},` +
+          `"overall":"2-3 sentences in English: verdict plus the most important improvement",` +
+          `"corrections":[{"original":"...","corrected":"...","explanation":"short English rule"}],` +
+          `"model":"4-6 German sentences as a model presentation outline"}`,
+        },
+      ], 1400);
+      const result = parseJSON(raw);
+      if (!result || !result.scores) throw new Error("Invalid grading JSON");
+      return res.json({
+        scores: result.scores,
+        overall: String(result.overall || ""),
+        corrections: (Array.isArray(result.corrections) ? result.corrections : [])
+          .filter(c => c && c.original && c.corrected).slice(0, 4),
+        model: String(result.model || ""),
+      });
+    } catch (err) {
+      console.error("[api/chat exam-speak]", err.message);
+      return res.status(500).json({ error: "Could not grade your presentation right now." });
+    }
+  }
+
   if (!text || !text.trim()) return res.status(400).json({ error: "No text provided" });
 
   try {

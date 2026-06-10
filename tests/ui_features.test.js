@@ -1654,7 +1654,7 @@ describe("stories — app.js", () => {
   });
 
   test("stories mode included in renderCard and keydown guards", () => {
-    const matches = appJs.match(/mode === "today" \|\| mode === "stories"\) return;/g) || [];
+    const matches = appJs.match(/mode === "today" \|\| mode === "stories"/g) || [];
     assert.ok(matches.length >= 2, "stories missing from mode guards");
   });
 
@@ -1834,6 +1834,171 @@ describe("error profile — api/chat.js", () => {
     const guardIdx = chatJs.indexOf('if (!text || !text.trim())');
     assert.ok(chatJs.indexOf('mode === "error-profile"') < guardIdx, "error-profile must not require text");
     assert.ok(chatJs.indexOf('mode === "error-drills"') < guardIdx, "error-drills must not require text");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// telc B2 exam simulator
+// ---------------------------------------------------------------------------
+
+describe("telc exam — exam_data.js", () => {
+  const dataJs = readFile("exam_data.js");
+
+  function loadExamData() {
+    const ctx = {};
+    vm.runInNewContext(dataJs + "\nthis.W = EXAM_WRITE_TASKS; this.T = EXAM_SPEAK_TOPICS; this.S = EXAM_SPEAK_STRUCTURE; this.F = EXAM_SB_FALLBACK;", ctx);
+    return ctx;
+  }
+  const data = loadExamData();
+
+  test("at least 6 writing tasks, each with exactly 4 Leitpunkte", () => {
+    assert.ok(data.W.length >= 6, `Expected >= 6 tasks, got ${data.W.length}`);
+    const bad = data.W.filter(t => !t.points || t.points.length !== 4);
+    assert.equal(bad.length, 0, `Tasks without 4 points: ${bad.map(t => t.id).join(", ")}`);
+  });
+
+  test("writing tasks cover all four telc letter types", () => {
+    const types = new Set(data.W.map(t => t.type));
+    for (const ty of ["Beschwerde", "Anfrage", "Bewerbung", "Leserbrief"]) {
+      assert.ok(types.has(ty), `Missing letter type: ${ty}`);
+    }
+  });
+
+  test("at least 10 presentation topics with German and English", () => {
+    assert.ok(data.T.length >= 10, `Expected >= 10 topics, got ${data.T.length}`);
+    const bad = data.T.filter(t => !t.de || !t.en);
+    assert.equal(bad.length, 0, "Topics missing de/en");
+  });
+
+  test("presentation structure has the four telc parts", () => {
+    assert.equal(data.S.length, 4, "Expected 4 structure points");
+  });
+
+  test("fallback Sprachbausteine test has 10 valid items matching the text gaps", () => {
+    assert.equal(data.F.items.length, 10, "Fallback must have 10 items");
+    for (const it of data.F.items) {
+      assert.ok(data.F.text.includes(`[${it.num}]`), `Gap [${it.num}] missing from text`);
+      assert.equal(it.options.length, 3, `Item ${it.num} must have 3 options`);
+      assert.ok(it.answer >= 0 && it.answer < 3, `Item ${it.num} answer out of range`);
+      assert.ok(it.sentence.includes("___"), `Item ${it.num} sentence must contain ___`);
+      assert.ok(it.rule, `Item ${it.num} missing rule`);
+    }
+  });
+});
+
+describe("telc exam — index.html", () => {
+  const html = readFile("index.html");
+
+  test("exam tab exists in nav under Exam group", () => {
+    assert.ok(html.includes('data-mode="exam"'), "exam tab missing");
+    assert.ok(html.includes('<div class="nav-group-label">Exam</div>'), "Exam group label missing");
+  });
+
+  test("exam panel views and key elements exist", () => {
+    for (const id of ["exam-panel", "exam-landing", "exam-task-grid",
+      "exam-sb-view", "exam-sb-start-btn", "exam-sb-text", "exam-sb-items", "exam-sb-submit-btn", "exam-sb-result",
+      "exam-write-view", "exam-write-type", "exam-write-input", "exam-write-submit-btn", "exam-write-scores", "exam-write-model",
+      "exam-speak-view", "exam-speak-topic", "exam-speak-prep-btn", "exam-speak-talk-btn", "exam-speak-transcript", "exam-speak-scores"]) {
+      assert.ok(html.includes(`id="${id}"`), `Missing #${id}`);
+    }
+  });
+
+  test("exam_data.js is loaded with a fallback guard", () => {
+    assert.ok(html.includes('src="exam_data.js"'), "exam_data.js not loaded");
+    assert.ok(html.includes("EXAM_WRITE_TASKS === 'undefined'"), "fallback guard missing");
+  });
+});
+
+describe("telc exam — app.js", () => {
+  const appJs = readFile("app.js");
+
+  test("core exam functions are defined", () => {
+    for (const fn of ["showExamPanel", "showExamLanding", "openExamSb", "examSbStart",
+      "examSbSubmit", "openExamWrite", "examWriteStart", "examWriteSubmit",
+      "openExamSpeak", "examSpeakStartPrep", "examSpeakFinish", "examStartRecording",
+      "examStopRecording", "setupExamPanel"]) {
+      assert.ok(appJs.includes(`function ${fn}(`), `${fn} not defined`);
+    }
+  });
+
+  test("exam mode wired into tab click, guards, More sheet, and init", () => {
+    assert.ok(appJs.includes('newMode === "exam"'), "exam not handled in tab click");
+    const guards = appJs.match(/mode === "exam"\) return;/g) || [];
+    assert.ok(guards.length >= 2, "exam missing from renderCard/keydown guards");
+    const moreStart = appJs.indexOf("const MORE_SHEET_GROUPS");
+    const moreBlock = appJs.slice(moreStart, appJs.indexOf("];", moreStart));
+    assert.ok(moreBlock.includes('"exam"'), "exam missing from MORE_SHEET_GROUPS");
+    const init = appJs.slice(appJs.indexOf("function init()"), appJs.indexOf("function renderCard"));
+    assert.ok(init.includes("setupExamPanel()"), "setupExamPanel not called in init");
+  });
+
+  test("Sprachbausteine falls back to the built-in test on API failure", () => {
+    const p = appJs.indexOf("async function examSbStart");
+    const block = appJs.slice(p, p + 1600);
+    assert.ok(block.includes("EXAM_SB_FALLBACK"), "must fall back to EXAM_SB_FALLBACK");
+    assert.ok(block.includes("examShuffleItemOptions"), "must shuffle option order");
+  });
+
+  test("wrong Sprachbausteine items feed the drill mistake bank", () => {
+    const p = appJs.indexOf("function examSbSubmit");
+    const block = appJs.slice(p, p + 2200);
+    assert.ok(block.includes("addDrillMistake("), "wrong items must enter the mistake bank");
+  });
+
+  test("writing and speaking corrections feed the error log", () => {
+    const w = appJs.indexOf("async function examWriteSubmit");
+    assert.ok(appJs.slice(w, w + 3000).includes('logError("exam"'), "write corrections must be logged");
+    const s = appJs.indexOf("async function examSpeakFinish");
+    assert.ok(appJs.slice(s, s + 3000).includes('logError("exam"'), "speak corrections must be logged");
+  });
+
+  test("timers use real telc durations", () => {
+    assert.ok(appJs.includes("examSbSecondsLeft = 600"), "Sprachbausteine should be 10 min");
+    assert.ok(appJs.includes("examWriteSecondsLeft = 1800"), "Writing should be 30 min");
+    assert.ok(appJs.includes("examSpeakSecondsLeft = 120"), "Speaking should be 2 min");
+  });
+
+  test("write submit requires at least 50 words", () => {
+    assert.ok(appJs.includes("words < 50"), "50-word minimum missing");
+  });
+});
+
+describe("telc exam — api/chat.js", () => {
+  const chatJs = readFile("api/chat.js");
+
+  test("all three exam modes exist", () => {
+    for (const m of ["exam-sprachbausteine", "exam-write-feedback", "exam-speak-feedback"]) {
+      assert.ok(chatJs.includes(`mode === "${m}"`), `${m} mode missing`);
+    }
+  });
+
+  test("exam-sprachbausteine validates items and has fallback", () => {
+    const p = chatJs.indexOf('mode === "exam-sprachbausteine"');
+    const block = chatJs.slice(p, p + 3000);
+    assert.ok(block.includes("Array.isArray(it.options)"), "must validate options");
+    assert.ok(block.includes("catch"), "must have error fallback");
+  });
+
+  test("exam graders score on telc criteria", () => {
+    const w = chatJs.indexOf('mode === "exam-write-feedback"');
+    const wBlock = chatJs.slice(w, w + 3500);
+    for (const c of ["inhalt", "kommunikation", "korrektheit", "wortschatz"]) {
+      assert.ok(wBlock.includes(c), `write grader missing criterion: ${c}`);
+    }
+    const s = chatJs.indexOf('mode === "exam-speak-feedback"');
+    const sBlock = chatJs.slice(s, s + 3500);
+    for (const c of ["aufgabe", "fluessigkeit", "korrektheit", "ausdruck"]) {
+      assert.ok(sBlock.includes(c), `speak grader missing criterion: ${c}`);
+    }
+  });
+
+  test("exam graders return corrections and a model", () => {
+    for (const m of ["exam-write-feedback", "exam-speak-feedback"]) {
+      const p = chatJs.indexOf(`mode === "${m}"`);
+      const block = chatJs.slice(p, p + 3500);
+      assert.ok(block.includes("corrections"), `${m} must return corrections`);
+      assert.ok(block.includes("model"), `${m} must return a model`);
+    }
   });
 });
 
