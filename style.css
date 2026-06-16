@@ -2913,6 +2913,8 @@ select option {
   gap: 8px;
   flex: 1;
   min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .ws-chip { cursor: pointer; }
 .ws-reviewed { font-size: 0.7rem; color: var(--text-dim); }
