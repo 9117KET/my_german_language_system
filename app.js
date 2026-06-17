@@ -2998,9 +2998,23 @@ function extractVocabWords(phrases = PHRASES) {
     .map(([key, val]) => ({ key, ...val }));
 }
 
+// PHRASES is immutable at runtime, so the extracted word list only depends on
+// cefrFilter. Cache it per-filter so typing in the vocab search box doesn't
+// re-tokenize all phrases on every keystroke.
+const _vocabWordsCache = new Map();
+function getVocabWordsCached() {
+  const key = cefrFilter || "all";
+  let words = _vocabWordsCache.get(key);
+  if (!words) {
+    const sourcePhrases = cefrFilter !== "all" ? PHRASES.filter(p => p.level === cefrFilter) : PHRASES;
+    words = extractVocabWords(sourcePhrases);
+    _vocabWordsCache.set(key, words);
+  }
+  return words;
+}
+
 function renderVocabPanel(search = "") {
-  const sourcePhrases = cefrFilter !== "all" ? PHRASES.filter(p => p.level === cefrFilter) : PHRASES;
-  const words = extractVocabWords(sourcePhrases);
+  const words = getVocabWordsCached();
   const filtered = search
     ? words.filter(w => w.key.includes(search.toLowerCase()))
     : words;
