@@ -1691,7 +1691,7 @@ describe("stories — app.js", () => {
 
   test("story words open the vocab popup via delegation", () => {
     const p = appJs.indexOf("function setupStoriesPanel");
-    const block = appJs.slice(p, p + 2000);
+    const block = appJs.slice(p, p + 3500);
     assert.ok(block.includes("openVocabPopup"), "tap-words must open vocab popup");
   });
 
@@ -1723,7 +1723,7 @@ describe("stories — api/chat.js", () => {
 
   test("story mode validates sentences and clamps answers", () => {
     const p = chatJs.indexOf('mode === "story"');
-    const block = chatJs.slice(p, p + 4000);
+    const block = chatJs.slice(p, p + 8000);
     assert.ok(block.includes("Array.isArray(result.sentences)"), "must validate sentences array");
     assert.ok(block.includes("catch"), "must have error fallback");
   });

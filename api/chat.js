@@ -213,9 +213,11 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // story mode - generates a graded reader story, no learner text needed
+  // story mode - generates a graded reader story or the next episode of an
+  // ongoing series (comprehensible-input loop: recurring characters, a
+  // cliffhanger per episode, and SRS target words re-woven across days)
   if (mode === "story") {
-    const { level, storyType, topic, targetWords } = req.body || {};
+    const { level, storyType, topic, targetWords, series } = req.body || {};
     const lvl = LEVEL_DESCRIPTIONS[level] ? level : "b1";
     const sentenceCount = { a1: 8, a2: 10, b1: 12, b2: 14, c1: 14 }[lvl];
     const words = Array.isArray(targetWords) ? targetWords.slice(0, 8).filter(w => typeof w === "string") : [];
@@ -223,25 +225,59 @@ module.exports = async function handler(req, res) {
     const form = isDialogue
       ? `a dialogue between two named people (prefix each sentence with the speaker's name and a colon, e.g. "Lena: ...")`
       : `a short story with a small narrative arc (setup, a complication, a resolution)`;
+    const isSeries = series && typeof series === "object";
+    const GENRE_HOOKS = {
+      krimi: "a light detective/mystery serial (a small crime or puzzle in a German city, clues, suspects)",
+      comedy: "a comedy serial about chaotic flatmates in a German WG (misunderstandings, absurd everyday situations)",
+      romance: "a warm romantic serial (two people who keep almost meeting, small-town Germany)",
+      scifi: "a light science-fiction serial (something strange has appeared in an ordinary German town)",
+      abenteuer: "an adventure serial (a journey across German-speaking countries with a goal and obstacles)",
+    };
     try {
       const systemPrompt =
         `You are an author of German graded readers. You write engaging, natural German at exactly the requested CEFR level. ` +
         `Learners must understand 95-98% of the words, so keep vocabulary at or below the level. Always return ONLY valid JSON.`;
-      const userPrompt =
-        `Write ${form} in German for a ${lvl.toUpperCase()} learner.\n` +
-        `Level constraint: ${LEVEL_DESCRIPTIONS[lvl]}\n` +
-        `Topic: ${topic || "everyday life in Germany (pick something concrete and slightly surprising)"}\n` +
-        (words.length ? `Weave these target words naturally into the text (use as many as fit, inflected forms are fine): ${words.join(", ")}\n` : "") +
-        `Length: exactly ${sentenceCount} sentences.\n\n` +
-        `Then write 3 comprehension questions IN GERMAN at the same level, each with 3 short answer options (exactly one correct).\n\n` +
-        `Return ONLY this JSON shape:\n` +
-        `{"title":"German title","title_en":"English title","sentences":[{"de":"German sentence","en":"English translation"}],` +
-        `"questions":[{"q":"German question","options":["opt A","opt B","opt C"],"answer":0}],` +
-        `"used_words":["target words you actually used"]}`;
+      let userPrompt;
+      if (isSeries) {
+        const ep = Math.max(1, parseInt(series.episode, 10) || 1);
+        const genreDesc = GENRE_HOOKS[series.genre] || GENRE_HOOKS.krimi;
+        const prevCtx = ep > 1 && series.summary
+          ? `This is episode ${ep}. Continue directly from the story so far.\n` +
+            `Story so far: ${String(series.summary).slice(0, 900)}\n` +
+            (series.characters ? `Recurring characters (keep names and personalities consistent): ${String(series.characters).slice(0, 300)}\n` : "") +
+            (series.cliffhanger ? `The last episode ended on this cliffhanger - resolve or advance it early in this episode: ${String(series.cliffhanger).slice(0, 300)}\n` : "")
+          : `This is episode 1. Introduce 2-3 memorable recurring characters and the setting.\n`;
+        userPrompt =
+          `Write episode ${ep} of ${genreDesc}, in German, for a ${lvl.toUpperCase()} learner.\n` +
+          prevCtx +
+          `Level constraint: ${LEVEL_DESCRIPTIONS[lvl]}\n` +
+          (words.length ? `Weave these target words naturally into the text (use as many as fit, inflected forms are fine): ${words.join(", ")}\n` : "") +
+          `Length: exactly ${sentenceCount} sentences. END the episode on a small cliffhanger that makes the reader want the next episode.\n\n` +
+          `Then write 3 comprehension questions IN GERMAN at the same level, each with 3 short answer options (exactly one correct).\n\n` +
+          `Return ONLY this JSON shape:\n` +
+          `{"title":"German episode title","title_en":"English title","sentences":[{"de":"German sentence","en":"English translation"}],` +
+          `"questions":[{"q":"German question","options":["opt A","opt B","opt C"],"answer":0}],` +
+          `"used_words":["target words you actually used"],` +
+          `"summary":"2-3 English sentences summarizing the WHOLE story so far including this episode (for continuing next time)",` +
+          `"characters":"comma-separated recurring character names with a 3-word description each",` +
+          `"cliffhanger":"one English sentence: the open question this episode ends on"}`;
+      } else {
+        userPrompt =
+          `Write ${form} in German for a ${lvl.toUpperCase()} learner.\n` +
+          `Level constraint: ${LEVEL_DESCRIPTIONS[lvl]}\n` +
+          `Topic: ${topic || "everyday life in Germany (pick something concrete and slightly surprising)"}\n` +
+          (words.length ? `Weave these target words naturally into the text (use as many as fit, inflected forms are fine): ${words.join(", ")}\n` : "") +
+          `Length: exactly ${sentenceCount} sentences.\n\n` +
+          `Then write 3 comprehension questions IN GERMAN at the same level, each with 3 short answer options (exactly one correct).\n\n` +
+          `Return ONLY this JSON shape:\n` +
+          `{"title":"German title","title_en":"English title","sentences":[{"de":"German sentence","en":"English translation"}],` +
+          `"questions":[{"q":"German question","options":["opt A","opt B","opt C"],"answer":0}],` +
+          `"used_words":["target words you actually used"]}`;
+      }
       const raw = await callGroqMessages([
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
-      ], 1500);
+      ], 1700);
       const result = parseJSON(raw);
       if (!result || !Array.isArray(result.sentences) || result.sentences.length < 3) {
         throw new Error("Story generation returned invalid JSON");
@@ -257,14 +293,21 @@ module.exports = async function handler(req, res) {
           options: q.options.slice(0, 3).map(String),
           answer: Math.min(Math.max(parseInt(q.answer, 10) || 0, 0), Math.min(q.options.length, 3) - 1),
         }));
-      return res.json({
+      const payload = {
         title: result.title || "Eine Geschichte",
         title_en: result.title_en || "",
         level: lvl,
         sentences,
         questions,
         used_words: Array.isArray(result.used_words) ? result.used_words : [],
-      });
+      };
+      if (isSeries) {
+        payload.episode = Math.max(1, parseInt(series.episode, 10) || 1);
+        payload.summary = String(result.summary || "");
+        payload.characters = String(result.characters || "");
+        payload.cliffhanger = String(result.cliffhanger || "");
+      }
+      return res.json(payload);
     } catch (err) {
       console.error("[api/chat story]", err.message);
       return res.status(500).json({ error: "Could not generate a story right now. Try again." });

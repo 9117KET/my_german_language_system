@@ -73,7 +73,11 @@ def mock_chat(route):
                    "questions": [
                        {"q": "Worauf wartet Lena?", "options": ["Auf den Zug", "Auf den Bus"], "answer": 1},
                        {"q": "Was sucht sie?", "options": ["Den Schlüssel", "Das Handy"], "answer": 0}],
-                   "used_words": ["warten", "suchen"]}
+                   "used_words": ["warten", "suchen"],
+                   "episode": body.get("series", {}).get("episode", 1) if isinstance(body.get("series"), dict) else None,
+                   "summary": "Lena lost her key and found it.",
+                   "characters": "Lena: curious student",
+                   "cliffhanger": "Who put the key back?"}
     elif m == "exam-sprachbausteine":
         payload = {"title": "Reklamation", "text": "Sehr geehrte Damen und Herren, ___ ...",
                    "items": [{"num": i + 1, "options": ["seit", "vor", "ab"], "answer": 0,
@@ -279,6 +283,18 @@ def run():
             page.wait_for_timeout(300)
             res = page.evaluate("(document.getElementById('story-quiz-result')||{}).textContent||''")
             rec("OK" if res.strip() else "WARN", "stories", f"quiz result='{res.strip()[:30]}'")
+            # Palteca loop: word self-rate panel after the quiz feeds wordsSRS
+            n_rate = count("#story-word-rate-list .story-rate-btn")
+            if n_rate:
+                click(".story-rate-btn.know")
+                page.wait_for_timeout(200)
+                rated = count(".story-rate-row.rated")
+                rec("OK" if rated else "WARN", "stories", f"word self-rate graded {rated} word(s)")
+            else:
+                rec("INFO", "stories", "no target-word rate rows (no due/new words?)")
+            # XP should have accrued from story completion
+            xp = page.evaluate("JSON.parse(localStorage.getItem('xp_state')||'{}').total||0")
+            rec("OK" if xp > 0 else "WARN", "stories", f"XP total after story={xp}")
         probe("stories", f_stories)
 
         def f_exam():
@@ -310,7 +326,7 @@ def run():
                 el.value=t; el.dispatchEvent(new Event('input',{bubbles:true}));}""", letter)
             page.wait_for_timeout(200)
             if page.evaluate("!document.getElementById('exam-write-submit-btn').disabled"):
-                click("#exam-write-submit-btn"); page.wait_for_timeout(600)
+                click("#exam-write-submit-btn"); page.wait_for_timeout(1000)
                 chips = count("#exam-write-scores .exam-score-chip")
                 rec("OK" if chips == 4 else "WARN", "exam", f"Schreiben feedback chips={chips}")
             else:

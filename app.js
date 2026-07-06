@@ -1093,8 +1093,21 @@ const aiSavedList = document.getElementById("ai-saved-list");
 
 // ---- SRS Algorithm ----
 
+// Local-timezone date strings (YYYY-MM-DD). toISOString() is UTC and shifts the
+// day boundary by 1-2h for Europe/Berlin, crediting after-midnight study to the
+// wrong day and hiding due cards until 1-2am — always use these helpers instead.
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function todayStr() {
-  return new Date().toISOString().split("T")[0];
+  return toLocalDateStr(new Date());
+}
+
+function daysAgoStr(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return toLocalDateStr(d);
 }
 
 function getSrsRecord(id) {
@@ -1138,12 +1151,13 @@ function updateOnGotIt(id) {
   due.setDate(due.getDate() + newInterval);
   srsData[String(id)] = {
     ...r, interval: newInterval, easeFactor: newEF,
-    dueDate: due.toISOString().split("T")[0],
+    dueDate: toLocalDateStr(due),
     lastReviewed: todayStr(),
     totalReviews: r.totalReviews + 1,
     totalCorrect: r.totalCorrect + 1
   };
   saveSrsData();
+  awardXP(4, "Phrase");
   todayOnPhraseGraded();
 }
 
@@ -1154,11 +1168,12 @@ function updateOnMissed(id) {
   due.setDate(due.getDate() + 1);
   srsData[String(id)] = {
     ...r, interval: 1, easeFactor: newEF,
-    dueDate: due.toISOString().split("T")[0],
+    dueDate: toLocalDateStr(due),
     lastReviewed: todayStr(),
     totalReviews: r.totalReviews + 1
   };
   saveSrsData();
+  awardXP(1, "Versuch");
   todayOnPhraseGraded();
 }
 
@@ -1172,12 +1187,151 @@ function migrateMissedWeights() {
     due.setDate(due.getDate() + 1);
     existing[idStr] = {
       interval: 1, easeFactor: Math.max(1.3, 2.5 - missCount * 0.1),
-      dueDate: due.toISOString().split("T")[0], lastReviewed: null,
+      dueDate: toLocalDateStr(due), lastReviewed: null,
       totalReviews: missCount, totalCorrect: 0, archived: false
     };
   }
   localStorage.setItem("srsData", JSON.stringify(existing));
   localStorage.removeItem("missedWeights");
+}
+
+// ---- XP, Levels & Global Streak (motivation layer) ----
+// One reward system across every feature: any graded action earns XP via
+// awardXP(). A day with >= XP_STREAK_MIN counts toward the global streak,
+// so ANY real practice keeps the flame alive - not just one specific tab.
+
+const XP_DAILY_GOAL = 40;
+const XP_STREAK_MIN = 10;
+const XP_LEVELS = [
+  { xp: 0,    title: "Neuling" },
+  { xp: 150,  title: "Entdecker" },
+  { xp: 400,  title: "Wortsammler" },
+  { xp: 800,  title: "Satzbauer" },
+  { xp: 1400, title: "Plauderer" },
+  { xp: 2200, title: "Geschichtenerzähler" },
+  { xp: 3200, title: "Alltagsheld" },
+  { xp: 4500, title: "B2-Kandidat" },
+  { xp: 6000, title: "Prüfungsprofi" },
+  { xp: 8000, title: "Sprachmeister" },
+];
+
+let xpState = null;
+
+function loadXPState() {
+  if (xpState) return;
+  try { xpState = JSON.parse(localStorage.getItem("xp_state") || "null"); } catch {}
+  if (!xpState || typeof xpState !== "object") xpState = { total: 0, days: {} };
+  if (!xpState.days || typeof xpState.days !== "object") xpState.days = {};
+  if (typeof xpState.total !== "number") xpState.total = 0;
+}
+
+function saveXPState() {
+  try { localStorage.setItem("xp_state", JSON.stringify(xpState)); } catch {}
+}
+
+function xpToday() {
+  loadXPState();
+  return xpState.days[todayStr()] || 0;
+}
+
+function xpLastNDays(n) {
+  loadXPState();
+  const out = [];
+  for (let i = n - 1; i >= 0; i--) out.push({ date: daysAgoStr(i), xp: xpState.days[daysAgoStr(i)] || 0 });
+  return out;
+}
+
+function getXPLevel() {
+  loadXPState();
+  let idx = 0;
+  for (let i = 0; i < XP_LEVELS.length; i++) if (xpState.total >= XP_LEVELS[i].xp) idx = i;
+  const next = XP_LEVELS[idx + 1] || null;
+  return { index: idx, title: XP_LEVELS[idx].title, floor: XP_LEVELS[idx].xp, next };
+}
+
+// Consecutive days (ending today or yesterday) with >= XP_STREAK_MIN earned.
+function getGlobalStreak() {
+  loadXPState();
+  let start = 0;
+  if ((xpState.days[daysAgoStr(0)] || 0) < XP_STREAK_MIN) {
+    if ((xpState.days[daysAgoStr(1)] || 0) < XP_STREAK_MIN) return 0;
+    start = 1;
+  }
+  let streak = 0;
+  for (let i = start; (xpState.days[daysAgoStr(i)] || 0) >= XP_STREAK_MIN; i++) streak++;
+  return streak;
+}
+
+function awardXP(amount, label) {
+  if (!amount || amount <= 0) return;
+  loadXPState();
+  const before = xpState.days[todayStr()] || 0;
+  xpState.total += amount;
+  xpState.days[todayStr()] = before + amount;
+  const levelBefore = getXPLevelIndexAt(xpState.total - amount);
+  saveXPState();
+  renderXPBar();
+  showXPToast(amount, label);
+  if (before < XP_DAILY_GOAL && before + amount >= XP_DAILY_GOAL) {
+    celebrateMoment(`Tagesziel erreicht! 🎯`, `🔥 ${getGlobalStreak()} day streak — see you tomorrow!`);
+  } else if (getXPLevel().index > levelBefore) {
+    celebrateMoment(`Level up! ⭐`, `You are now: ${getXPLevel().title}`);
+  }
+}
+
+function getXPLevelIndexAt(total) {
+  let idx = 0;
+  for (let i = 0; i < XP_LEVELS.length; i++) if (total >= XP_LEVELS[i].xp) idx = i;
+  return idx;
+}
+
+function renderXPBar() {
+  const bar = document.getElementById("xp-topbar");
+  if (!bar) return;
+  const today = xpToday();
+  const streak = getGlobalStreak();
+  const lvl = getXPLevel();
+  const streakEl = document.getElementById("xp-streak");
+  streakEl.textContent = `🔥 ${streak}`;
+  streakEl.classList.toggle("alive", streak > 0 && today >= XP_STREAK_MIN);
+  document.getElementById("xp-level").textContent = `⭐ ${lvl.title}`;
+  const pct = Math.min(100, Math.round((today / XP_DAILY_GOAL) * 100));
+  document.getElementById("xp-goal-fill").style.width = pct + "%";
+  document.getElementById("xp-goal-fill").classList.toggle("goal-hit", today >= XP_DAILY_GOAL);
+  document.getElementById("xp-goal-label").textContent = `${today} / ${XP_DAILY_GOAL} XP`;
+  document.getElementById("xp-total").textContent = `${xpState.total} XP`;
+}
+
+let xpToastTimer = null;
+function showXPToast(amount, label) {
+  let wrap = document.getElementById("xp-toast-wrap");
+  if (!wrap) {
+    wrap = document.createElement("div");
+    wrap.id = "xp-toast-wrap";
+    document.body.appendChild(wrap);
+  }
+  const toast = document.createElement("div");
+  toast.className = "xp-toast";
+  toast.textContent = `+${amount} XP${label ? " · " + label : ""}`;
+  wrap.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("show"));
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 400);
+  }, 1600);
+}
+
+function celebrateMoment(title, sub) {
+  const old = document.getElementById("celebrate-overlay");
+  if (old) old.remove();
+  const el = document.createElement("div");
+  el.id = "celebrate-overlay";
+  const confetti = Array.from({ length: 24 }, (_, i) =>
+    `<span class="confetti c${i % 6}" style="left:${(i * 41) % 100}%;animation-delay:${(i % 8) * 90}ms"></span>`).join("");
+  el.innerHTML = `${confetti}<div id="celebrate-card"><div id="celebrate-title">${title}</div><div id="celebrate-sub">${sub}</div></div>`;
+  document.body.appendChild(el);
+  el.addEventListener("click", () => el.remove());
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 2800);
 }
 
 // ---- Voice Matching ----
@@ -1272,6 +1426,8 @@ function init() {
   setupStoriesPanel();
   setupErrorProfileSection();
   setupExamPanel();
+  loadXPState();
+  renderXPBar();
   // Land on the Today dashboard (mode defaults to "today")
   showTodayPanel();
   updateTabBadges();
@@ -2125,7 +2281,7 @@ function saveCurrentPhrase() {
   const audio_base64 = lastAIResult.audio_base64 || null;
 
   const saved = JSON.parse(localStorage.getItem("ai_phrases") || "[]");
-  saved.push({ german, english, category: cat, audio_base64, created_date: new Date().toISOString().split("T")[0] });
+  saved.push({ german, english, category: cat, audio_base64, created_date: todayStr() });
   localStorage.setItem("ai_phrases", JSON.stringify(saved));
 
   aiSaveBtn.textContent = "Saved!";
@@ -2515,7 +2671,34 @@ function paginationHTML(page, total, pageSize, prevFn, nextFn) {
   </div>`;
 }
 
+// Headline numbers that only grow - the proof that the work is paying off
+function renderResultsCard() {
+  loadWordsSRS();
+  const recs = Object.values(wordsSRS);
+  document.getElementById("res-words-met").textContent = recs.filter(r => r.totalReviews > 0).length;
+  document.getElementById("res-words-solid").textContent = recs.filter(r => (r.interval || 0) >= 7).length;
+  document.getElementById("res-streak").textContent = getGlobalStreak();
+  document.getElementById("res-stories").textContent = getStoriesReadCount();
+
+  const week = xpLastNDays(7);
+  const weekTotal = week.reduce((s, d) => s + d.xp, 0);
+  document.getElementById("res-xp-week").textContent = weekTotal;
+
+  const max = Math.max(XP_DAILY_GOAL, ...week.map(d => d.xp));
+  const dayLetters = ["S", "M", "T", "W", "T", "F", "S"];
+  document.getElementById("xp-week-chart").innerHTML = week.map((d, i) => {
+    const h = Math.max(4, Math.round((d.xp / max) * 100));
+    const hit = d.xp >= XP_DAILY_GOAL;
+    const isToday = i === week.length - 1;
+    return `<div class="xpw-col${isToday ? " today" : ""}" title="${d.date}: ${d.xp} XP">
+      <div class="xpw-bar-wrap"><div class="xpw-bar${hit ? " hit" : ""}" style="height:${h}%"></div></div>
+      <span class="xpw-day">${dayLetters[new Date(d.date + "T12:00:00").getDay()]}</span>
+    </div>`;
+  }).join("");
+}
+
 function renderProgressTab() {
+  renderResultsCard();
   renderWeakSpots();
   const counts = { new: 0, due: 0, upcoming: 0, mastered: 0, archived: 0 };
   for (const p of PHRASES) { const s = getStatus(p.id); if (counts[s] !== undefined) counts[s]++; }
@@ -2780,8 +2963,8 @@ function renderDrillSetsPanel() {
 function getDrillStreak() {
   try {
     const data = JSON.parse(localStorage.getItem("drills_streak") || "{}");
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     if (data.last === today || data.last === yesterday) return data.count || 0;
     return 0;
   } catch { return 0; }
@@ -2789,8 +2972,8 @@ function getDrillStreak() {
 
 function recordDrillDone() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     const data = JSON.parse(localStorage.getItem("drills_streak") || "{}");
     if (data.last === today) return;
     const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
@@ -2867,6 +3050,8 @@ function answerDrill(chosen) {
     if (isCorrect) clearDrillMistake(item.srcItem);
     else addDrillMistake(drillSetKey === "__mistakes__" ? item.srcSetKey : drillSetKey, item.srcItem);
   }
+  // Phrase-backed drills already earn XP via updateOnGotIt/Missed above
+  if (item.phraseId == null) awardXP(isCorrect ? 3 : 1, "Drill");
   if (isCorrect) drillSessionCorrect++;
   drillSessionTotal++;
   speakGerman(item.german);
@@ -3075,12 +3260,12 @@ function showStartersPanel() {
 let startersCatFilter = "all";
 
 function getStartersPracticedToday() {
-  const key = "starters_practiced_" + new Date().toISOString().slice(0, 10);
+  const key = "starters_practiced_" + todayStr();
   try { return new Set(JSON.parse(localStorage.getItem(key) || "[]")); } catch { return new Set(); }
 }
 
 function markStarterPracticed(id) {
-  const key = "starters_practiced_" + new Date().toISOString().slice(0, 10);
+  const key = "starters_practiced_" + todayStr();
   const set = getStartersPracticedToday();
   set.add(id);
   localStorage.setItem(key, JSON.stringify([...set]));
@@ -3374,8 +3559,8 @@ function updateSpeakStreak() {
 function getSpeakStreak() {
   try {
     const data = JSON.parse(localStorage.getItem("speak_streak") || "{}");
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     if (data.last === today) return data.count || 0;
     if (data.last === yesterday) return data.count || 0;
     return 0;
@@ -3384,8 +3569,8 @@ function getSpeakStreak() {
 
 function recordSpeakDone() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     const data = JSON.parse(localStorage.getItem("speak_streak") || "{}");
     if (data.last === today) return;
     const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
@@ -3494,6 +3679,7 @@ async function speakTimeUp() {
   setSpeakArc(0);
   recordSpeakDone();
   updateSpeakStreak();
+  awardXP(10, "Sprechen");
   todayOnSpeakDone();
 
   document.getElementById("speak-actions").style.display = "none";
@@ -3723,21 +3909,21 @@ function renderMonologuePrompt() {
 
 function getMonologueDoneToday() {
   try {
-    const key = "monologue_done_" + new Date().toISOString().slice(0, 10);
+    const key = "monologue_done_" + todayStr();
     return parseInt(localStorage.getItem(key) || "0", 10);
   } catch { return 0; }
 }
 
 function recordMonologueDone() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayStr();
     const key = "monologue_done_" + today;
     const n = parseInt(localStorage.getItem(key) || "0", 10) + 1;
     localStorage.setItem(key, String(n));
     monologueDoneToday = n;
 
     const streakKey = "monologue_streak";
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const yesterday = daysAgoStr(1);
     const data = JSON.parse(localStorage.getItem(streakKey) || "{}");
     if (data.last === today) return;
     const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
@@ -3748,8 +3934,8 @@ function recordMonologueDone() {
 function getMonologueStreak() {
   try {
     const data = JSON.parse(localStorage.getItem("monologue_streak") || "{}");
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     if (data.last === today || data.last === yesterday) return data.count || 0;
     return 0;
   } catch { return 0; }
@@ -3797,6 +3983,7 @@ async function submitMonologue() {
   recordMonologueDone();
   updateMonologueCount();
   updateMonologueStreak();
+  awardXP(10, "Denken");
   todayOnThinkDone();
   document.getElementById("monologue-reflection-area").style.display = "flex";
   btn.textContent = "Reflect →";
@@ -3872,7 +4059,7 @@ function getTodayStreak() {
   try {
     const data = JSON.parse(localStorage.getItem("today_streak") || "{}");
     const today = todayStr();
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const yesterday = daysAgoStr(1);
     if (data.last === today || data.last === yesterday) return data.count || 0;
     return 0;
   } catch { return 0; }
@@ -3887,11 +4074,12 @@ function isTodaySessionDoneToday() {
 function recordTodaySessionDone() {
   try {
     const today = todayStr();
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const yesterday = daysAgoStr(1);
     const data = JSON.parse(localStorage.getItem("today_streak") || "{}");
     if (data.last === today) return;
     const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
     localStorage.setItem("today_streak", JSON.stringify({ last: today, count: newCount }));
+    awardXP(20, "Session komplett");
   } catch {}
 }
 
@@ -4136,6 +4324,7 @@ function recordStoryRead() {
   try {
     localStorage.setItem("stories_read_count", String(getStoriesReadCount() + 1));
   } catch {}
+  awardXP(15, "Geschichte");
   updateStoriesReadBadge();
 }
 
@@ -4151,6 +4340,42 @@ function updateStoriesReadBadge() {
   }
 }
 
+// ---- Story series (Palteca-style serialized comprehensible input) ----
+function getStorySeries() {
+  try { return JSON.parse(localStorage.getItem("storySeries") || "null"); } catch { return null; }
+}
+
+function saveStorySeries(s) {
+  try { localStorage.setItem("storySeries", JSON.stringify(s)); } catch {}
+}
+
+function resetStorySeries() {
+  try { localStorage.removeItem("storySeries"); } catch {}
+  updateSeriesControls();
+}
+
+function updateSeriesControls() {
+  const isSeries = document.getElementById("story-series-select").value === "series";
+  const series = getStorySeries();
+  document.getElementById("story-genre-select").style.display = isSeries ? "" : "none";
+  document.getElementById("story-type-select").style.display = isSeries ? "none" : "";
+  document.getElementById("story-topic-select").style.display = isSeries ? "none" : "";
+  const status = document.getElementById("story-series-status");
+  if (isSeries && series) {
+    const genreLabel = { krimi: "🔍 Krimi", comedy: "😂 WG-Comedy", romance: "💌 Romanze", scifi: "🛸 Sci-Fi", abenteuer: "🧭 Abenteuer" }[series.genre] || series.genre;
+    document.getElementById("story-series-status-text").textContent =
+      `${genreLabel} · Episode ${series.episode} gelesen` + (series.cliffhanger ? ` · Offen: ${series.cliffhanger}` : "");
+    status.style.display = "flex";
+    document.getElementById("story-genre-select").value = series.genre;
+    document.getElementById("story-generate-btn").innerHTML = `&#9654; Continue: Episode ${series.episode + 1}`;
+  } else {
+    status.style.display = "none";
+    document.getElementById("story-generate-btn").innerHTML = isSeries
+      ? "&#10024; Start my series (Episode 1)"
+      : "&#10024; Generate story";
+  }
+}
+
 function showStoriesPanel() {
   document.getElementById("controls-bar").style.display = "none";
   playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
@@ -4163,6 +4388,7 @@ function showStoriesPanel() {
   });
   document.getElementById("stories-panel").style.display = "flex";
   updateStoriesReadBadge();
+  updateSeriesControls();
   renderStoryVocabPreview();
   // Restore the last generated story so a reload doesn't cost another generation
   if (!currentStory) {
@@ -4201,6 +4427,7 @@ async function generateStory() {
   const level = document.getElementById("story-level-select").value;
   const storyType = document.getElementById("story-type-select").value;
   const topic = document.getElementById("story-topic-select").value;
+  const isSeries = document.getElementById("story-series-select").value === "series";
   const targets = pickStoryTargetWords(level);
 
   const btn = document.getElementById("story-generate-btn");
@@ -4211,20 +4438,48 @@ async function generateStory() {
   document.getElementById("story-view").style.display = "none";
 
   try {
+    const body = {
+      mode: "story",
+      level,
+      storyType,
+      topic,
+      targetWords: targets.map(w => w.german),
+    };
+    if (isSeries) {
+      const prev = getStorySeries();
+      const genre = document.getElementById("story-genre-select").value;
+      const sameSeries = prev && prev.genre === genre;
+      body.series = {
+        genre,
+        episode: sameSeries ? prev.episode + 1 : 1,
+        summary: sameSeries ? prev.summary : "",
+        characters: sameSeries ? prev.characters : "",
+        cliffhanger: sameSeries ? prev.cliffhanger : "",
+      };
+    }
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: "story",
-        level,
-        storyType,
-        topic,
-        targetWords: targets.map(w => w.german),
-      }),
+      body: JSON.stringify(body),
     });
     const data = await parseApiResponse(res);
     if (!res.ok) throw new Error(data.error || "Server error");
-    currentStory = { ...data, quizDone: false };
+    currentStory = {
+      ...data,
+      quizDone: false,
+      target_words: targets.map(w => ({ id: w.id, german: w.german, english: w.english })),
+    };
+    if (isSeries) {
+      saveStorySeries({
+        genre: body.series.genre,
+        episode: body.series.episode,
+        level,
+        summary: data.summary || "",
+        characters: data.characters || "",
+        cliffhanger: data.cliffhanger || "",
+      });
+      updateSeriesControls();
+    }
     try { localStorage.setItem("lastStory", JSON.stringify(currentStory)); } catch {}
     renderStory(true);
   } catch (err) {
@@ -4249,6 +4504,23 @@ function renderStory(scrollToTop) {
   document.getElementById("story-view").style.display = "flex";
   document.getElementById("story-title").textContent = currentStory.title || "Eine Geschichte";
   document.getElementById("story-level-chip").textContent = (currentStory.level || "b1").toUpperCase();
+
+  const epChip = document.getElementById("story-episode-chip");
+  if (currentStory.episode) {
+    epChip.textContent = `Episode ${currentStory.episode}`;
+    epChip.style.display = "";
+  } else {
+    epChip.style.display = "none";
+  }
+  const cliff = document.getElementById("story-cliffhanger");
+  if (currentStory.cliffhanger) {
+    document.getElementById("story-cliffhanger-text").textContent = currentStory.cliffhanger;
+    cliff.style.display = "flex";
+  } else {
+    cliff.style.display = "none";
+  }
+  document.getElementById("story-word-rate").style.display = currentStory.quizDone ? "flex" : "none";
+  if (currentStory.quizDone) renderStoryWordRate();
 
   const usedWords = (currentStory.used_words || []).map(w => w.toLowerCase());
   document.getElementById("story-body").innerHTML = currentStory.sentences.map((s, i) => `
@@ -4325,7 +4597,43 @@ function handleStoryQuizAnswer(qi, oi, btn) {
       try { localStorage.setItem("lastStory", JSON.stringify(currentStory)); } catch {}
       recordStoryRead();
     }
+    // Palteca loop: after understanding the input, self-rate the target words
+    // so fuzzy ones come back via SRS in the next episodes.
+    document.getElementById("story-word-rate").style.display = "flex";
+    renderStoryWordRate();
   }
+}
+
+function renderStoryWordRate() {
+  const list = document.getElementById("story-word-rate-list");
+  const targets = currentStory && Array.isArray(currentStory.target_words) ? currentStory.target_words : [];
+  if (!targets.length) {
+    document.getElementById("story-word-rate").style.display = "none";
+    return;
+  }
+  const rated = currentStory.ratedWords || {};
+  list.innerHTML = targets.map(w => {
+    const done = rated[String(w.id)];
+    return `<div class="story-rate-row${done ? " rated" : ""}" data-wid="${w.id}">
+      <span class="story-rate-word">${w.german}</span>
+      <span class="story-rate-en">${w.english}</span>
+      ${done
+        ? `<span class="story-rate-done">${done === "good" ? "✓ wusste ich" : "→ kommt wieder"}</span>`
+        : `<button class="story-rate-btn know" data-wid="${w.id}" data-rate="good">✓ Wusste ich</button>
+           <button class="story-rate-btn fuzzy" data-wid="${w.id}" data-rate="miss">✗ Noch unsicher</button>`}
+    </div>`;
+  }).join("");
+}
+
+function storyRateWord(wordId, rating) {
+  if (!currentStory) return;
+  if (!currentStory.ratedWords) currentStory.ratedWords = {};
+  if (currentStory.ratedWords[String(wordId)]) return;
+  loadWordsSRS();
+  updateWordSRS(wordId, rating);
+  currentStory.ratedWords[String(wordId)] = rating;
+  try { localStorage.setItem("lastStory", JSON.stringify(currentStory)); } catch {}
+  renderStoryWordRate();
 }
 
 function storySpeakSentence(idx) {
@@ -4375,6 +4683,11 @@ function setupStoriesPanel() {
     document.getElementById("stories-setup").scrollIntoView({ behavior: "smooth", block: "start" });
   });
   document.getElementById("story-level-select").addEventListener("change", renderStoryVocabPreview);
+  document.getElementById("story-series-select").addEventListener("change", updateSeriesControls);
+  document.getElementById("story-genre-select").addEventListener("change", updateSeriesControls);
+  document.getElementById("story-series-reset").addEventListener("click", () => {
+    if (confirm("Start a fresh series? Your current storyline will be forgotten.")) resetStorySeries();
+  });
   document.getElementById("story-play-all-btn").addEventListener("click", storyPlayAll);
   document.getElementById("story-show-en-btn").addEventListener("click", () => {
     const body = document.getElementById("story-body");
@@ -4385,6 +4698,8 @@ function setupStoriesPanel() {
   // Delegated: word taps open the vocab popup, sentence taps toggle translation,
   // play buttons speak the sentence, quiz options grade themselves.
   document.getElementById("stories-panel").addEventListener("click", (e) => {
+    const rateBtn = e.target.closest(".story-rate-btn");
+    if (rateBtn) { storyRateWord(parseInt(rateBtn.dataset.wid, 10), rateBtn.dataset.rate); return; }
     const playBtn = e.target.closest(".story-sent-play");
     if (playBtn) { storySpeakSentence(parseInt(playBtn.dataset.idx, 10)); return; }
     const quizOpt = e.target.closest(".story-quiz-opt");
@@ -4427,6 +4742,7 @@ function getExamTasksDone() {
 
 function recordExamTaskDone() {
   try { localStorage.setItem("exam_tasks_done", String(getExamTasksDone() + 1)); } catch {}
+  awardXP(25, "Prüfungsaufgabe");
   updateExamDoneBadge();
 }
 
@@ -5761,7 +6077,7 @@ function saveConvoSession() {
   const idx = sessions.findIndex(s => s.id === convoSessionId);
   const session = {
     id: convoSessionId,
-    date: new Date().toISOString().split("T")[0],
+    date: todayStr(),
     title: convoScenario && SCENARIOS[convoScenario] ? SCENARIOS[convoScenario].title : "Free Chat",
     scenarioKey: convoScenario,
     messages: convoMessages.map(m => ({ role: m.role, text: m.text, correction: m.correction || null })),
@@ -5926,12 +6242,13 @@ function updateWordSRS(id, rating) {
     ...r,
     interval,
     easeFactor: ef,
-    dueDate: due.toISOString().split("T")[0],
+    dueDate: toLocalDateStr(due),
     lastReviewed: todayStr(),
     totalReviews: r.totalReviews + 1,
     totalCorrect: r.totalCorrect + (rating !== "miss" ? 1 : 0),
   };
   saveWordsSRS();
+  awardXP(rating === "miss" ? 1 : 3, "Wort");
 }
 
 function buildWordsQueue() {
@@ -6597,6 +6914,7 @@ function wsMarkFound(placed, cells) {
 
 function wsPuzzleComplete() {
   recordGamesStreak();
+  awardXP(10, "Wortsuche");
   updateGamesStreakBadge();
   const list = document.getElementById("ws-word-list");
   const n = wsCurrentPuzzle.placed.length;
@@ -6721,8 +7039,8 @@ function handleWsHint() {
 function getGamesStreak() {
   try {
     const data = JSON.parse(localStorage.getItem("ws_streak") || "{}");
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     if (data.last === today) return data.count || 1;
     if (data.last === yesterday) return data.count || 0;
     return 0;
@@ -6731,8 +7049,8 @@ function getGamesStreak() {
 
 function recordGamesStreak() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     const data = JSON.parse(localStorage.getItem("ws_streak") || "{}");
     if (data.last === today) return;
     const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;
@@ -6937,6 +7255,7 @@ function gsEndSprint() {
   document.getElementById("gs-play-section").style.display = "none";
   document.getElementById("gs-done-section").style.display = "flex";
 
+  if (gsSessionTotal > 0) awardXP(Math.min(10, 2 + gsSessionCorrect), "Grammar Sprint");
   gsUpdateStreak();
 }
 
@@ -6969,8 +7288,8 @@ function gsUpdateStreak() {
 function getGsStreak() {
   try {
     const data = JSON.parse(localStorage.getItem("gs_streak") || "{}");
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     if (data.last === today || data.last === yesterday) return data.count || 0;
     return 0;
   } catch { return 0; }
@@ -6978,8 +7297,8 @@ function getGsStreak() {
 
 function recordGsDone() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     const data = JSON.parse(localStorage.getItem("gs_streak") || "{}");
     if (data.last === today) return;
     const newCount = data.last === yesterday ? (data.count || 0) + 1 : 1;
@@ -7197,8 +7516,8 @@ function lbUpdateStreak() {
 function getLbStreak() {
   try {
     const data = JSON.parse(localStorage.getItem("lb_streak") || "{}");
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     if (data.last === today || data.last === yesterday) return data.count || 0;
     return 0;
   } catch { return 0; }
@@ -7206,8 +7525,8 @@ function getLbStreak() {
 
 function recordLbDone() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     const data = JSON.parse(localStorage.getItem("lb_streak") || "{}");
     if (data.last === today) return;
     const newCount = data.last === yesterday ? (data.count || 0) + 1 : 1;
@@ -7364,6 +7683,7 @@ function sbCheck() {
     feedbackText.textContent = "Correct!";
     correctWrap.style.display = "none";
     recordSbDone();
+    awardXP(3, "Satzbau");
     sbUpdateStreak();
   } else {
     feedbackIcon.textContent = "✗";
@@ -7407,8 +7727,8 @@ function sbUpdateStreak() {
 function getSbStreak() {
   try {
     const data = JSON.parse(localStorage.getItem("sb_streak") || "{}");
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     if (data.last === today || data.last === yesterday) return data.count || 0;
     return 0;
   } catch { return 0; }
@@ -7416,8 +7736,8 @@ function getSbStreak() {
 
 function recordSbDone() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     const data = JSON.parse(localStorage.getItem("sb_streak") || "{}");
     if (data.last === today) return;
     const newCount = data.last === yesterday ? (data.count || 0) + 1 : 1;
@@ -7736,8 +8056,8 @@ function tbSetArc(fraction) {
 function getTalkBoxStreak() {
   try {
     const data = JSON.parse(localStorage.getItem("talkbox_streak") || "{}");
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     if (data.last === today) return data.count || 0;
     if (data.last === yesterday) return data.count || 0;
     return 0;
@@ -7746,8 +8066,8 @@ function getTalkBoxStreak() {
 
 function recordTalkBoxDone() {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
     const data = JSON.parse(localStorage.getItem("talkbox_streak") || "{}");
     if (data.last === today) return;
     const newCount = (data.last === yesterday) ? (data.count || 0) + 1 : 1;

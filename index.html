@@ -110,6 +110,16 @@
 
   <main class="app-main">
 
+    <div id="xp-topbar">
+      <span id="xp-streak" title="Days in a row with real practice">🔥 0</span>
+      <span id="xp-level" title="Your level"></span>
+      <div id="xp-goal-wrap" title="Daily goal">
+        <div id="xp-goal-track"><div id="xp-goal-fill"></div></div>
+        <span id="xp-goal-label">0 / 40 XP</span>
+      </div>
+      <span id="xp-total" title="Total XP earned"></span>
+    </div>
+
     <div id="today-session-bar" style="display:none">
       <div id="tsb-steps"></div>
       <div id="tsb-label"></div>
@@ -428,6 +438,18 @@
       <!-- Progress panel (shown when Progress tab is active) -->
       <div id="progress-panel" style="display:none">
 
+        <div id="progress-results">
+          <div id="progress-results-title">Your results</div>
+          <div id="progress-results-grid">
+            <div class="result-stat"><div class="result-val" id="res-words-met">0</div><div class="result-lbl">words met</div></div>
+            <div class="result-stat"><div class="result-val" id="res-words-solid">0</div><div class="result-lbl">words solid (7d+)</div></div>
+            <div class="result-stat"><div class="result-val" id="res-streak">0</div><div class="result-lbl">day streak</div></div>
+            <div class="result-stat"><div class="result-val" id="res-xp-week">0</div><div class="result-lbl">XP this week</div></div>
+            <div class="result-stat"><div class="result-val" id="res-stories">0</div><div class="result-lbl">stories read</div></div>
+          </div>
+          <div id="xp-week-chart"></div>
+        </div>
+
         <div id="progress-summary">
           <div class="prog-stat"><div class="prog-val" id="prog-due-val">0</div><div class="prog-lbl">Due</div></div>
           <div class="prog-stat"><div class="prog-val" id="prog-upcoming-val">0</div><div class="prog-lbl">Upcoming</div></div>
@@ -675,11 +697,22 @@
             <h2 class="stories-title">Stories</h2>
             <div id="stories-read-badge"></div>
           </div>
-          <p class="stories-subtitle">AI stories at your level that recycle the words you're learning. Tap any word to look it up; tap a sentence for the translation.</p>
+          <p class="stories-subtitle">Comprehensible input: German you can mostly understand, with your SRS words woven in. Follow your own series — every episode ends on a cliffhanger. Tap any word to look it up; tap a sentence for the translation.</p>
         </div>
 
         <div id="stories-setup">
           <div id="stories-controls">
+            <select id="story-series-select" title="Series or one-off story">
+              <option value="series" selected>📺 My series</option>
+              <option value="single">One-off story</option>
+            </select>
+            <select id="story-genre-select" title="Series genre">
+              <option value="krimi" selected>🔍 Krimi</option>
+              <option value="comedy">😂 WG-Comedy</option>
+              <option value="romance">💌 Romanze</option>
+              <option value="scifi">🛸 Sci-Fi</option>
+              <option value="abenteuer">🧭 Abenteuer</option>
+            </select>
             <select id="story-level-select">
               <option value="a1">A1</option>
               <option value="a2">A2</option>
@@ -702,6 +735,10 @@
               <option value="a small mystery or unexpected event">Mysteriös</option>
             </select>
           </div>
+          <div id="story-series-status" style="display:none">
+            <span id="story-series-status-text"></span>
+            <button id="story-series-reset" title="Start a fresh series">Neu starten</button>
+          </div>
           <div id="story-vocab-preview"></div>
           <button id="story-generate-btn">&#10024; Generate story</button>
         </div>
@@ -712,6 +749,7 @@
         <div id="story-view" style="display:none">
           <div id="story-title-row">
             <div id="story-title"></div>
+            <span id="story-episode-chip" style="display:none"></span>
             <span id="story-level-chip"></span>
           </div>
           <div id="story-toolbar">
@@ -723,6 +761,15 @@
             <div id="story-quiz-title">Check your understanding</div>
             <div id="story-quiz-list"></div>
             <div id="story-quiz-result" style="display:none"></div>
+          </div>
+          <div id="story-word-rate" style="display:none">
+            <div id="story-word-rate-title">Your target words — did you know them?</div>
+            <p id="story-word-rate-sub">Honest answers feed your spaced repetition: fuzzy words come back in the next episodes.</p>
+            <div id="story-word-rate-list"></div>
+          </div>
+          <div id="story-cliffhanger" style="display:none">
+            <span id="story-cliffhanger-label">Fortsetzung folgt&hellip; 🍿</span>
+            <span id="story-cliffhanger-text"></span>
           </div>
           <div id="story-actions">
             <button id="story-new-btn">New story &#8594;</button>
