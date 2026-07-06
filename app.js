@@ -4362,8 +4362,57 @@ function saveStorySeries(s) {
 }
 
 function resetStorySeries() {
-  try { localStorage.removeItem("storySeries"); } catch {}
+  try {
+    localStorage.removeItem("storySeries");
+    localStorage.removeItem("storyEpisodeArchive");
+  } catch {}
   updateSeriesControls();
+}
+
+// Every finished-generating episode is archived so it can be re-read later
+// without another AI call; "Continue" still advances the series.
+function getEpisodeArchive() {
+  try {
+    const a = JSON.parse(localStorage.getItem("storyEpisodeArchive") || "[]");
+    return Array.isArray(a) ? a : [];
+  } catch { return []; }
+}
+
+function saveEpisodeToArchive(story) {
+  if (!story || !story.episode) return;
+  const archive = getEpisodeArchive();
+  const key = `${story.genre || "?"}-${story.episode}`;
+  const idx = archive.findIndex(e => `${e.genre || "?"}-${e.episode}` === key);
+  if (idx >= 0) archive[idx] = story;
+  else archive.push(story);
+  try { localStorage.setItem("storyEpisodeArchive", JSON.stringify(archive.slice(-40))); } catch {}
+}
+
+function openArchivedEpisode(index) {
+  const archive = getEpisodeArchive();
+  const story = archive[index];
+  if (!story) return;
+  storyStopPlayAll();
+  currentStory = story;
+  try { localStorage.setItem("lastStory", JSON.stringify(currentStory)); } catch {}
+  renderStory(true);
+  renderEpisodeList();
+}
+
+function renderEpisodeList() {
+  const el = document.getElementById("story-episode-list");
+  const isSeries = document.getElementById("story-series-select").value === "series";
+  const archive = getEpisodeArchive();
+  if (!isSeries || !archive.length) { el.style.display = "none"; el.innerHTML = ""; return; }
+  const genreEmoji = { krimi: "🔍", comedy: "😂", romance: "💌", scifi: "🛸", abenteuer: "🧭" };
+  el.style.display = "flex";
+  el.innerHTML = `<span class="story-episode-list-label">Re-read:</span>` +
+    archive.map((s, i) => {
+      const isCurrent = currentStory && currentStory.episode === s.episode && currentStory.genre === s.genre;
+      return `<button class="story-episode-chip-btn${isCurrent ? " current" : ""}${s.quizDone ? " done" : ""}"
+        data-ep-index="${i}" title="${(s.title || "").replace(/"/g, "&quot;")}">
+        ${genreEmoji[s.genre] || "📖"} Ep ${s.episode}${s.quizDone ? " ✓" : ""}</button>`;
+    }).join("");
 }
 
 function updateSeriesControls() {
@@ -4386,6 +4435,7 @@ function updateSeriesControls() {
       ? "&#10024; Start my series (Episode 1)"
       : "&#10024; Generate story";
   }
+  renderEpisodeList();
 }
 
 function showStoriesPanel() {
@@ -4482,6 +4532,7 @@ async function generateStory() {
       target_words: targets.map(w => ({ id: w.id, german: w.german, english: w.english })),
     };
     if (isSeries) {
+      currentStory.genre = body.series.genre;
       saveStorySeries({
         genre: body.series.genre,
         episode: body.series.episode,
@@ -4490,6 +4541,7 @@ async function generateStory() {
         characters: data.characters || "",
         cliffhanger: data.cliffhanger || "",
       });
+      saveEpisodeToArchive(currentStory);
       updateSeriesControls();
     }
     try { localStorage.setItem("lastStory", JSON.stringify(currentStory)); } catch {}
@@ -4607,6 +4659,8 @@ function handleStoryQuizAnswer(qi, oi, btn) {
     if (!currentStory.quizDone) {
       currentStory.quizDone = true;
       try { localStorage.setItem("lastStory", JSON.stringify(currentStory)); } catch {}
+      saveEpisodeToArchive(currentStory);
+      renderEpisodeList();
       recordStoryRead();
     }
     // Palteca loop: after understanding the input, self-rate the target words
@@ -4645,6 +4699,7 @@ function storyRateWord(wordId, rating) {
   updateWordSRS(wordId, rating);
   currentStory.ratedWords[String(wordId)] = rating;
   try { localStorage.setItem("lastStory", JSON.stringify(currentStory)); } catch {}
+  saveEpisodeToArchive(currentStory);
   renderStoryWordRate();
 }
 
@@ -4710,6 +4765,8 @@ function setupStoriesPanel() {
   // Delegated: word taps open the vocab popup, sentence taps toggle translation,
   // play buttons speak the sentence, quiz options grade themselves.
   document.getElementById("stories-panel").addEventListener("click", (e) => {
+    const epBtn = e.target.closest(".story-episode-chip-btn");
+    if (epBtn) { openArchivedEpisode(parseInt(epBtn.dataset.epIndex, 10)); return; }
     const rateBtn = e.target.closest(".story-rate-btn");
     if (rateBtn) { storyRateWord(parseInt(rateBtn.dataset.wid, 10), rateBtn.dataset.rate); return; }
     const playBtn = e.target.closest(".story-sent-play");

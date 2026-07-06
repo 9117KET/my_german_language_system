@@ -5882,3 +5882,35 @@ select option {
   #xp-total { display: none; }
   #story-title-row { flex-wrap: wrap; }
 }
+
+/* ---- Episode archive: re-read past episodes ---- */
+#story-episode-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+}
+
+.story-episode-list-label { color: var(--text-dim); }
+
+.story-episode-chip-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.story-episode-chip-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.story-episode-chip-btn.done { color: var(--text-dim); }
+
+.story-episode-chip-btn.current {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}

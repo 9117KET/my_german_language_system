@@ -295,6 +295,13 @@ def run():
             # XP should have accrued from story completion
             xp = page.evaluate("JSON.parse(localStorage.getItem('xp_state')||'{}').total||0")
             rec("OK" if xp > 0 else "WARN", "stories", f"XP total after story={xp}")
+            # Episode archive: chip list appears and reopens the episode
+            n_arch = page.evaluate("JSON.parse(localStorage.getItem('storyEpisodeArchive')||'[]').length")
+            rec("OK" if n_arch >= 1 else "WARN", "stories", f"episode archive entries={n_arch}")
+            if click(".story-episode-chip-btn"):
+                page.wait_for_timeout(300)
+                reopened = page.evaluate("document.querySelectorAll('.story-sentence').length")
+                rec("OK" if reopened else "WARN", "stories", f"re-opened archived episode ({reopened} sentences)")
         probe("stories", f_stories)
 
         def f_exam():

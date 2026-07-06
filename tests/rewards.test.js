@@ -203,6 +203,45 @@ describe("motivation/series UI wiring", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Episode archive — re-read past episodes, continue the series
+// ---------------------------------------------------------------------------
+
+describe("story episode archive", () => {
+  test("archive helpers and episode list exist", () => {
+    for (const fn of ["getEpisodeArchive", "saveEpisodeToArchive", "openArchivedEpisode", "renderEpisodeList"]) {
+      assert.ok(appJs.includes(`function ${fn}(`), `${fn} not defined`);
+    }
+    assert.ok(html.includes('id="story-episode-list"'), "episode list container missing");
+    assert.ok(css.includes(".story-episode-chip-btn"), "episode chip CSS missing");
+  });
+
+  test("episodes are archived on generation, quiz completion, and word rating", () => {
+    const gen = appJs.slice(appJs.indexOf("async function generateStory"), appJs.indexOf("function storyWrapTapWords"));
+    assert.ok(gen.includes("saveEpisodeToArchive(currentStory)"), "generateStory must archive the episode");
+    const quiz = appJs.slice(appJs.indexOf("function handleStoryQuizAnswer"), appJs.indexOf("function renderStoryWordRate"));
+    assert.ok(quiz.includes("saveEpisodeToArchive(currentStory)"), "quiz completion must sync the archive");
+    const rate = appJs.slice(appJs.indexOf("function storyRateWord"), appJs.indexOf("function storySpeakSentence"));
+    assert.ok(rate.includes("saveEpisodeToArchive(currentStory)"), "word rating must sync the archive");
+  });
+
+  test("archive replaces same episode instead of duplicating and is capped", () => {
+    const block = appJs.slice(appJs.indexOf("function saveEpisodeToArchive"), appJs.indexOf("function openArchivedEpisode"));
+    assert.ok(block.includes("findIndex"), "must replace an existing entry for the same genre+episode");
+    assert.ok(block.includes("slice(-40)"), "archive must be capped");
+  });
+
+  test("chip clicks reopen archived episodes via delegation", () => {
+    assert.ok(appJs.includes('closest(".story-episode-chip-btn")'), "chip delegation missing");
+    assert.ok(appJs.includes("openArchivedEpisode(parseInt"), "chip click must open the archived episode");
+  });
+
+  test("series reset clears the archive too", () => {
+    const block = appJs.slice(appJs.indexOf("function resetStorySeries"), appJs.indexOf("function getEpisodeArchive"));
+    assert.ok(block.includes("storyEpisodeArchive"), "reset must clear the episode archive");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // API — story mode supports serialized episodes
 // ---------------------------------------------------------------------------
 
