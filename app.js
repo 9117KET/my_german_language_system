@@ -1428,6 +1428,9 @@ function init() {
   setupExamPanel();
   loadXPState();
   renderXPBar();
+  setupSyncCard();
+  // Pull synced episodes in the background so another device's progress appears
+  if (getSyncId()) syncPull();
   // Land on the Today dashboard (mode defaults to "today")
   showTodayPanel();
   updateTabBadges();
@@ -4338,6 +4341,7 @@ function recordStoryRead() {
   awardXP(15, "Geschichte");
   todayOnStoryDone();
   updateStoriesReadBadge();
+  scheduleSyncPush();
 }
 
 function updateStoriesReadBadge() {
@@ -4358,7 +4362,11 @@ function getStorySeries() {
 }
 
 function saveStorySeries(s) {
-  try { localStorage.setItem("storySeries", JSON.stringify(s)); } catch {}
+  try {
+    if (s && !s.updatedAt) s.updatedAt = Date.now();
+    localStorage.setItem("storySeries", JSON.stringify(s));
+  } catch {}
+  scheduleSyncPush();
 }
 
 function resetStorySeries() {
@@ -4386,6 +4394,171 @@ function saveEpisodeToArchive(story) {
   if (idx >= 0) archive[idx] = story;
   else archive.push(story);
   try { localStorage.setItem("storyEpisodeArchive", JSON.stringify(archive.slice(-40))); } catch {}
+  scheduleSyncPush();
+}
+
+// ---- Cross-device sync (episodes, series, read count) via /api/sync ----
+// One shared JSON per sync code in a private Vercel Blob store. Create a code
+// on one device, enter it on another; pushes are debounced after any change.
+
+function getSyncId() {
+  try { return localStorage.getItem("syncId") || ""; } catch { return ""; }
+}
+
+function generateSyncCode() {
+  const words = ["berlin", "fuchs", "wald", "mond", "stern", "brot", "fluss", "adler",
+                 "hafen", "insel", "birke", "wolke", "regen", "sonne", "kiesel", "tanne"];
+  const pick = () => words[Math.floor(Math.random() * words.length)];
+  return `${pick()}-${pick()}-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+function buildSyncPayload() {
+  return {
+    series: getStorySeries(),
+    archive: getEpisodeArchive(),
+    storiesRead: getStoriesReadCount(),
+    savedAt: Date.now(),
+  };
+}
+
+function setSyncStatus(text, isError) {
+  const el = document.getElementById("sync-status");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle("sync-error", !!isError);
+}
+
+let syncPushTimer = null;
+function scheduleSyncPush() {
+  if (!getSyncId()) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(() => syncPush(), 2500);
+}
+
+async function syncPush() {
+  const id = getSyncId();
+  if (!id) return;
+  try {
+    const res = await fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "push", id, data: buildSyncPayload() }),
+    });
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error(data.error || "Push failed");
+    try { localStorage.setItem("sync_last_ok", String(Date.now())); } catch {}
+    setSyncStatus(`Synced ✓ ${new Date().toLocaleTimeString()}`);
+  } catch (err) {
+    setSyncStatus(`Sync push failed: ${err.message}`, true);
+  }
+}
+
+async function syncPull() {
+  const id = getSyncId();
+  if (!id) return false;
+  try {
+    const res = await fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "pull", id }),
+    });
+    const data = await parseApiResponse(res);
+    if (!res.ok) throw new Error(data.error || "Pull failed");
+    if (data.data) mergeSyncData(data.data);
+    try { localStorage.setItem("sync_last_ok", String(Date.now())); } catch {}
+    setSyncStatus(`Synced ✓ ${new Date().toLocaleTimeString()}`);
+    return true;
+  } catch (err) {
+    setSyncStatus(`Sync pull failed: ${err.message}`, true);
+    return false;
+  }
+}
+
+// Merge is additive and progress-preferring, so neither device loses episodes.
+function mergeSyncData(remote) {
+  const keyOf = e => `${e.genre || "?"}-${e.episode}`;
+  const progress = e => (e.quizDone ? 100 : 0) + Object.keys(e.ratedWords || {}).length;
+  const byKey = {};
+  for (const e of getEpisodeArchive()) byKey[keyOf(e)] = e;
+  for (const r of (Array.isArray(remote.archive) ? remote.archive : [])) {
+    if (!r || !r.episode) continue;
+    const k = keyOf(r);
+    if (!byKey[k] || progress(r) > progress(byKey[k])) byKey[k] = r;
+  }
+  const merged = Object.values(byKey).sort((a, b) =>
+    (a.genre || "").localeCompare(b.genre || "") || (a.episode || 0) - (b.episode || 0));
+  try { localStorage.setItem("storyEpisodeArchive", JSON.stringify(merged.slice(-40))); } catch {}
+
+  const localSeries = getStorySeries();
+  const remoteSeries = remote.series;
+  if (remoteSeries && (!localSeries || (remoteSeries.updatedAt || 0) > (localSeries.updatedAt || 0))) {
+    try { localStorage.setItem("storySeries", JSON.stringify(remoteSeries)); } catch {}
+  }
+
+  const remoteRead = parseInt(remote.storiesRead || 0, 10);
+  if (remoteRead > getStoriesReadCount()) {
+    try { localStorage.setItem("stories_read_count", String(remoteRead)); } catch {}
+  }
+  updateStoriesReadBadge();
+  if (mode === "stories") updateSeriesControls();
+}
+
+function renderSyncCard() {
+  const id = getSyncId();
+  const linkedRow = document.getElementById("sync-linked-row");
+  const setupRow = document.getElementById("sync-setup-row");
+  if (!linkedRow) return;
+  linkedRow.style.display = id ? "flex" : "none";
+  setupRow.style.display = id ? "none" : "flex";
+  if (id) {
+    document.getElementById("sync-code-display").textContent = id;
+    const last = parseInt(localStorage.getItem("sync_last_ok") || "0", 10);
+    if (last) setSyncStatus(`Last synced ${new Date(last).toLocaleString()}`);
+    else setSyncStatus("Linked — not synced yet");
+  } else {
+    setSyncStatus("Not linked. Episodes stay on this device only.");
+  }
+}
+
+function setupSyncCard() {
+  const createBtn = document.getElementById("sync-create-btn");
+  if (!createBtn) return;
+  createBtn.addEventListener("click", async () => {
+    try { localStorage.setItem("syncId", generateSyncCode()); } catch {}
+    renderSyncCard();
+    setSyncStatus("Creating…");
+    await syncPush();
+  });
+  document.getElementById("sync-link-btn").addEventListener("click", async () => {
+    const code = (document.getElementById("sync-code-input").value || "").trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9-]{7,63}$/.test(code)) {
+      setSyncStatus("That doesn't look like a sync code (e.g. fuchs-mond-4821).", true);
+      return;
+    }
+    try { localStorage.setItem("syncId", code); } catch {}
+    renderSyncCard();
+    setSyncStatus("Linking…");
+    const ok = await syncPull();
+    if (ok) await syncPush(); // upload the merged state back
+  });
+  document.getElementById("sync-now-btn").addEventListener("click", async () => {
+    setSyncStatus("Syncing…");
+    const ok = await syncPull();
+    if (ok) await syncPush();
+  });
+  document.getElementById("sync-copy-btn").addEventListener("click", () => {
+    const id = getSyncId();
+    if (id && navigator.clipboard) {
+      navigator.clipboard.writeText(id);
+      setSyncStatus("Code copied — enter it on your other device.");
+    }
+  });
+  document.getElementById("sync-unlink-btn").addEventListener("click", () => {
+    if (!confirm("Unlink this device? Your episodes stay here and in the cloud; you can re-link with the same code.")) return;
+    try { localStorage.removeItem("syncId"); } catch {}
+    renderSyncCard();
+  });
+  renderSyncCard();
 }
 
 function openArchivedEpisode(index) {

@@ -450,6 +450,24 @@
           <div id="xp-week-chart"></div>
         </div>
 
+        <div id="sync-card">
+          <div id="sync-card-title">Sync across devices</div>
+          <p id="sync-card-sub">Your series and episodes continue on any device. Create a code here, then enter it on your other device.</p>
+          <div id="sync-linked-row" style="display:none">
+            <span id="sync-code-display"></span>
+            <button id="sync-copy-btn">Copy</button>
+            <button id="sync-now-btn">Sync now</button>
+            <button id="sync-unlink-btn">Unlink</button>
+          </div>
+          <div id="sync-setup-row">
+            <button id="sync-create-btn">Create sync code</button>
+            <span class="sync-or">or</span>
+            <input id="sync-code-input" placeholder="Code from other device" autocomplete="off">
+            <button id="sync-link-btn">Link</button>
+          </div>
+          <div id="sync-status"></div>
+        </div>
+
         <div id="progress-summary">
           <div class="prog-stat"><div class="prog-val" id="prog-due-val">0</div><div class="prog-lbl">Due</div></div>
           <div class="prog-stat"><div class="prog-val" id="prog-upcoming-val">0</div><div class="prog-lbl">Upcoming</div></div>

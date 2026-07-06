@@ -242,6 +242,65 @@ describe("story episode archive", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Cross-device sync
+// ---------------------------------------------------------------------------
+
+describe("cross-device sync", () => {
+  const syncJs = readFile("api/sync.js");
+
+  test("api/sync.js uses the private Blob store for push and pull", () => {
+    assert.ok(syncJs.includes('require("@vercel/blob")'), "must use @vercel/blob");
+    assert.ok(syncJs.includes('access: "private"'), "blobs must be private");
+    assert.ok(syncJs.includes("allowOverwrite: true"), "push must overwrite");
+    assert.ok(syncJs.includes("BLOB_READ_WRITE_TOKEN"), "must check for the token");
+    assert.ok(/op === "push"/.test(syncJs) && /op === "pull"/.test(syncJs), "push/pull ops required");
+  });
+
+  test("sync code is validated server-side", () => {
+    assert.ok(syncJs.includes("ID_RX"), "sync id regex missing");
+    assert.ok(syncJs.includes("MAX_BYTES"), "payload size guard missing");
+  });
+
+  test("@vercel/blob is a declared dependency", () => {
+    const pkg = JSON.parse(readFile("package.json"));
+    assert.ok(pkg.dependencies && pkg.dependencies["@vercel/blob"], "@vercel/blob missing from dependencies");
+  });
+
+  test("client sync engine exists and is wired", () => {
+    for (const fn of ["getSyncId", "generateSyncCode", "buildSyncPayload", "syncPush", "syncPull",
+                      "mergeSyncData", "scheduleSyncPush", "renderSyncCard", "setupSyncCard"]) {
+      assert.ok(appJs.includes(`function ${fn}(`), `${fn} not defined`);
+    }
+    assert.ok(appJs.includes("setupSyncCard();"), "setupSyncCard not called in init");
+    assert.ok(appJs.includes("if (getSyncId()) syncPull();"), "init must pull when linked");
+  });
+
+  test("changes schedule a debounced push (series, archive, read count)", () => {
+    const series = appJs.slice(appJs.indexOf("function saveStorySeries"), appJs.indexOf("function resetStorySeries"));
+    assert.ok(series.includes("scheduleSyncPush()"), "saveStorySeries must schedule a push");
+    const arch = appJs.slice(appJs.indexOf("function saveEpisodeToArchive"), appJs.indexOf("function openArchivedEpisode"));
+    assert.ok(arch.includes("scheduleSyncPush()"), "saveEpisodeToArchive must schedule a push");
+    const read = appJs.slice(appJs.indexOf("function recordStoryRead"), appJs.indexOf("function updateStoriesReadBadge"));
+    assert.ok(read.includes("scheduleSyncPush()"), "recordStoryRead must schedule a push");
+  });
+
+  test("merge is additive: union of episodes, progress-preferring, max read count", () => {
+    const block = appJs.slice(appJs.indexOf("function mergeSyncData"), appJs.indexOf("function renderSyncCard"));
+    assert.ok(block.includes("quizDone ? 100 : 0"), "must prefer entries with more progress");
+    assert.ok(block.includes("updatedAt"), "series conflict must resolve by updatedAt");
+    assert.ok(block.includes("remoteRead > getStoriesReadCount()"), "read count must take the max");
+  });
+
+  test("sync card UI exists", () => {
+    for (const id of ["sync-card", "sync-code-display", "sync-create-btn", "sync-code-input",
+                      "sync-link-btn", "sync-now-btn", "sync-unlink-btn", "sync-status"]) {
+      assert.ok(html.includes(`id="${id}"`), `missing element: #${id}`);
+    }
+    assert.ok(css.includes("#sync-card"), "sync card CSS missing");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // API — story mode supports serialized episodes
 // ---------------------------------------------------------------------------
 

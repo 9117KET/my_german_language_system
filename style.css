@@ -5914,3 +5914,70 @@ select option {
   background: var(--accent-dim);
   color: var(--accent);
 }
+
+/* ---- Cross-device sync card ---- */
+#sync-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#sync-card-title { font-weight: 800; font-size: 0.95rem; }
+
+#sync-card-sub {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+#sync-linked-row, #sync-setup-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#sync-code-display {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  letter-spacing: 0.03em;
+}
+
+#sync-card button {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+#sync-card button:hover { border-color: var(--accent); color: var(--accent); }
+
+#sync-unlink-btn:hover { border-color: var(--red) !important; color: var(--red) !important; }
+
+.sync-or { color: var(--text-dim); font-size: 0.8rem; }
+
+#sync-code-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  min-width: 190px;
+}
+
+#sync-status { font-size: 0.76rem; color: var(--text-dim); }
+
+#sync-status.sync-error { color: var(--red); }

@@ -153,6 +153,10 @@ def run():
         page.route("**/api/deepgram-token",
                    lambda r: r.fulfill(status=200, content_type="application/json",
                                        body='{"token":"mock","key":"mock"}'))
+        # /api/sync: pull -> empty store, push -> ok
+        page.route("**/api/sync", lambda r: r.fulfill(
+            status=200, content_type="application/json",
+            body='{"data": null}' if '"pull"' in (r.request.post_data or "") else '{"ok": true}'))
 
         # ---- helpers (defined against `page`) --------------------------------
         def goto_tab(mode):
@@ -422,6 +426,18 @@ def run():
             goto_tab("progress")
             rec("OK" if visible("#progress-summary") or visible("#progress-list") else "WARN",
                 "progress", "progress dashboard rendered")
+            # sync card: create a code, expect linked row + syncId persisted
+            if click("#sync-create-btn"):
+                page.wait_for_timeout(400)
+                sid = page.evaluate("localStorage.getItem('syncId')||''")
+                linked = visible("#sync-linked-row")
+                rec("OK" if sid and linked else "WARN", "progress",
+                    f"sync code created '{sid}' (linked row={linked})")
+                status = page.evaluate("(document.getElementById('sync-status')||{}).textContent||''")
+                rec("OK" if "✓" in status or "Synced" in status else "WARN", "progress",
+                    f"sync push status='{status[:40]}'")
+            else:
+                rec("WARN", "progress", "sync create button missing")
         probe("progress", f_progress)
 
         # ---- 3. mobile pass --------------------------------------------------
