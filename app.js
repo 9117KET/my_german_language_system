@@ -4027,6 +4027,7 @@ function setupMonologuePanel() {
 const TODAY_STEPS = [
   { id: "phrases", label: "Phrases", tabMode: "recall" },
   { id: "words", label: "Words", tabMode: "words" },
+  { id: "story", label: "Story", tabMode: "stories" },
   { id: "speak", label: "Speak", tabMode: "speak" },
   { id: "think", label: "Think", tabMode: "monologue" },
 ];
@@ -4122,13 +4123,14 @@ function renderTodayPanel() {
   const btn = document.getElementById("today-start-btn");
   if (todaySession) btn.textContent = "▶ Resume session";
   else if (doneToday) btn.textContent = "✓ Done today — go again";
-  else btn.textContent = "▶ Start today's session (~15 min)";
+  else btn.textContent = "▶ Start today's session (~20 min)";
 
   const phraseTotal = Math.min(TODAY_PHRASE_TARGET, phrases.due + phrases.fresh);
   const wordTotal = Math.min(TODAY_WORD_TARGET, words.due + words.fresh);
   const details = {
     phrases: phraseTotal > 0 ? `${phraseTotal} cards · ${phrases.due} due` : "nothing due",
     words: wordTotal > 0 ? `${wordTotal} words · ${words.due} due` : "nothing due",
+    story: "1 episode · quiz + word check",
     speak: "1 scenario · 60 seconds",
     think: "1 prompt · write freely",
   };
@@ -4161,6 +4163,7 @@ function startTodaySession() {
     phrasesTarget: Math.min(TODAY_PHRASE_TARGET, phrases.due + phrases.fresh),
     wordsDone: 0,
     wordsTarget: Math.min(TODAY_WORD_TARGET, words.due + words.fresh),
+    storyDone: false,
     speakDone: false,
     thinkDone: false,
   };
@@ -4173,6 +4176,7 @@ function todayStepComplete() {
   if (!s) return false;
   if (s.id === "phrases") return todaySession.phrasesDone >= todaySession.phrasesTarget;
   if (s.id === "words") return todaySession.wordsDone >= todaySession.wordsTarget;
+  if (s.id === "story") return todaySession.storyDone;
   if (s.id === "speak") return todaySession.speakDone;
   if (s.id === "think") return todaySession.thinkDone;
   return false;
@@ -4212,6 +4216,7 @@ function renderTodaySessionBar() {
   let label = s.label;
   if (s.id === "phrases") label = `Phrases ${todaySession.phrasesDone}/${todaySession.phrasesTarget}`;
   else if (s.id === "words") label = `Words ${todaySession.wordsDone}/${todaySession.wordsTarget}`;
+  else if (s.id === "story") label = "Story: read today's episode + quiz";
   else if (s.id === "speak") label = "Speak: finish 1 scenario";
   else if (s.id === "think") label = "Think: submit 1 prompt";
   const complete = todayStepComplete();
@@ -4255,6 +4260,12 @@ function todayOnWordGraded() {
   if (!todaySession || mode !== "words") return;
   if (TODAY_STEPS[todaySession.step].id !== "words") return;
   todaySession.wordsDone++;
+  renderTodaySessionBar();
+}
+
+function todayOnStoryDone() {
+  if (!todaySession || TODAY_STEPS[todaySession.step].id !== "story") return;
+  todaySession.storyDone = true;
   renderTodaySessionBar();
 }
 
@@ -4325,6 +4336,7 @@ function recordStoryRead() {
     localStorage.setItem("stories_read_count", String(getStoriesReadCount() + 1));
   } catch {}
   awardXP(15, "Geschichte");
+  todayOnStoryDone();
   updateStoriesReadBadge();
 }
 

@@ -1505,11 +1505,11 @@ describe("today session — index.html", () => {
 describe("today session — app.js", () => {
   const appJs = readFile("app.js");
 
-  test("TODAY_STEPS covers phrases, words, speak, think in order", () => {
+  test("TODAY_STEPS covers phrases, words, story, speak, think in order", () => {
     const start = appJs.indexOf("const TODAY_STEPS");
     const end = appJs.indexOf("];", start);
     const block = appJs.slice(start, end);
-    const order = ["phrases", "words", "speak", "think"];
+    const order = ["phrases", "words", "story", "speak", "think"];
     let pos = -1;
     for (const id of order) {
       const next = block.indexOf(`id: "${id}"`);

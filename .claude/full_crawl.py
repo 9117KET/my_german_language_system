@@ -406,6 +406,9 @@ def run():
                 page.wait_for_timeout(400)
                 rec("OK" if visible("#today-session-bar") else "WARN", "today",
                     f"session bar visible={visible('#today-session-bar')}")
+                dots = count("#tsb-steps .tsb-dot")
+                rec("OK" if dots == 5 else "WARN", "today",
+                    f"session shows {dots} step dots (expect 5 incl. story)")
         probe("today", f_today)
 
         def f_progress():
