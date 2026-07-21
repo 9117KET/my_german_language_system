@@ -2450,10 +2450,32 @@ function setupRecallSpeech() {
       const badge = result.is_correct
         ? `<div class="recall-feedback-correct">✓ Correct!</div>`
         : `<div class="recall-feedback-wrong">✗ Not quite</div>`;
-      const hintHtml = result.hint
-        ? `<div class="recall-feedback-hint">${result.hint}</div>`
+
+      const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+      let attemptHtml = "";
+      if (!result.is_correct) {
+        const errText = (result.error_text || "").trim();
+        const idx = errText ? text.indexOf(errText) : -1;
+        const marked = idx === -1
+          ? escapeHtml(text)
+          : `${escapeHtml(text.slice(0, idx))}<mark class="recall-error-highlight">${escapeHtml(text.slice(idx, idx + errText.length))}</mark>${escapeHtml(text.slice(idx + errText.length))}`;
+        attemptHtml = `<div class="recall-feedback-attempt">${marked}</div>`;
+      }
+
+      const hintHtml = (!result.is_correct && result.hint)
+        ? `<button class="recall-hint-toggle-btn" type="button">Show me a hint</button><div class="recall-feedback-hint" hidden>${result.hint}</div>`
         : "";
-      feedbackBody.innerHTML = `${badge}<div class="recall-feedback-text">${result.feedback}</div>${hintHtml}`;
+      feedbackBody.innerHTML = `${badge}${attemptHtml}<div class="recall-feedback-text">${result.feedback}</div>${hintHtml}`;
+
+      const hintToggleBtn = feedbackBody.querySelector(".recall-hint-toggle-btn");
+      if (hintToggleBtn) {
+        hintToggleBtn.addEventListener("click", () => {
+          const hintEl = feedbackBody.querySelector(".recall-feedback-hint");
+          hintEl.hidden = false;
+          hintToggleBtn.hidden = true;
+        });
+      }
 
       const actionsEl = document.getElementById("recall-ai-feedback-actions");
       if (result.is_correct) {
