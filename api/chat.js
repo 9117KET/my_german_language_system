@@ -564,8 +564,9 @@ module.exports = async function handler(req, res) {
           `Evaluate their attempt. Be encouraging and pedagogically specific.\n` +
           `IMPORTANT: Do NOT write the correct German sentence anywhere in your response.\n` +
           `- If correct: praise them, name the grammar structures they used correctly (e.g. "Perfect Perfekt usage" or "Correct Akkusativ article")\n` +
-          `- If incorrect: name the specific rule that's broken, describe the error pattern, then give ONE short hint that steers them toward the right form without writing it out\n` +
-          `- If incorrect, also copy the exact word or short phrase FROM THEIR ATTEMPT (verbatim, same spelling/casing) that is misplaced or wrong, so it can be highlighted for them\n\n` +
+          `- If incorrect: name the specific rule that's broken, describe the error pattern, then give ONE short hint (in English) that steers them toward the right form without writing it out\n` +
+          `- If incorrect, also copy the exact word or short phrase FROM THEIR ATTEMPT (verbatim, same spelling/casing) that is misplaced or wrong, so it can be highlighted for them\n` +
+          `- If incorrect, also write a short DIFFERENT German example sentence (different vocabulary/topic than their attempt) that demonstrates the same grammar pattern correctly. Leave the specific tricky part as "___" so it's a scaffold, not a giveaway - e.g. for a verb-position error: "Heute ___ ich ins Büro. (verb goes here, right after the time word)" - the bracketed note after the example must be in English\n\n` +
           `German grammar reference for naming errors:\n` +
           `- Verb must be at position 2 in main clauses (Verbzweitstellung). After a fronted adverb, subject and verb swap (inversion).\n` +
           `- Akkusativ (direct object, "wen/was"): masc. der->den, ein->einen\n` +
@@ -579,10 +580,16 @@ module.exports = async function handler(req, res) {
           `- Konjunktiv II: würde + infinitive, or hätte/wäre\n` +
           `- Subordinate clauses (weil, dass, wenn, obwohl, etc.): verb goes to the very end\n\n` +
           `Reply with ONLY this JSON, no markdown fences:\n` +
-          `{"is_correct":true/false,"feedback":"1-2 sentences: if correct, name what they got right; if wrong, name the specific rule broken WITHOUT writing the corrected form","error_text":"if correct empty string; if wrong, the exact word/phrase copied verbatim from their attempt that is the problem","hint":"if correct leave empty string; if wrong, one short tip steering toward the right form without revealing it"}`
+          `{"is_correct":true/false,"feedback":"1-2 sentences: if correct, name what they got right; if wrong, name the specific rule broken WITHOUT writing the corrected form","error_text":"if correct empty string; if wrong, the exact word/phrase copied verbatim from their attempt that is the problem","hint":"if correct leave empty string; if wrong, one short English tip steering toward the right form without revealing it","example":"if correct empty string; if wrong, a short different German example sentence demonstrating the same pattern with '___' for the tricky part, followed by a short English note in parentheses explaining what goes in the blank and why"}`
         );
         const result = JSON.parse(stripMarkdown(raw));
-        return res.json({ is_correct: result.is_correct, feedback: result.feedback, error_text: result.error_text || "", hint: result.hint });
+        return res.json({
+          is_correct: result.is_correct,
+          feedback: result.feedback,
+          error_text: result.error_text || "",
+          hint: result.hint,
+          example: result.example || "",
+        });
       } catch {
         return res.json({ is_correct: false, feedback: "Could not evaluate your answer. Try again.", hint: "" });
       }

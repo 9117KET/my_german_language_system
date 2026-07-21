@@ -1772,6 +1772,22 @@ select option {
   border-radius: 3px;
   padding: 0 2px;
 }
+.diff-word-old {
+  background: color-mix(in srgb, var(--red) 20%, transparent);
+  color: var(--red);
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 0 2px;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+.diff-word-new {
+  background: color-mix(in srgb, var(--green) 20%, transparent);
+  color: var(--green);
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 0 2px;
+}
 .recall-hint-toggle-btn {
   background: none;
   border: 1px solid var(--border-bright);
@@ -1791,6 +1807,17 @@ select option {
   border-left: 2px solid var(--border-bright);
   padding-left: 8px;
   margin-top: 2px;
+}
+.recall-feedback-example {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 0.85rem;
+  color: var(--accent);
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  margin-top: 6px;
+  white-space: pre-wrap;
+  line-height: 1.5;
 }
 #recall-ai-feedback-actions {
   display: flex;

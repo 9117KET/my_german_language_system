@@ -1110,6 +1110,51 @@ function daysAgoStr(n) {
   return toLocalDateStr(d);
 }
 
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// Word-level diff between a learner's original attempt and its correction, for
+// highlighting exactly which words changed instead of making learners eyeball
+// two full sentences to spot the difference themselves.
+function diffHighlightWords(original, corrected) {
+  const a = (original || "").split(/\s+/).filter(Boolean);
+  const b = (corrected || "").split(/\s+/).filter(Boolean);
+  const norm = (w) => w.toLowerCase().replace(/[.,!?;:„"“”]+$/, "").replace(/^[.,!?;:„"“”]+/, "");
+
+  const n = a.length, m = b.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = norm(a[i]) === norm(b[j]) ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+
+  let i = 0, j = 0;
+  const aParts = [], bParts = [];
+  while (i < n && j < m) {
+    if (norm(a[i]) === norm(b[j])) {
+      aParts.push({ w: a[i], same: true });
+      bParts.push({ w: b[j], same: true });
+      i++; j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      aParts.push({ w: a[i], same: false });
+      i++;
+    } else {
+      bParts.push({ w: b[j], same: false });
+      j++;
+    }
+  }
+  while (i < n) { aParts.push({ w: a[i], same: false }); i++; }
+  while (j < m) { bParts.push({ w: b[j], same: false }); j++; }
+
+  const render = (parts, cls) => parts.map(p => p.same ? escapeHtml(p.w) : `<mark class="${cls}">${escapeHtml(p.w)}</mark>`).join(" ");
+  return {
+    originalHtml: render(aParts, "diff-word-old"),
+    correctedHtml: render(bParts, "diff-word-new"),
+  };
+}
+
 function getSrsRecord(id) {
   return srsData[String(id)] || {
     interval: 0, easeFactor: 2.5, dueDate: null,
@@ -2215,20 +2260,22 @@ function renderAIResult(result) {
     const chipsHtml = autoChips.length
       ? `<div class="ai-write-chips">${autoChips.map(t => `<span class="grammar-chip" onclick="openGrammarTopic('${t}')">${t}</span>`).join("")}</div>`
       : "";
+    const diff = result.is_correct ? null : diffHighlightWords(result.original, result.corrected);
     aiResultBody.innerHTML = `
-      <div class="ai-original">You wrote: "${result.original}"</div>
+      <div class="ai-original">You wrote: "${diff ? diff.originalHtml : escapeHtml(result.original)}"</div>
       ${badge}
-      <div class="ai-corrected">${result.corrected}</div>
-      <div class="ai-explanation">${result.explanation}</div>
+      <div class="ai-corrected">${diff ? diff.correctedHtml : escapeHtml(result.corrected)}</div>
+      <div class="ai-explanation">${escapeHtml(result.explanation)}</div>
       ${chipsHtml}
     `;
   } else {
     const badge = result.is_correct ? `<div class="ai-correct-badge">✓ Perfect German!</div>` : "";
+    const diff = result.is_correct ? null : diffHighlightWords(result.original, result.corrected);
     aiResultBody.innerHTML = `
-      <div class="ai-original">You said: "${result.original}"</div>
+      <div class="ai-original">You said: "${diff ? diff.originalHtml : escapeHtml(result.original)}"</div>
       ${badge}
-      <div class="ai-corrected">${result.corrected}</div>
-      <div class="ai-explanation">${result.explanation}</div>
+      <div class="ai-corrected">${diff ? diff.correctedHtml : escapeHtml(result.corrected)}</div>
+      <div class="ai-explanation">${escapeHtml(result.explanation)}</div>
     `;
   }
 }
@@ -2451,8 +2498,6 @@ function setupRecallSpeech() {
         ? `<div class="recall-feedback-correct">✓ Correct!</div>`
         : `<div class="recall-feedback-wrong">✗ Not quite</div>`;
 
-      const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
       let attemptHtml = "";
       if (!result.is_correct) {
         const errText = (result.error_text || "").trim();
@@ -2463,10 +2508,13 @@ function setupRecallSpeech() {
         attemptHtml = `<div class="recall-feedback-attempt">${marked}</div>`;
       }
 
-      const hintHtml = (!result.is_correct && result.hint)
-        ? `<button class="recall-hint-toggle-btn" type="button">Show me a hint</button><div class="recall-feedback-hint" hidden>${result.hint}</div>`
+      const exampleHtml = (!result.is_correct && result.example)
+        ? `<div class="recall-feedback-example">${escapeHtml(result.example)}</div>`
         : "";
-      feedbackBody.innerHTML = `${badge}${attemptHtml}<div class="recall-feedback-text">${result.feedback}</div>${hintHtml}`;
+      const hintHtml = (!result.is_correct && result.hint)
+        ? `<button class="recall-hint-toggle-btn" type="button">Show me a hint</button><div class="recall-feedback-hint" hidden>${escapeHtml(result.hint)}${exampleHtml}</div>`
+        : "";
+      feedbackBody.innerHTML = `${badge}${attemptHtml}<div class="recall-feedback-text">${escapeHtml(result.feedback)}</div>${hintHtml}`;
 
       const hintToggleBtn = feedbackBody.querySelector(".recall-hint-toggle-btn");
       if (hintToggleBtn) {
@@ -5267,12 +5315,15 @@ async function examWriteSubmit() {
     const corrections = data.corrections || [];
     corrections.forEach(c => logError("exam", c.original, c.corrected, c.explanation));
     document.getElementById("exam-write-corrections").innerHTML = corrections.length
-      ? `<div class="exam-small-label">Corrections (saved to My Mistakes):</div>` + corrections.map(c => `
+      ? `<div class="exam-small-label">Corrections (saved to My Mistakes):</div>` + corrections.map(c => {
+          const diff = diffHighlightWords(c.original, c.corrected);
+          return `
           <div class="exam-correction">
-            <div class="error-log-original">${c.original}</div>
-            <div class="error-log-corrected">${c.corrected}</div>
-            ${c.explanation ? `<div class="error-log-explanation">${c.explanation}</div>` : ""}
-          </div>`).join("")
+            <div class="error-log-original">${diff.originalHtml}</div>
+            <div class="error-log-corrected">${diff.correctedHtml}</div>
+            ${c.explanation ? `<div class="error-log-explanation">${escapeHtml(c.explanation)}</div>` : ""}
+          </div>`;
+        }).join("")
       : "";
     document.getElementById("exam-write-model").textContent = data.model || "";
     document.getElementById("exam-write-model").style.display = "none";
@@ -5447,12 +5498,15 @@ async function examSpeakFinish() {
     const corrections = data.corrections || [];
     corrections.forEach(c => logError("exam", c.original, c.corrected, c.explanation));
     document.getElementById("exam-speak-corrections").innerHTML = corrections.length
-      ? `<div class="exam-small-label">Corrections (saved to My Mistakes):</div>` + corrections.map(c => `
+      ? `<div class="exam-small-label">Corrections (saved to My Mistakes):</div>` + corrections.map(c => {
+          const diff = diffHighlightWords(c.original, c.corrected);
+          return `
           <div class="exam-correction">
-            <div class="error-log-original">${c.original}</div>
-            <div class="error-log-corrected">${c.corrected}</div>
-            ${c.explanation ? `<div class="error-log-explanation">${c.explanation}</div>` : ""}
-          </div>`).join("")
+            <div class="error-log-original">${diff.originalHtml}</div>
+            <div class="error-log-corrected">${diff.correctedHtml}</div>
+            ${c.explanation ? `<div class="error-log-explanation">${escapeHtml(c.explanation)}</div>` : ""}
+          </div>`;
+        }).join("")
       : "";
     document.getElementById("exam-speak-model").textContent = data.model || "";
     document.getElementById("exam-speak-grading").style.display = "none";
@@ -5571,16 +5625,19 @@ function renderErrorPatterns(patterns) {
 function renderErrorLogList() {
   const el = document.getElementById("error-log-list");
   const log = getErrorLog().slice(-20).reverse();
-  el.innerHTML = log.map(e => `
+  el.innerHTML = log.map(e => {
+    const diff = diffHighlightWords(e.original, e.corrected);
+    return `
     <div class="error-log-item">
       <div class="error-log-top">
         <span class="error-log-source">${ERROR_SOURCE_LABELS[e.source] || e.source}</span>
         <span class="error-log-date">${new Date(e.ts).toLocaleDateString()}</span>
       </div>
-      <div class="error-log-original">${e.original}</div>
-      <div class="error-log-corrected">${e.corrected}</div>
-      ${e.explanation ? `<div class="error-log-explanation">${e.explanation}</div>` : ""}
-    </div>`).join("");
+      <div class="error-log-original">${diff.originalHtml}</div>
+      <div class="error-log-corrected">${diff.correctedHtml}</div>
+      ${e.explanation ? `<div class="error-log-explanation">${escapeHtml(e.explanation)}</div>` : ""}
+    </div>`;
+  }).join("");
 }
 
 function setErrorProfileStatus(msg, isError) {
@@ -6260,10 +6317,18 @@ function renderChatMessages() {
   }
   const msgsHtml = convoMessages.map((msg, idx) => {
     const isUser = msg.role === "user";
+    const isTranslationPrompt = msg.correction && /try saying/i.test(msg.correction.explanation || "");
+    const correctionDiff = msg.correction && !isTranslationPrompt
+      ? diffHighlightWords(msg.correction.original, msg.correction.corrected)
+      : null;
+    const chatTextHtml = correctionDiff ? correctionDiff.originalHtml : escapeHtml(msg.text);
+    const correctedHtml = correctionDiff
+      ? correctionDiff.correctedHtml
+      : msg.correction ? escapeHtml(msg.correction.corrected) : "";
     const corrHtml = msg.correction
       ? `<div class="chat-correction">
-           <span class="corr-de">${msg.correction.corrected}</span>
-           <span class="corr-en">${msg.correction.explanation}</span>
+           <span class="corr-de">${correctedHtml}</span>
+           <span class="corr-en">${escapeHtml(msg.correction.explanation)}</span>
          </div>`
       : "";
     const audioBtn = !isUser && msg.audio_base64
@@ -6275,7 +6340,7 @@ function renderChatMessages() {
       : "";
     return `<div class="chat-row ${isUser ? "user-row" : "ai-row"}">
       <div class="chat-bubble ${isUser ? "user-bubble" : "ai-bubble"}">
-        <div class="chat-text">${msg.text}</div>
+        <div class="chat-text">${chatTextHtml}</div>
         ${audioBtn}
       </div>
       ${corrHtml}

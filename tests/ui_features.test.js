@@ -457,7 +457,7 @@ describe("recall attempt system — api/chat.js", () => {
 
   test("recall-check has error handling fallback", () => {
     const modeStart = chatJs.indexOf(`mode === "recall-check"`);
-    const modeBlock = chatJs.slice(modeStart, modeStart + 3000);
+    const modeBlock = chatJs.slice(modeStart, modeStart + 4000);
     assert.ok(
       modeBlock.includes("Could not evaluate"),
       "recall-check must have a user-friendly error fallback message"
