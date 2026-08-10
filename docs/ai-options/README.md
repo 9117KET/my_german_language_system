@@ -37,3 +37,7 @@ This folder documents the three approaches researched for building the real-time
 
 - `option-b-openai-realtime.md` - Full technical reference for OpenAI Realtime API upgrade
 - `option-c-elevenlabs-conversational.md` - Full technical reference for ElevenLabs Agents upgrade
+
+## Related: Tutor Mode (separate future feature)
+
+`../tutor-mode-gemini-live-design.md` - Design doc for a live voice **tutor** (not a chat partner): Gemini Live API, screen-share teaching from the course book, tool-grounded in wordsSRS/errorLog with post-session writeback. Complements (does not replace) the options above.
