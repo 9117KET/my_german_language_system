@@ -1974,9 +1974,21 @@ describe("telc exam — api/chat.js", () => {
 
   test("exam-sprachbausteine validates items and has fallback", () => {
     const p = chatJs.indexOf('mode === "exam-sprachbausteine"');
-    const block = chatJs.slice(p, p + 3000);
+    // Slice to the next mode rather than a fixed byte count, so the assertions keep
+    // covering the whole handler as it grows.
+    const block = chatJs.slice(p, chatJs.indexOf('mode === "exam-write-feedback"'));
     assert.ok(block.includes("Array.isArray(it.options)"), "must validate options");
     assert.ok(block.includes("catch"), "must have error fallback");
+  });
+
+  test("exam-sprachbausteine ties each gap to exactly one item", () => {
+    const p = chatJs.indexOf('mode === "exam-sprachbausteine"');
+    const block = chatJs.slice(p, chatJs.indexOf('mode === "exam-write-feedback"'));
+    // Gaps are marked "___" and numbered server-side by position: asked for [1]..[10]
+    // the model routinely emitted fewer markers than items, leaving questions with no
+    // gap to answer. Splitting on "___" makes the count structural.
+    assert.ok(block.includes('split("___")'), "must split the letter on ___ gaps");
+    assert.ok(block.includes("gapCount !== items.length"), "must reject gap/item mismatch");
   });
 
   test("exam graders score on telc criteria", () => {
@@ -2040,5 +2052,200 @@ describe("today session — style.css", () => {
 
   test("badge hidden until marked visible", () => {
     assert.ok(css.includes(".tab-badge.visible"), ".tab-badge.visible rule missing");
+  });
+});
+
+describe("telc Leseverstehen + Hörverstehen — exam_data.js", () => {
+  const examData = readFile("exam_data.js");
+  const ctx = {};
+  vm.createContext(ctx);
+  vm.runInContext(examData + "\n;globalThis.__LV=EXAM_LV_FALLBACK;globalThis.__HV=EXAM_HV_FALLBACK;", ctx);
+  const LV = ctx.__LV;
+  const HV = ctx.__HV;
+
+  test("fallback tasks exist for every part the UI can request", () => {
+    assert.deepEqual(Object.keys(LV).sort(), ["1", "2", "3"]);
+    assert.deepEqual(Object.keys(HV).sort(), ["1", "2"]);
+  });
+
+  test("Leseverstehen Teil 1 has more headings than texts", () => {
+    // telc supplies distractor headings, otherwise the last text is free by elimination.
+    assert.equal(LV[1].texts.length, 5);
+    assert.ok(LV[1].headings.length > LV[1].texts.length, "needs distractor headings");
+    const used = LV[1].texts.map(t => t.answer);
+    assert.equal(new Set(used).size, used.length, "two texts must not share a heading");
+    for (const t of LV[1].texts) {
+      assert.ok(t.answer >= 0 && t.answer < LV[1].headings.length, `answer ${t.answer} out of range`);
+    }
+  });
+
+  test("Leseverstehen Teil 2 is a B2-length article with in-range answers", () => {
+    assert.ok(LV[2].text.split(/\s+/).length >= 250, "article too short for B2 reading practice");
+    assert.equal(LV[2].questions.length, 5);
+    for (const q of LV[2].questions) {
+      assert.equal(q.options.length, 3, "telc Teil 2 uses 3 options");
+      assert.ok(q.answer >= 0 && q.answer < q.options.length, `answer ${q.answer} out of range`);
+    }
+  });
+
+  test("Leseverstehen Teil 3 keeps the 'no matching ad' answers", () => {
+    assert.equal(LV[3].ads.length, 12);
+    assert.equal(LV[3].situations.length, 10);
+    const noMatch = LV[3].situations.filter(s => s.answer === LV[3].ads.length);
+    assert.equal(noMatch.length, 2, "telc Teil 3 includes situations that match no ad");
+    for (const s of LV[3].situations) {
+      assert.ok(s.answer >= 0 && s.answer <= LV[3].ads.length, `answer ${s.answer} out of range`);
+    }
+    const matched = LV[3].situations.map(s => s.answer).filter(a => a !== LV[3].ads.length);
+    assert.equal(new Set(matched).size, matched.length, "two situations must not share an ad");
+  });
+
+  test("Hörverstehen fallbacks are boolean-graded and mix richtig with falsch", () => {
+    for (const part of [1, 2]) {
+      const items = HV[part].items;
+      assert.ok(items.length >= 5, `part ${part} needs at least 5 statements`);
+      assert.ok(HV[part].script.length > 100, `part ${part} needs a script to read`);
+      for (const it of items) {
+        assert.equal(typeof it.answer, "boolean", "richtig/falsch must be boolean");
+      }
+      // an all-true or all-false key would be passable by guessing one value
+      assert.ok(items.some(i => i.answer) && items.some(i => !i.answer),
+        `part ${part} must mix richtig and falsch`);
+    }
+  });
+});
+
+describe("telc Leseverstehen + Hörverstehen — index.html", () => {
+  const html = readFile("index.html");
+
+  test("both task cards and views exist", () => {
+    for (const id of ["exam-card-lv", "exam-card-hv", "exam-lv-view", "exam-hv-view"]) {
+      assert.ok(html.includes(`id="${id}"`), `${id} missing`);
+    }
+  });
+
+  test("key elements of both views exist", () => {
+    for (const id of ["exam-lv-parts", "exam-lv-body", "exam-lv-submit-btn", "exam-lv-score",
+                      "exam-hv-parts", "exam-hv-items", "exam-hv-submit-btn", "exam-hv-audio",
+                      "exam-hv-play-btn", "exam-hv-plays-left", "exam-hv-script", "exam-hv-noaudio"]) {
+      assert.ok(html.includes(`id="${id}"`), `${id} missing`);
+    }
+  });
+
+  test("the new fallbacks are pre-declared before exam_data.js loads", () => {
+    const guard = html.slice(0, html.indexOf('<script src="exam_data.js">'));
+    assert.ok(guard.includes("EXAM_LV_FALLBACK"), "EXAM_LV_FALLBACK guard missing");
+    assert.ok(guard.includes("EXAM_HV_FALLBACK"), "EXAM_HV_FALLBACK guard missing");
+  });
+});
+
+describe("telc Leseverstehen + Hörverstehen — app.js", () => {
+  const appJs = readFile("app.js");
+
+  test("core functions are defined", () => {
+    for (const fn of ["openExamLv", "examLvStart", "examLvRenderBody", "examLvPick", "examLvSubmit",
+                      "examLvRows", "openExamHv", "examHvStart", "examHvPlay", "examHvPick",
+                      "examHvSubmit", "examHvStopAudio"]) {
+      assert.ok(new RegExp(`function ${fn}\\b`).test(appJs), `${fn} not defined`);
+    }
+  });
+
+  test("both sections are wired into the exam panel", () => {
+    const setup = appJs.slice(appJs.indexOf("function setupExamPanel"), appJs.indexOf("function setupExamPanel") + 4000);
+    for (const id of ["exam-card-lv", "exam-card-hv", "exam-lv-start-btn", "exam-hv-start-btn",
+                      "exam-lv-submit-btn", "exam-hv-submit-btn", "exam-hv-play-btn"]) {
+      assert.ok(setup.includes(id), `${id} not wired in setupExamPanel`);
+    }
+  });
+
+  test("both fall back to the built-in tasks when the API fails", () => {
+    const lv = appJs.slice(appJs.indexOf("async function examLvStart"), appJs.indexOf("function examLvRenderBody"));
+    assert.ok(lv.includes("EXAM_LV_FALLBACK"), "Leseverstehen must fall back");
+    const hv = appJs.slice(appJs.indexOf("async function examHvStart"), appJs.indexOf("function examHvUpdatePlaysLeft"));
+    assert.ok(hv.includes("EXAM_HV_FALLBACK"), "Hörverstehen must fall back");
+  });
+
+  test("Hörverstehen degrades to the script when TTS returns no audio", () => {
+    const hv = appJs.slice(appJs.indexOf("async function examHvStart"), appJs.indexOf("function examHvUpdatePlaysLeft"));
+    assert.ok(hv.includes("exam-hv-noaudio"), "must show the read-instead fallback");
+  });
+
+  test("a play is only spent once playback actually starts", () => {
+    const play = appJs.slice(appJs.indexOf("async function examHvPlay"), appJs.indexOf("function examHvPick"));
+    // decrementing before await would cost a listen the learner never heard
+    assert.ok(play.indexOf("await audio.play()") < play.indexOf("examHvPlaysLeft--"),
+      "playsLeft must be decremented after a successful play()");
+    assert.ok(play.includes("examHvPlaysLeft <= 0"), "must refuse to play past the limit");
+  });
+
+  test("new timers are cleared with the other exam timers", () => {
+    const stop = appJs.slice(appJs.indexOf("function stopExamTimers"), appJs.indexOf("function stopExamTimers") + 500);
+    assert.ok(stop.includes("examLvTimerInt"), "Leseverstehen timer not cleared");
+    assert.ok(stop.includes("examHvTimerInt"), "Hörverstehen timer not cleared");
+  });
+
+  test("leaving to the task list hides the new views and stops the audio", () => {
+    const landing = appJs.slice(appJs.indexOf("function showExamLanding"), appJs.indexOf("function showExamLanding") + 700);
+    assert.ok(landing.includes("exam-lv-view"), "Leseverstehen view not hidden");
+    assert.ok(landing.includes("exam-hv-view"), "Hörverstehen view not hidden");
+    assert.ok(landing.includes("examHvStopAudio"), "audio must stop when leaving the view");
+  });
+
+  test("both sections count toward the exam progress badge", () => {
+    for (const fn of ["function examLvSubmit", "function examHvSubmit"]) {
+      const block = appJs.slice(appJs.indexOf(fn), appJs.indexOf(fn) + 3000);
+      assert.ok(block.includes("recordExamTaskDone()"), `${fn} must record a completed task`);
+    }
+  });
+
+  test("model-generated task text is escaped before it reaches innerHTML", () => {
+    const body = appJs.slice(appJs.indexOf("function examLvRenderBody"), appJs.indexOf("function examLvPick"));
+    // Every field below comes back from the model and is injected via innerHTML.
+    for (const field of ["t.text", "a.text", "a.title", "h", "s.text", "q.q", "o", "d.text"]) {
+      assert.ok(body.includes(`escapeHtml(${field})`), `${field} must be escaped`);
+    }
+    const hv = appJs.slice(appJs.indexOf("async function examHvStart"), appJs.indexOf("function examHvUpdatePlaysLeft"));
+    assert.ok(hv.includes("escapeHtml(it.statement)"), "listening statements must be escaped");
+  });
+});
+
+describe("telc Leseverstehen + Hörverstehen — api/chat.js", () => {
+  const chatJs = readFile("api/chat.js");
+
+  test("both modes exist", () => {
+    for (const m of ["exam-leseverstehen", "exam-hoerverstehen"]) {
+      assert.ok(chatJs.includes(`mode === "${m}"`), `${m} mode missing`);
+    }
+  });
+
+  test("Leseverstehen validates every answer index against its own option list", () => {
+    const block = chatJs.slice(chatJs.indexOf('mode === "exam-leseverstehen"'),
+                               chatJs.indexOf('mode === "exam-hoerverstehen"'));
+    // an out-of-range index would silently mark a correct answer wrong
+    assert.ok(block.includes("validPick"), "must validate answer indices");
+    assert.ok(block.includes("s.answer <= ads.length"), "Teil 3 must allow the 'no match' index");
+    assert.ok(block.includes("catch"), "must have an error fallback");
+  });
+
+  test("Hörverstehen returns a script plus boolean-graded items and audio", () => {
+    const block = chatJs.slice(chatJs.indexOf('mode === "exam-hoerverstehen"'));
+    assert.ok(block.includes('typeof it.answer === "boolean"'), "items must be boolean-graded");
+    assert.ok(block.includes("callElevenLabs"), "must synthesise the script");
+    assert.ok(block.includes("audio_base64"), "must return audio to the client");
+  });
+
+  test("retries cover the rate limit and JSON-mode failures", () => {
+    // the free Groq tier allows 8000 tokens/min, so 429s are routine
+    assert.ok(chatJs.includes("json_validate_failed"), "must retry JSON-mode rejections");
+    assert.ok(chatJs.includes("MAX_GROQ_ATTEMPTS"), "must bound the retries");
+    assert.ok(chatJs.includes("res.status === 429"), "must retry rate limits");
+  });
+
+  test("the model is a currently available Groq model with bounded reasoning", () => {
+    // llama-3.1-8b-instant was decommissioned and 404s for every AI feature
+    assert.ok(!chatJs.includes("llama-3.1-8b-instant"), "decommissioned model still referenced");
+    assert.ok(chatJs.includes('GROQ_MODEL = "openai/gpt-oss-120b"'), "unexpected model");
+    assert.ok(chatJs.includes('REASONING_EFFORT = "low"'),
+      "reasoning must be capped or it eats the max_tokens budget");
   });
 });

@@ -83,6 +83,31 @@ def mock_chat(route):
                    "items": [{"num": i + 1, "options": ["seit", "vor", "ab"], "answer": 0,
                               "rule": f"Rule {i + 1}", "sentence": f"Testsatz {i + 1} mit ___."}
                              for i in range(10)]}
+    elif m == "exam-leseverstehen":
+        part = body.get("part", 2)
+        if part == 1:
+            payload = {"part": 1, "instructions": "Welche Überschrift passt?",
+                       "headings": [f"Überschrift {i+1}" for i in range(8)],
+                       "texts": [{"num": i + 1, "text": f"Testtext {i+1} über ein Thema.",
+                                  "answer": i, "rule": f"Grund {i+1}"} for i in range(5)]}
+        elif part == 3:
+            payload = {"part": 3, "instructions": "Welche Anzeige passt?",
+                       "ads": [{"title": f"Anzeige {i+1}", "text": f"Beschreibung {i+1}"} for i in range(12)],
+                       "situations": [{"num": i + 1, "text": f"Situation {i+1}",
+                                       "answer": i if i < 8 else 12, "rule": f"Grund {i+1}"} for i in range(10)]}
+        else:
+            payload = {"part": 2, "instructions": "Beantworten Sie die Fragen.",
+                       "title": "Testartikel", "text": "Ein langer Testartikel. " * 40,
+                       "questions": [{"num": i + 1, "q": f"Frage {i+1}?", "options": ["a", "b", "c"],
+                                      "answer": 0, "rule": f"Grund {i+1}"} for i in range(5)]}
+    elif m == "exam-hoerverstehen":
+        n = 5 if body.get("part") == 1 else 8
+        payload = {"part": body.get("part", 2), "title": "Hörtest",
+                   "script": "Guten Tag. Dies ist ein Hörtext. Zweiter Abschnitt.",
+                   "items": [{"num": i + 1, "statement": f"Aussage {i+1}", "answer": i % 2 == 0,
+                              "rule": f"Grund {i+1}"} for i in range(n)],
+                   # tiny valid silent mp3 frame, enough for the <audio> element to load
+                   "audio_base64": "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMQAAAAAAAAAAAAAA"}
     elif m == "exam-write-feedback":
         payload = {"scores": {"inhalt": "B", "kommunikation": "A", "korrektheit": "C", "wortschatz": "B"},
                    "points_covered": [True, True, False, True],
@@ -310,8 +335,8 @@ def run():
 
         def f_exam():
             goto_tab("exam")
-            if count(".exam-task-card") != 3:
-                rec("WARN", "exam", f"expected 3 task cards, got {count('.exam-task-card')}")
+            if count(".exam-task-card") != 5:
+                rec("WARN", "exam", f"expected 5 task cards, got {count('.exam-task-card')}")
             # Sprachbausteine
             click("#exam-card-sb"); page.wait_for_timeout(150)
             click("#exam-sb-start-btn"); page.wait_for_timeout(600)
@@ -328,6 +353,70 @@ def run():
             else:
                 rec("WARN", "exam", "Sprachbausteine rendered no items")
             click("#exam-sb-back"); page.wait_for_timeout(150)
+
+            # Leseverstehen: all three telc parts, answered from the served answer key
+            for part, opt_sel in ((1, ".exam-lv-opt"), (2, ".exam-lv-optfull"), (3, ".exam-lv-opt")):
+                goto_tab("exam")
+                click("#exam-card-lv"); page.wait_for_timeout(150)
+                page.evaluate("(p)=>document.querySelector(`#exam-lv-parts .exam-part-btn[data-part='${p}']`).click()", part)
+                click("#exam-lv-start-btn"); page.wait_for_timeout(700)
+                rows = page.evaluate("examLvRows().length")
+                if not rows:
+                    rec("WARN", "exam", f"Leseverstehen Teil {part} rendered no rows")
+                    continue
+                page.evaluate("""(sel)=>{examLvRows().forEach((row,ri)=>{
+                    const o=document.querySelector(`${sel}[data-ri="${ri}"][data-oi="${row.answer}"]`);
+                    if(o)o.click();});}""", opt_sel)
+                page.wait_for_timeout(150)
+                if page.evaluate("document.getElementById('exam-lv-submit-btn').disabled"):
+                    rec("WARN", "exam", f"Leseverstehen Teil {part} submit stayed disabled ({rows} rows)")
+                    continue
+                click("#exam-lv-submit-btn"); page.wait_for_timeout(300)
+                score = page.evaluate("(document.querySelector('#exam-lv-score .exam-score-big')||{}).textContent||''")
+                # answering from the key must yield a perfect score, so a mismatch
+                # means the render/grade index mapping has drifted apart
+                ok = score.strip() == f"{rows} / {rows}"
+                rec("OK" if ok else "WARN", "exam", f"Leseverstehen Teil {part} scored '{score.strip()}' ({rows} rows)")
+
+            # Hörverstehen: audio player, the two-play limit, and richtig/falsch grading
+            for part in (1, 2):
+                goto_tab("exam")
+                click("#exam-card-hv"); page.wait_for_timeout(150)
+                page.evaluate("(p)=>document.querySelector(`#exam-hv-parts .exam-part-btn[data-part='${p}']`).click()", part)
+                click("#exam-hv-start-btn"); page.wait_for_timeout(700)
+                n_items = count(".exam-hv-item")
+                if not n_items:
+                    rec("WARN", "exam", f"Hörverstehen Teil {part} rendered no items")
+                    continue
+                has_audio = page.evaluate("!!document.getElementById('exam-hv-audio').src")
+                rec("OK" if has_audio else "WARN", "exam", f"Hörverstehen Teil {part}: {n_items} items, audio={has_audio}")
+                page.evaluate("""()=>{examHvData.items.forEach((it,ri)=>{
+                    const v=it.answer?1:0;
+                    const o=document.querySelector(`.exam-hv-opt[data-ri="${ri}"][data-val="${v}"]`);
+                    if(o)o.click();});}""")
+                page.wait_for_timeout(150)
+                click("#exam-hv-submit-btn"); page.wait_for_timeout(300)
+                score = page.evaluate("(document.querySelector('#exam-hv-score .exam-score-big')||{}).textContent||''")
+                ok = score.strip() == f"{n_items} / {n_items}"
+                rec("OK" if ok else "WARN", "exam", f"Hörverstehen Teil {part} scored '{score.strip()}'")
+                # the transcript stays hidden until the learner asks for it
+                hidden = page.evaluate("document.getElementById('exam-hv-script').style.display==='none'")
+                click("#exam-hv-script-toggle"); page.wait_for_timeout(150)
+                shown = page.evaluate("document.getElementById('exam-hv-script').style.display!=='none'")
+                rec("OK" if (hidden and shown) else "WARN", "exam",
+                    f"Hörverstehen transcript hidden-then-revealed ({hidden}/{shown})")
+
+            # the play budget must never go negative, however often the button is hit
+            goto_tab("exam")
+            click("#exam-card-hv"); page.wait_for_timeout(150)
+            click("#exam-hv-start-btn"); page.wait_for_timeout(700)
+            if count(".exam-hv-item"):
+                for _ in range(4):
+                    click("#exam-hv-play-btn"); page.wait_for_timeout(120)
+                plays_left = page.evaluate("examHvPlaysLeft")
+                rec("OK" if plays_left >= 0 else "ERROR", "exam",
+                    f"Hörverstehen plays budget stayed non-negative ({plays_left})")
+
             # Schreiben
             click("#exam-card-write"); page.wait_for_timeout(200)
             letter = "Sehr geehrte Damen und Herren, " + "ich schreibe wegen meiner Bestellung. " * 12 + "Mit freundlichen Grüßen"
@@ -465,6 +554,26 @@ def run():
             rec("OK", "mobile", f"opened {len(overflow)} overflow tabs via More sheet")
         else:
             rec("WARN", "mobile", "#more-tab not present at 390px")
+        # The reading/listening tasks carry the widest content in the app (12 ads,
+        # 8 lettered answer buttons, a 400-word article), so check them at 390px
+        # with the task actually open rather than only on the landing screen.
+        for card, start_btn, marker in (("#exam-card-lv", "#exam-lv-start-btn", ".exam-lv-opt, .exam-lv-optfull"),
+                                        ("#exam-card-hv", "#exam-hv-start-btn", ".exam-hv-opt")):
+            current[0] = "mobile"
+            goto_tab("exam")
+            if not click(card):
+                rec("WARN", "mobile", f"{card} not clickable at 390px")
+                continue
+            page.wait_for_timeout(150)
+            click(start_btn); page.wait_for_timeout(700)
+            shown = count(marker)
+            wide = page.evaluate("document.documentElement.scrollWidth")
+            ok = shown > 0 and wide <= 392
+            rec("OK" if ok else "WARN", "mobile",
+                f"{card} task at 390px: {shown} controls, scrollWidth={wide}")
+            shot("mobile_" + card.strip("#"))
+
+        goto_tab("today")
         sw = page.evaluate("document.documentElement.scrollWidth")
         rec("OK" if sw <= 392 else "WARN", "mobile", f"horizontal scrollWidth={sw} (<=392 ok)")
 

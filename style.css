@@ -705,10 +705,13 @@ body {
   margin-bottom: 4px;
 }
 
-#exam-sb-view, #exam-write-view, #exam-speak-view { display: flex; flex-direction: column; gap: 14px; }
+#exam-sb-view, #exam-write-view, #exam-speak-view,
+#exam-lv-view, #exam-hv-view { display: flex; flex-direction: column; gap: 14px; }
 #exam-sb-start, #exam-write-setup, #exam-speak-setup,
 #exam-sb-test, #exam-sb-result, #exam-write-work, #exam-write-result,
-#exam-speak-live, #exam-speak-result { display: flex; flex-direction: column; gap: 12px; }
+#exam-speak-live, #exam-speak-result,
+#exam-lv-start, #exam-lv-test, #exam-lv-result,
+#exam-hv-start, #exam-hv-test, #exam-hv-result { display: flex; flex-direction: column; gap: 12px; }
 #exam-sb-letter-title { font-weight: 700; font-size: 1rem; }
 #exam-sb-text {
   background: var(--surface);
@@ -6036,3 +6039,188 @@ select option {
 #sync-status { font-size: 0.76rem; color: var(--text-dim); }
 
 #sync-status.sync-error { color: var(--red); }
+
+/* --- telc B2 Leseverstehen + Hörverstehen --- */
+
+/* Part picker, shared by both sections */
+#exam-lv-parts, #exam-hv-parts { display: flex; flex-direction: column; gap: 8px; }
+.exam-part-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.exam-part-btn.selected {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+.exam-part-name { font-weight: 700; font-size: 0.9rem; }
+.exam-part-btn.selected .exam-part-name { color: var(--accent); }
+.exam-part-desc { font-size: 0.78rem; color: var(--text-dim); line-height: 1.4; }
+
+#exam-lv-instructions, #exam-hv-instructions {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+#exam-lv-body { display: flex; flex-direction: column; gap: 12px; }
+
+/* Teil 1: headings box + text blocks */
+.exam-lv-headings-box, .exam-lv-ads-box, .exam-lv-sits-box, .exam-lv-article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.exam-lv-heading { font-size: 0.88rem; line-height: 1.5; display: flex; gap: 9px; }
+.exam-lv-heading-key, .exam-lv-ad-key {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--surface3);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 800;
+  flex-shrink: 0;
+}
+.exam-lv-text-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.exam-lv-text-num { font-size: 0.72rem; font-weight: 800; color: var(--accent); letter-spacing: .04em; text-transform: uppercase; }
+.exam-lv-text-body { font-size: 0.9rem; line-height: 1.65; }
+
+/* Compact lettered answer buttons, used by Teil 1 and Teil 3 */
+.exam-lv-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.exam-lv-opt {
+  min-width: 34px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 7px 9px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.exam-lv-opt.selected, .exam-lv-optfull.selected, .exam-hv-opt.selected {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+.exam-lv-opt-none { color: var(--text-dim); }
+
+/* Teil 3: ads and situations */
+.exam-lv-ad { display: flex; gap: 9px; align-items: flex-start; }
+.exam-lv-ad-title { font-weight: 700; font-size: 0.85rem; }
+.exam-lv-ad-text { font-size: 0.8rem; color: var(--text-dim); line-height: 1.5; }
+.exam-lv-sit { display: flex; flex-direction: column; gap: 7px; padding: 8px 0; }
+.exam-lv-sit + .exam-lv-sit { border-top: 1px solid var(--border); }
+.exam-lv-sit-text { font-size: 0.87rem; line-height: 1.5; }
+.exam-lv-sit-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; margin-right: 8px;
+  border-radius: 50%;
+  background: var(--surface3);
+  font-size: 0.7rem; font-weight: 800;
+}
+
+/* Teil 2: article + full-width multiple choice */
+.exam-lv-article-title { font-weight: 700; font-size: 1rem; }
+.exam-lv-article-body { font-size: 0.92rem; line-height: 1.75; }
+.exam-lv-q {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.exam-lv-q-text { font-size: 0.88rem; line-height: 1.5; font-weight: 600; }
+.exam-lv-q-options { display: flex; flex-direction: column; gap: 6px; }
+.exam-lv-optfull {
+  text-align: left;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Hörverstehen player + richtig/falsch rows */
+#exam-hv-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+#exam-hv-player .exam-primary-btn { width: auto; flex: 0 0 auto; }
+#exam-hv-plays-left { font-size: 0.8rem; color: var(--text-dim); }
+#exam-hv-noaudio {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+#exam-hv-fallback-script { font-size: 0.9rem; line-height: 1.7; margin-top: 8px; white-space: pre-wrap; }
+#exam-hv-items { display: flex; flex-direction: column; gap: 8px; }
+.exam-hv-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.exam-hv-statement { font-size: 0.87rem; line-height: 1.5; }
+.exam-hv-choices { display: flex; gap: 8px; }
+.exam-hv-opt {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 9px 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.exam-hv-review-statement { font-size: 0.82rem; color: var(--text-dim); margin-top: 4px; line-height: 1.45; }
+#exam-hv-script-toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+#exam-hv-script {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}

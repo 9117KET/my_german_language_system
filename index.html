@@ -814,6 +814,18 @@
               <div class="exam-task-desc">Formal letter with 10 grammar gaps. 3 options each.</div>
               <div class="exam-task-meta">10 Min &middot; auto-graded</div>
             </div>
+            <div class="exam-task-card" id="exam-card-lv">
+              <div class="exam-task-part">Schriftliche Prüfung</div>
+              <div class="exam-task-name">Leseverstehen</div>
+              <div class="exam-task-desc">All 3 telc parts: match headings to texts, multiple choice on a long article, match situations to small ads.</div>
+              <div class="exam-task-meta">Teil 1&ndash;3 &middot; auto-graded</div>
+            </div>
+            <div class="exam-task-card" id="exam-card-hv">
+              <div class="exam-task-part">Schriftliche Prüfung</div>
+              <div class="exam-task-name">Hörverstehen</div>
+              <div class="exam-task-desc">Listen to spoken German, then decide richtig or falsch. Announcements or a radio interview.</div>
+              <div class="exam-task-meta">Teil 1&ndash;2 &middot; audio &middot; auto-graded</div>
+            </div>
             <div class="exam-task-card" id="exam-card-write">
               <div class="exam-task-part">Schriftliche Prüfung</div>
               <div class="exam-task-name">Schriftlicher Ausdruck</div>
@@ -850,6 +862,88 @@
             <div id="exam-sb-score"></div>
             <div id="exam-sb-review"></div>
             <button class="exam-primary-btn" id="exam-sb-again-btn">New test</button>
+          </div>
+        </div>
+
+        <!-- Leseverstehen view -->
+        <div id="exam-lv-view" style="display:none">
+          <div class="exam-topbar">
+            <button class="exam-back-btn" id="exam-lv-back">&#8592; Tasks</button>
+            <div class="exam-timer" id="exam-lv-timer" style="display:none">20:00</div>
+          </div>
+          <div id="exam-lv-start">
+            <h3 class="exam-view-title">Leseverstehen</h3>
+            <p class="exam-view-desc">The reading section of the telc B2 exam. Pick a part &mdash; each one trains a different reading skill.</p>
+            <div id="exam-lv-parts">
+              <button class="exam-part-btn selected" data-part="1">
+                <span class="exam-part-name">Teil 1 &middot; Überschriften</span>
+                <span class="exam-part-desc">5 short texts, 8 headings. Match each text to its heading.</span>
+              </button>
+              <button class="exam-part-btn" data-part="2">
+                <span class="exam-part-name">Teil 2 &middot; Multiple Choice</span>
+                <span class="exam-part-desc">One long article, 5 questions with 3 options each.</span>
+              </button>
+              <button class="exam-part-btn" data-part="3">
+                <span class="exam-part-name">Teil 3 &middot; Anzeigen</span>
+                <span class="exam-part-desc">10 situations, 12 small ads. Some situations match no ad.</span>
+              </button>
+            </div>
+            <button class="exam-primary-btn" id="exam-lv-start-btn">Start test</button>
+          </div>
+          <div id="exam-lv-test" style="display:none">
+            <div id="exam-lv-instructions"></div>
+            <div id="exam-lv-body"></div>
+            <button class="exam-primary-btn" id="exam-lv-submit-btn" disabled>Submit answers</button>
+          </div>
+          <div id="exam-lv-result" style="display:none">
+            <div id="exam-lv-score"></div>
+            <div id="exam-lv-review"></div>
+            <button class="exam-primary-btn" id="exam-lv-again-btn">New test</button>
+          </div>
+        </div>
+
+        <!-- Hörverstehen view -->
+        <div id="exam-hv-view" style="display:none">
+          <div class="exam-topbar">
+            <button class="exam-back-btn" id="exam-hv-back">&#8592; Tasks</button>
+            <div class="exam-timer" id="exam-hv-timer" style="display:none">10:00</div>
+          </div>
+          <div id="exam-hv-start">
+            <h3 class="exam-view-title">Hörverstehen</h3>
+            <p class="exam-view-desc">Listen to spoken German and decide whether each statement is richtig or falsch. As in the real exam you only get to hear it twice.</p>
+            <div id="exam-hv-parts">
+              <button class="exam-part-btn selected" data-part="1">
+                <span class="exam-part-name">Teil 1 &middot; Globalverstehen</span>
+                <span class="exam-part-desc">Five short announcements, 5 statements. Catch the main point.</span>
+              </button>
+              <button class="exam-part-btn" data-part="2">
+                <span class="exam-part-name">Teil 2 &middot; Detailverstehen</span>
+                <span class="exam-part-desc">A radio interview, 8 statements. Catch the details.</span>
+              </button>
+            </div>
+            <button class="exam-primary-btn" id="exam-hv-start-btn">Start test</button>
+          </div>
+          <div id="exam-hv-test" style="display:none">
+            <div id="exam-hv-player">
+              <button class="exam-primary-btn" id="exam-hv-play-btn">&#9654; Play audio</button>
+              <div id="exam-hv-plays-left"></div>
+              <audio id="exam-hv-audio" preload="auto"></audio>
+            </div>
+            <div id="exam-hv-noaudio" style="display:none">
+              <div class="exam-small-label">Audio unavailable &mdash; read the script instead</div>
+              <div id="exam-hv-fallback-script"></div>
+            </div>
+            <div id="exam-hv-items"></div>
+            <button class="exam-primary-btn" id="exam-hv-submit-btn" disabled>Submit answers</button>
+          </div>
+          <div id="exam-hv-result" style="display:none">
+            <div id="exam-hv-score"></div>
+            <div id="exam-hv-review"></div>
+            <div id="exam-hv-script-wrap">
+              <button id="exam-hv-script-toggle">Show transcript</button>
+              <div id="exam-hv-script" style="display:none"></div>
+            </div>
+            <button class="exam-primary-btn" id="exam-hv-again-btn">New test</button>
           </div>
         </div>
 
@@ -1361,7 +1455,7 @@ if (typeof PHRASES === 'undefined') { window.PHRASES = []; }
 <script src="games_data.js" onerror="window.GAME_ISLAND_SETS={}"></script>
 <script>if (typeof TALKBOX_CARDS === 'undefined') { window.TALKBOX_CARDS = {}; }</script>
 <script src="talkbox_data.js" onerror="window.TALKBOX_CARDS={}"></script>
-<script>if (typeof EXAM_WRITE_TASKS === 'undefined') { window.EXAM_WRITE_TASKS = []; window.EXAM_SPEAK_TOPICS = []; window.EXAM_SPEAK_STRUCTURE = []; window.EXAM_SB_FALLBACK = null; }</script>
+<script>if (typeof EXAM_WRITE_TASKS === 'undefined') { window.EXAM_WRITE_TASKS = []; window.EXAM_SPEAK_TOPICS = []; window.EXAM_SPEAK_STRUCTURE = []; window.EXAM_SB_FALLBACK = null; window.EXAM_LV_FALLBACK = {}; window.EXAM_HV_FALLBACK = {}; }</script>
 <script src="exam_data.js"></script>
 <script src="app.js"></script>
 

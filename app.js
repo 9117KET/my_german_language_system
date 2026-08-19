@@ -5036,6 +5036,17 @@ let examSbAnswers = {};
 let examSbTimerInt = null;
 let examSbSecondsLeft = 0;
 
+let examLvData = null;
+let examLvAnswers = {};
+let examLvTimerInt = null;
+let examLvSecondsLeft = 0;
+
+let examHvData = null;
+let examHvAnswers = {};
+let examHvTimerInt = null;
+let examHvSecondsLeft = 0;
+let examHvPlaysLeft = 2;
+
 let examWriteTask = null;
 let examWriteTimerInt = null;
 let examWriteSecondsLeft = 0;
@@ -5072,6 +5083,8 @@ function fmtExamTime(s) {
 
 function stopExamTimers() {
   if (examSbTimerInt) { clearInterval(examSbTimerInt); examSbTimerInt = null; }
+  if (examLvTimerInt) { clearInterval(examLvTimerInt); examLvTimerInt = null; }
+  if (examHvTimerInt) { clearInterval(examHvTimerInt); examHvTimerInt = null; }
   if (examWriteTimerInt) { clearInterval(examWriteTimerInt); examWriteTimerInt = null; }
   if (examSpeakTimerInt) { clearInterval(examSpeakTimerInt); examSpeakTimerInt = null; }
 }
@@ -5093,8 +5106,11 @@ function showExamPanel() {
 function showExamLanding() {
   stopExamTimers();
   examStopRecording();
+  examHvStopAudio();
   document.getElementById("exam-landing").style.display = "flex";
   document.getElementById("exam-sb-view").style.display = "none";
+  document.getElementById("exam-lv-view").style.display = "none";
+  document.getElementById("exam-hv-view").style.display = "none";
   document.getElementById("exam-write-view").style.display = "none";
   document.getElementById("exam-speak-view").style.display = "none";
   updateExamDoneBadge();
@@ -5216,6 +5232,333 @@ function examSbSubmit() {
     `<div class="exam-score-big">${right} / ${examSbData.items.length}</div>
      <div class="exam-score-sub">${pct >= 60 ? "Bestanden-Niveau ✓ (telc pass mark is 60%)" : "Below the 60% telc pass mark — review the rules below"}</div>`;
   document.getElementById("exam-sb-review").innerHTML = review;
+  recordExamTaskDone();
+}
+
+// --- Leseverstehen (telc B2 reading, Teil 1-3) ---
+
+function openExamLv() {
+  document.getElementById("exam-landing").style.display = "none";
+  document.getElementById("exam-lv-view").style.display = "flex";
+  document.getElementById("exam-lv-start").style.display = "flex";
+  document.getElementById("exam-lv-test").style.display = "none";
+  document.getElementById("exam-lv-result").style.display = "none";
+  document.getElementById("exam-lv-timer").style.display = "none";
+}
+
+function examLvSelectedPart() {
+  const btn = document.querySelector("#exam-lv-parts .exam-part-btn.selected");
+  return btn ? parseInt(btn.dataset.part, 10) : 1;
+}
+
+// Each part answers a different question shape, but all of them reduce to
+// "pick one index per numbered row", so grading and review stay shared.
+function examLvRows() {
+  if (!examLvData) return [];
+  if (examLvData.part === 1) return examLvData.texts;
+  if (examLvData.part === 3) return examLvData.situations;
+  return examLvData.questions;
+}
+
+async function examLvStart() {
+  const btn = document.getElementById("exam-lv-start-btn");
+  const part = examLvSelectedPart();
+  btn.disabled = true;
+  btn.textContent = "Generating test…";
+  let data = null;
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "exam-leseverstehen", part }),
+    });
+    if (res.ok) data = await parseApiResponse(res);
+  } catch {}
+  if (!data || !data.part) data = EXAM_LV_FALLBACK[part];
+  btn.disabled = false;
+  btn.textContent = "Start test";
+  if (!data) return;
+
+  examLvData = data;
+  examLvAnswers = {};
+  document.getElementById("exam-lv-start").style.display = "none";
+  document.getElementById("exam-lv-result").style.display = "none";
+  document.getElementById("exam-lv-test").style.display = "flex";
+  document.getElementById("exam-lv-instructions").textContent = data.instructions || "";
+  document.getElementById("exam-lv-body").innerHTML = examLvRenderBody();
+  document.getElementById("exam-lv-submit-btn").disabled = true;
+
+  // telc gives 90 minutes for the whole reading + Sprachbausteine block; these are
+  // the per-part slices of it.
+  examLvSecondsLeft = { 1: 20 * 60, 2: 25 * 60, 3: 20 * 60 }[data.part] || 20 * 60;
+  const timerEl = document.getElementById("exam-lv-timer");
+  timerEl.style.display = "block";
+  timerEl.classList.remove("low");
+  timerEl.textContent = fmtExamTime(examLvSecondsLeft);
+  examLvTimerInt = setInterval(() => {
+    examLvSecondsLeft--;
+    timerEl.textContent = fmtExamTime(Math.max(0, examLvSecondsLeft));
+    if (examLvSecondsLeft <= 60) timerEl.classList.add("low");
+    if (examLvSecondsLeft <= 0) { clearInterval(examLvTimerInt); examLvTimerInt = null; examLvSubmit(); }
+  }, 1000);
+}
+
+function examLvRenderBody() {
+  const d = examLvData;
+  if (d.part === 1) {
+    const headings = d.headings.map((h, i) =>
+      `<div class="exam-lv-heading"><span class="exam-lv-heading-key">${String.fromCharCode(97 + i)}</span>${escapeHtml(h)}</div>`).join("");
+    const texts = d.texts.map((t, ri) => `
+      <div class="exam-lv-text-block" data-ri="${ri}">
+        <div class="exam-lv-text-num">Text ${t.num}</div>
+        <div class="exam-lv-text-body">${escapeHtml(t.text)}</div>
+        <div class="exam-lv-choices">
+          ${d.headings.map((h, oi) =>
+            `<button class="exam-lv-opt" data-ri="${ri}" data-oi="${oi}" title="${escapeHtml(h)}">${String.fromCharCode(97 + oi)}</button>`).join("")}
+        </div>
+      </div>`).join("");
+    return `<div class="exam-lv-headings-box"><div class="exam-small-label">Überschriften</div>${headings}</div>${texts}`;
+  }
+
+  if (d.part === 3) {
+    const ads = d.ads.map((a, i) => `
+      <div class="exam-lv-ad">
+        <div class="exam-lv-ad-key">${String.fromCharCode(97 + i)}</div>
+        <div class="exam-lv-ad-body">
+          <div class="exam-lv-ad-title">${escapeHtml(a.title)}</div>
+          <div class="exam-lv-ad-text">${escapeHtml(a.text)}</div>
+        </div>
+      </div>`).join("");
+    // The "no matching ad" choice is index ads.length, matching the API contract.
+    const sits = d.situations.map((s, ri) => `
+      <div class="exam-lv-sit" data-ri="${ri}">
+        <div class="exam-lv-sit-text"><span class="exam-lv-sit-num">${s.num}</span>${escapeHtml(s.text)}</div>
+        <div class="exam-lv-choices">
+          ${d.ads.map((a, oi) =>
+            `<button class="exam-lv-opt" data-ri="${ri}" data-oi="${oi}" title="${escapeHtml(a.title)}">${String.fromCharCode(97 + oi)}</button>`).join("")}
+          <button class="exam-lv-opt exam-lv-opt-none" data-ri="${ri}" data-oi="${d.ads.length}">–</button>
+        </div>
+      </div>`).join("");
+    return `<div class="exam-lv-ads-box"><div class="exam-small-label">Anzeigen</div>${ads}</div>
+            <div class="exam-lv-sits-box"><div class="exam-small-label">Situationen</div>${sits}</div>`;
+  }
+
+  const qs = d.questions.map((q, ri) => `
+    <div class="exam-lv-q" data-ri="${ri}">
+      <div class="exam-lv-q-text"><span class="exam-lv-sit-num">${q.num}</span>${escapeHtml(q.q)}</div>
+      <div class="exam-lv-q-options">
+        ${q.options.map((o, oi) =>
+          `<button class="exam-lv-optfull" data-ri="${ri}" data-oi="${oi}">${escapeHtml(o)}</button>`).join("")}
+      </div>
+    </div>`).join("");
+  return `<div class="exam-lv-article">
+            <div class="exam-lv-article-title">${escapeHtml(d.title || "")}</div>
+            <div class="exam-lv-article-body">${escapeHtml(d.text).replace(/\n/g, "<br>")}</div>
+          </div>${qs}`;
+}
+
+function examLvPick(ri, oi) {
+  examLvAnswers[ri] = oi;
+  document.querySelectorAll(`.exam-lv-opt[data-ri="${ri}"], .exam-lv-optfull[data-ri="${ri}"]`).forEach(b => {
+    b.classList.toggle("selected", parseInt(b.dataset.oi, 10) === oi);
+  });
+  document.getElementById("exam-lv-submit-btn").disabled =
+    Object.keys(examLvAnswers).length < examLvRows().length;
+}
+
+function examLvSubmit() {
+  if (!examLvData) return;
+  stopExamTimers();
+  document.getElementById("exam-lv-timer").style.display = "none";
+  const rows = examLvRows();
+  let right = 0;
+  const review = rows.map((row, ri) => {
+    const chosen = examLvAnswers[ri];
+    const correct = chosen === row.answer;
+    if (correct) right++;
+    const label = (i) => {
+      if (i == null) return "no answer";
+      if (examLvData.part === 1) return `${String.fromCharCode(97 + i)} · ${examLvData.headings[i]}`;
+      if (examLvData.part === 3) {
+        return i === examLvData.ads.length
+          ? "keine Anzeige"
+          : `${String.fromCharCode(97 + i)} · ${examLvData.ads[i].title}`;
+      }
+      return examLvData.questions[ri].options[i];
+    };
+    return `
+      <div class="exam-sb-review-item ${correct ? "ok" : "bad"}">
+        <div class="exam-sb-review-top">
+          <span>${row.num}. ${correct ? "✓" : "✗"}</span>
+          <span class="exam-sb-review-answer">${escapeHtml(label(row.answer))}</span>
+          ${!correct ? `<span class="exam-sb-review-yours">you: ${escapeHtml(label(chosen))}</span>` : ""}
+        </div>
+        ${row.rule ? `<div class="exam-sb-review-rule">${escapeHtml(row.rule)}</div>` : ""}
+      </div>`;
+  }).join("");
+
+  document.getElementById("exam-lv-test").style.display = "none";
+  document.getElementById("exam-lv-result").style.display = "flex";
+  const pct = Math.round((right / rows.length) * 100);
+  document.getElementById("exam-lv-score").innerHTML =
+    `<div class="exam-score-big">${right} / ${rows.length}</div>
+     <div class="exam-score-sub">${pct >= 60 ? "Bestanden-Niveau ✓ (telc pass mark is 60%)" : "Below the 60% telc pass mark — review the answers below"}</div>`;
+  document.getElementById("exam-lv-review").innerHTML = review;
+  recordExamTaskDone();
+}
+
+// --- Hörverstehen (telc B2 listening, Teil 1-2) ---
+
+function openExamHv() {
+  document.getElementById("exam-landing").style.display = "none";
+  document.getElementById("exam-hv-view").style.display = "flex";
+  document.getElementById("exam-hv-start").style.display = "flex";
+  document.getElementById("exam-hv-test").style.display = "none";
+  document.getElementById("exam-hv-result").style.display = "none";
+  document.getElementById("exam-hv-timer").style.display = "none";
+  examHvStopAudio();
+}
+
+function examHvStopAudio() {
+  const audio = document.getElementById("exam-hv-audio");
+  if (audio) { audio.pause(); audio.currentTime = 0; }
+}
+
+function examHvSelectedPart() {
+  const btn = document.querySelector("#exam-hv-parts .exam-part-btn.selected");
+  return btn ? parseInt(btn.dataset.part, 10) : 1;
+}
+
+async function examHvStart() {
+  const btn = document.getElementById("exam-hv-start-btn");
+  const part = examHvSelectedPart();
+  btn.disabled = true;
+  btn.textContent = "Generating test…";
+  let data = null;
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "exam-hoerverstehen", part }),
+    });
+    if (res.ok) data = await parseApiResponse(res);
+  } catch {}
+  if (!data || !Array.isArray(data.items)) data = EXAM_HV_FALLBACK[part];
+  btn.disabled = false;
+  btn.textContent = "Start test";
+  if (!data) return;
+
+  examHvData = data;
+  examHvAnswers = {};
+  examHvPlaysLeft = 2;
+
+  const audio = document.getElementById("exam-hv-audio");
+  // Without audio the task still works as a reading exercise rather than being lost.
+  const hasAudio = !!data.audio_base64;
+  audio.src = hasAudio ? `data:audio/mpeg;base64,${data.audio_base64}` : "";
+  document.getElementById("exam-hv-player").style.display = hasAudio ? "flex" : "none";
+  document.getElementById("exam-hv-noaudio").style.display = hasAudio ? "none" : "block";
+  if (!hasAudio) {
+    document.getElementById("exam-hv-fallback-script").textContent = data.script || "";
+  }
+  examHvUpdatePlaysLeft();
+
+  document.getElementById("exam-hv-start").style.display = "none";
+  document.getElementById("exam-hv-result").style.display = "none";
+  document.getElementById("exam-hv-test").style.display = "flex";
+  document.getElementById("exam-hv-items").innerHTML = data.items.map((it, ri) => `
+    <div class="exam-hv-item" data-ri="${ri}">
+      <div class="exam-hv-statement"><span class="exam-lv-sit-num">${it.num}</span>${escapeHtml(it.statement)}</div>
+      <div class="exam-hv-choices">
+        <button class="exam-hv-opt" data-ri="${ri}" data-val="1">Richtig</button>
+        <button class="exam-hv-opt" data-ri="${ri}" data-val="0">Falsch</button>
+      </div>
+    </div>`).join("");
+  document.getElementById("exam-hv-submit-btn").disabled = true;
+
+  examHvSecondsLeft = 10 * 60;
+  const timerEl = document.getElementById("exam-hv-timer");
+  timerEl.style.display = "block";
+  timerEl.classList.remove("low");
+  timerEl.textContent = fmtExamTime(examHvSecondsLeft);
+  examHvTimerInt = setInterval(() => {
+    examHvSecondsLeft--;
+    timerEl.textContent = fmtExamTime(Math.max(0, examHvSecondsLeft));
+    if (examHvSecondsLeft <= 60) timerEl.classList.add("low");
+    if (examHvSecondsLeft <= 0) { clearInterval(examHvTimerInt); examHvTimerInt = null; examHvSubmit(); }
+  }, 1000);
+}
+
+function examHvUpdatePlaysLeft() {
+  const el = document.getElementById("exam-hv-plays-left");
+  const btn = document.getElementById("exam-hv-play-btn");
+  if (!el || !btn) return;
+  el.textContent = examHvPlaysLeft > 0
+    ? `${examHvPlaysLeft} play${examHvPlaysLeft === 1 ? "" : "s"} left`
+    : "No plays left — answer from memory";
+  btn.disabled = examHvPlaysLeft <= 0;
+}
+
+async function examHvPlay() {
+  if (examHvPlaysLeft <= 0) return;
+  const audio = document.getElementById("exam-hv-audio");
+  if (!audio.src) return;
+  audio.currentTime = 0;
+  try {
+    // Only spend one of the two allowed plays once playback actually starts -
+    // a rejected play() (autoplay policy, audio not buffered) must not cost the
+    // learner a listen they never heard.
+    await audio.play();
+  } catch {
+    return;
+  }
+  examHvPlaysLeft--;
+  examHvUpdatePlaysLeft();
+}
+
+function examHvPick(ri, val) {
+  examHvAnswers[ri] = val;
+  document.querySelectorAll(`.exam-hv-opt[data-ri="${ri}"]`).forEach(b => {
+    b.classList.toggle("selected", parseInt(b.dataset.val, 10) === val);
+  });
+  document.getElementById("exam-hv-submit-btn").disabled =
+    Object.keys(examHvAnswers).length < examHvData.items.length;
+}
+
+function examHvSubmit() {
+  if (!examHvData) return;
+  stopExamTimers();
+  examHvStopAudio();
+  document.getElementById("exam-hv-timer").style.display = "none";
+  let right = 0;
+  const review = examHvData.items.map((it, ri) => {
+    const chosen = examHvAnswers[ri];
+    const correct = chosen != null && (chosen === 1) === it.answer;
+    if (correct) right++;
+    const say = (b) => (b ? "Richtig" : "Falsch");
+    return `
+      <div class="exam-sb-review-item ${correct ? "ok" : "bad"}">
+        <div class="exam-sb-review-top">
+          <span>${it.num}. ${correct ? "✓" : "✗"}</span>
+          <span class="exam-sb-review-answer">${say(it.answer)}</span>
+          ${!correct ? `<span class="exam-sb-review-yours">you: ${chosen == null ? "no answer" : say(chosen === 1)}</span>` : ""}
+        </div>
+        <div class="exam-hv-review-statement">${escapeHtml(it.statement)}</div>
+        ${it.rule ? `<div class="exam-sb-review-rule">${escapeHtml(it.rule)}</div>` : ""}
+      </div>`;
+  }).join("");
+
+  document.getElementById("exam-hv-test").style.display = "none";
+  document.getElementById("exam-hv-result").style.display = "flex";
+  const pct = Math.round((right / examHvData.items.length) * 100);
+  document.getElementById("exam-hv-score").innerHTML =
+    `<div class="exam-score-big">${right} / ${examHvData.items.length}</div>
+     <div class="exam-score-sub">${pct >= 60 ? "Bestanden-Niveau ✓ (telc pass mark is 60%)" : "Below the 60% telc pass mark — read the transcript below"}</div>`;
+  document.getElementById("exam-hv-review").innerHTML = review;
+  const scriptEl = document.getElementById("exam-hv-script");
+  scriptEl.innerHTML = escapeHtml(examHvData.script || "").replace(/\n/g, "<br>");
+  scriptEl.style.display = "none";
+  document.getElementById("exam-hv-script-toggle").textContent = "Show transcript";
   recordExamTaskDone();
 }
 
@@ -5524,11 +5867,53 @@ async function examSpeakFinish() {
 
 function setupExamPanel() {
   document.getElementById("exam-card-sb").addEventListener("click", openExamSb);
+  document.getElementById("exam-card-lv").addEventListener("click", openExamLv);
+  document.getElementById("exam-card-hv").addEventListener("click", openExamHv);
   document.getElementById("exam-card-write").addEventListener("click", openExamWrite);
   document.getElementById("exam-card-speak").addEventListener("click", openExamSpeak);
   document.getElementById("exam-sb-back").addEventListener("click", showExamLanding);
+  document.getElementById("exam-lv-back").addEventListener("click", showExamLanding);
+  document.getElementById("exam-hv-back").addEventListener("click", showExamLanding);
   document.getElementById("exam-write-back").addEventListener("click", showExamLanding);
   document.getElementById("exam-speak-back").addEventListener("click", showExamLanding);
+
+  // Leseverstehen
+  document.getElementById("exam-lv-parts").addEventListener("click", (e) => {
+    const btn = e.target.closest(".exam-part-btn");
+    if (!btn) return;
+    document.querySelectorAll("#exam-lv-parts .exam-part-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+  });
+  document.getElementById("exam-lv-start-btn").addEventListener("click", examLvStart);
+  document.getElementById("exam-lv-submit-btn").addEventListener("click", examLvSubmit);
+  document.getElementById("exam-lv-again-btn").addEventListener("click", openExamLv);
+  document.getElementById("exam-lv-body").addEventListener("click", (e) => {
+    const opt = e.target.closest(".exam-lv-opt, .exam-lv-optfull");
+    if (opt) examLvPick(parseInt(opt.dataset.ri, 10), parseInt(opt.dataset.oi, 10));
+  });
+
+  // Hörverstehen
+  document.getElementById("exam-hv-parts").addEventListener("click", (e) => {
+    const btn = e.target.closest(".exam-part-btn");
+    if (!btn) return;
+    document.querySelectorAll("#exam-hv-parts .exam-part-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+  });
+  document.getElementById("exam-hv-start-btn").addEventListener("click", examHvStart);
+  document.getElementById("exam-hv-play-btn").addEventListener("click", examHvPlay);
+  document.getElementById("exam-hv-submit-btn").addEventListener("click", examHvSubmit);
+  document.getElementById("exam-hv-again-btn").addEventListener("click", openExamHv);
+  document.getElementById("exam-hv-items").addEventListener("click", (e) => {
+    const opt = e.target.closest(".exam-hv-opt");
+    if (opt) examHvPick(parseInt(opt.dataset.ri, 10), parseInt(opt.dataset.val, 10));
+  });
+  document.getElementById("exam-hv-script-toggle").addEventListener("click", () => {
+    const el = document.getElementById("exam-hv-script");
+    const showing = el.style.display !== "none";
+    el.style.display = showing ? "none" : "block";
+    document.getElementById("exam-hv-script-toggle").textContent =
+      showing ? "Show transcript" : "Hide transcript";
+  });
 
   document.getElementById("exam-sb-start-btn").addEventListener("click", examSbStart);
   document.getElementById("exam-sb-submit-btn").addEventListener("click", examSbSubmit);

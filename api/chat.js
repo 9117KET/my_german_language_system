@@ -5,10 +5,18 @@ const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY;
 const EL_KEY = process.env.ELEVENLABS_API_KEY;
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9";
 
-// llama-3.1-8b-instant: fast, free, 14,400 req/day, excellent for translation
-const GROQ_MODEL = "llama-3.1-8b-instant";
+// openai/gpt-oss-120b: fast, strong German, 131k context, reliable JSON output.
+// It is a reasoning model, so `reasoning_effort: "low"` keeps the hidden reasoning
+// short - without it the reasoning tokens eat the max_tokens budget and the JSON
+// answer gets truncated mid-string (finish_reason "length" -> parseJSON returns null).
+const GROQ_MODEL = "openai/gpt-oss-120b";
+const REASONING_EFFORT = "low";
 
-async function callGroq(prompt, retried = false, maxTokens = 200) {
+// Reasoning tokens are billed against max_tokens, so every budget below has to leave
+// room for them on top of the visible answer.
+const DEFAULT_MAX_TOKENS = 700;
+
+async function callGroq(prompt, attempt = 1, maxTokens = DEFAULT_MAX_TOKENS) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -17,6 +25,7 @@ async function callGroq(prompt, retried = false, maxTokens = 200) {
     },
     body: JSON.stringify({
       model: GROQ_MODEL,
+      reasoning_effort: REASONING_EFFORT,
       messages: [{ role: "user", content: prompt }],
       max_tokens: maxTokens,
       temperature: 0.3,
@@ -24,18 +33,13 @@ async function callGroq(prompt, retried = false, maxTokens = 200) {
     signal: AbortSignal.timeout(12000),
   });
 
-  if (res.status === 429 && !retried) {
-    const body = await res.json();
-    // Extract wait time from Groq's error message e.g. "try again in 1.21s"
-    const match = body?.error?.message?.match(/try again in ([\d.]+)s/i);
-    const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 200 : 2000;
-    await new Promise(r => setTimeout(r, waitMs));
-    return callGroq(prompt, true);
-  }
-
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Groq ${res.status}: ${err}`);
+    const { retry, waitMs, body } = await groqRetryDelay(res);
+    if (retry && attempt < MAX_GROQ_ATTEMPTS) {
+      await new Promise(r => setTimeout(r, waitMs));
+      return callGroq(prompt, attempt + 1, maxTokens);
+    }
+    throw new Error(`Groq ${res.status}: ${body}`);
   }
   const data = await res.json();
   return data.choices[0].message.content.trim();
@@ -67,21 +71,41 @@ async function callElevenLabs(text) {
   }
 }
 
-async function callGroqMessages(messages, maxTokens = 350, retried = false) {
+// Two transient Groq failures are worth retrying rather than surfacing:
+//  - 429: the free tier allows only 8000 tokens/minute, and max_tokens counts toward
+//    that, so the bigger exam generations bump into it in normal use.
+//  - 400 json_validate_failed: JSON mode occasionally rejects the model's own output
+//    (a stray brace). A plain retry usually succeeds.
+const MAX_GROQ_ATTEMPTS = 3;
+
+async function groqRetryDelay(res) {
+  const body = await res.text();
+  if (res.status === 429) {
+    // Groq reports how long to wait, e.g. "try again in 2.63s".
+    const match = body.match(/try again in ([\d.]+)s/i);
+    return { retry: true, waitMs: match ? Math.ceil(parseFloat(match[1]) * 1000) + 200 : 2000, body };
+  }
+  if (res.status === 400 && body.includes("json_validate_failed")) {
+    return { retry: true, waitMs: 250, body };
+  }
+  return { retry: false, waitMs: 0, body };
+}
+
+async function callGroqMessages(messages, maxTokens = DEFAULT_MAX_TOKENS, attempt = 1) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: GROQ_MODEL, messages, max_tokens: maxTokens, temperature: 0.7, response_format: { type: "json_object" } }),
+    body: JSON.stringify({ model: GROQ_MODEL, reasoning_effort: REASONING_EFFORT, messages, max_tokens: maxTokens, temperature: 0.7, response_format: { type: "json_object" } }),
     signal: AbortSignal.timeout(12000),
   });
-  if (res.status === 429 && !retried) {
-    const body = await res.json();
-    const match = body?.error?.message?.match(/try again in ([\d.]+)s/i);
-    const waitMs = match ? Math.ceil(parseFloat(match[1]) * 1000) + 200 : 2000;
-    await new Promise(r => setTimeout(r, waitMs));
-    return callGroqMessages(messages, maxTokens, true);
+  if (!res.ok) {
+    const { retry, waitMs, body } = await groqRetryDelay(res);
+    if (retry && attempt < MAX_GROQ_ATTEMPTS) {
+      await new Promise(r => setTimeout(r, waitMs));
+      return callGroqMessages(messages, maxTokens, attempt + 1);
+    }
+    throw new Error(`Groq ${res.status}: ${body}`);
   }
-  if (!res.ok) { const err = await res.text(); throw new Error(`Groq ${res.status}: ${err}`); }
   const data = await res.json();
   return data.choices[0].message.content.trim();
 }
@@ -202,7 +226,7 @@ module.exports = async function handler(req, res) {
       const raw = await callGroqMessages([
         { role: "system", content: systemPrompt },
         { role: "user", content: "[CONVERSATION_START]" },
-      ], 150);
+      ], 500);
       const parsed = parseJSON(raw);
       const reply = parsed?.reply || raw;
       const audio_base64 = await callElevenLabs(reply);
@@ -398,36 +422,74 @@ module.exports = async function handler(req, res) {
 
   // exam-sprachbausteine - generates a telc B2 Sprachbausteine gap test
   if (mode === "exam-sprachbausteine") {
-    try {
-      const raw = await callGroqMessages([
-        { role: "system", content: "You write telc Deutsch B2 'Sprachbausteine Teil 1' practice tests: a formal German letter with exactly 10 numbered grammar gaps. Always return ONLY valid JSON." },
-        { role: "user", content:
-          `Write a formal German letter (B2 level, 100-140 words) with exactly 10 gaps marked [1] through [10].\n` +
-          `Pick a realistic scenario (complaint, inquiry, application, cancellation...).\n` +
-          `Each gap tests ONE grammar point: prepositions, conjunctions, pronouns, articles/cases, verb forms, or fixed formal phrases.\n` +
-          `For each gap give 3 options where exactly ONE is correct, plus the standalone sentence containing the gap.\n\n` +
-          `Return ONLY this JSON:\n` +
-          `{"title":"short letter title","text":"the full letter with [1]...[10] markers",` +
-          `"items":[{"num":1,"options":["a","b","c"],"answer":0,"rule":"one short English sentence naming the rule",` +
-          `"sentence":"the single sentence containing ___ instead of the gap"}]}`,
-        },
-      ], 1600);
-      const result = parseJSON(raw);
-      const items = (result && Array.isArray(result.items) ? result.items : [])
+    // Alignment between the letter and the answer list has to be structural, not
+    // trusted: asked for markers [1]..[10] the model routinely writes only 4-5 of
+    // them while still returning 10 items, which renders questions that have no
+    // gap to answer. So the model marks every gap with a plain "___" (it keeps
+    // that count far more reliably) and the server numbers them by position.
+    const buildSbTest = (result) => {
+      if (!result || typeof result.text !== "string") return null;
+      const items = (Array.isArray(result.items) ? result.items : [])
         .filter(it => it && Array.isArray(it.options) && it.options.length >= 2 &&
-                      typeof it.answer === "number" && it.answer >= 0 && it.answer < it.options.length)
-        .slice(0, 10)
-        .map((it, i) => ({
+                      typeof it.answer === "number" && it.answer >= 0 && it.answer < it.options.length);
+
+      const parts = result.text.split("___");
+      const gapCount = parts.length - 1;
+      // One gap per item, both in reading order. A mismatch means the model lost
+      // track, and guessing which item belongs to which gap would mislabel answers.
+      if (gapCount !== items.length || gapCount < 8) return null;
+
+      // Number the gaps by position, so they read 1,2,3... down the letter.
+      let text = parts[0];
+      for (let i = 1; i < parts.length; i++) text += "[" + i + "]" + parts[i];
+
+      return {
+        title: result.title || "Formeller Brief",
+        text,
+        items: items.slice(0, gapCount).map((it, i) => ({
           num: i + 1,
           options: it.options.slice(0, 3).map(String),
           answer: it.answer,
           rule: String(it.rule || ""),
           sentence: String(it.sentence || "").includes("___") ? String(it.sentence) : "",
-        }));
-      if (!result || typeof result.text !== "string" || items.length < 6) {
-        throw new Error("Sprachbausteine generation returned invalid JSON");
+        })),
+      };
+    };
+
+    const sbSystem = "You write telc Deutsch B2 'Sprachbausteine Teil 1' practice tests: a formal German letter with exactly 10 grammar gaps. Always return ONLY valid JSON.";
+    const sbUser =
+      `Write a formal German letter (B2 level, 130-170 words) containing exactly 10 gaps.\n` +
+      `Pick a realistic scenario (complaint, inquiry, application, cancellation...).\n` +
+      `Each gap tests ONE grammar point: prepositions, conjunctions, pronouns, articles/cases, verb forms, or fixed formal phrases.\n\n` +
+      `HOW TO MARK THE GAPS - this is the part that must be exact:\n` +
+      `1. Write each gap as three underscores: ___ . Use no other marker, and no numbers.\n` +
+      `2. The letter must contain exactly 10 occurrences of ___ . Count them before you answer.\n` +
+      `3. Each ___ REPLACES the missing word, so the correct answer must NOT also appear next to it.\n` +
+      `   WRONG: "jedoch ___ fehlten zwei Artikel" when the answer is "fehlten".\n` +
+      `   RIGHT: "jedoch ___ zwei Artikel".\n` +
+      `4. Spread the gaps over the whole letter, not only the opening sentences.\n` +
+      `5. Separate paragraphs with a blank line, including after the salutation and before the closing.\n\n` +
+      `Then give exactly 10 items, in the SAME ORDER as the gaps appear in the letter.\n` +
+      `Each item has 3 options where exactly ONE is correct.\n\n` +
+      `Return ONLY this JSON:\n` +
+      `{"title":"short letter title","text":"the full letter using ___ for each of the 10 gaps",` +
+      `"items":[{"options":["a","b","c"],"answer":0,"rule":"one short English sentence naming the rule",` +
+      `"sentence":"the single sentence from the letter containing ___"}]}`;
+
+    try {
+      let payload = buildSbTest(parseJSON(await callGroqMessages(
+        [{ role: "system", content: sbSystem }, { role: "user", content: sbUser }], 3500)));
+      if (!payload) {
+        // One stricter retry before the client falls back to the built-in test.
+        payload = buildSbTest(parseJSON(await callGroqMessages([
+          { role: "system", content: sbSystem },
+          { role: "user", content: sbUser +
+            `\n\nYour previous attempt was rejected: the number of ___ gaps in the letter did not equal the number of items. ` +
+            `Write the letter first, count the ___ occurrences, then write exactly that many items in the same order.` },
+        ], 3500)));
       }
-      return res.json({ title: result.title || "Formeller Brief", text: result.text, items });
+      if (!payload) throw new Error("Sprachbausteine generation returned invalid JSON");
+      return res.json(payload);
     } catch (err) {
       console.error("[api/chat exam-sb]", err.message);
       return res.status(500).json({ error: "Could not generate a test right now." });
@@ -511,6 +573,180 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error("[api/chat exam-speak]", err.message);
       return res.status(500).json({ error: "Could not grade your presentation right now." });
+    }
+  }
+
+  // exam-leseverstehen - generates one of the three telc B2 Leseverstehen parts.
+  // Teil 1: match 5 short texts to headings (more headings than texts, so guessing
+  //         by elimination does not work). Teil 2: one long text, 5 MC questions.
+  // Teil 3: match 10 situations to 12 small ads, where some situations have no match.
+  if (mode === "exam-leseverstehen") {
+    const part = [1, 2, 3].includes(req.body?.part) ? req.body.part : 2;
+
+    // Every part is graded by index, so an option/answer pair that points outside the
+    // list would silently mark a right answer wrong. Validate before trusting it.
+    const validPick = (it, listLen) =>
+      it && typeof it.answer === "number" && it.answer >= 0 && it.answer < listLen;
+
+    const buildLv = (result) => {
+      if (!result) return null;
+
+      if (part === 1) {
+        const headings = (Array.isArray(result.headings) ? result.headings : []).map(String);
+        const texts = (Array.isArray(result.texts) ? result.texts : [])
+          .filter(t => t && typeof t.text === "string" && validPick(t, headings.length));
+        if (headings.length < 7 || texts.length < 4) return null;
+        return {
+          part: 1,
+          instructions: "Lesen Sie die fünf Texte und die Überschriften. Welche Überschrift passt zu welchem Text?",
+          headings,
+          texts: texts.slice(0, 5).map((t, i) => ({
+            num: i + 1,
+            text: String(t.text),
+            answer: t.answer,
+            rule: String(t.why || ""),
+          })),
+        };
+      }
+
+      if (part === 3) {
+        const ads = (Array.isArray(result.ads) ? result.ads : [])
+          .filter(a => a && a.title && a.text)
+          .map(a => ({ title: String(a.title), text: String(a.text) }));
+        // "no matching ad" is a real telc answer, encoded as index === ads.length.
+        const situations = (Array.isArray(result.situations) ? result.situations : [])
+          .filter(s => s && typeof s.text === "string" &&
+                       typeof s.answer === "number" && s.answer >= 0 && s.answer <= ads.length);
+        if (ads.length < 8 || situations.length < 6) return null;
+        return {
+          part: 3,
+          instructions: "Lesen Sie die Situationen und die Anzeigen. Welche Anzeige passt zu welcher Situation? Manche Situationen haben keine passende Anzeige.",
+          ads,
+          situations: situations.slice(0, 10).map((s, i) => ({
+            num: i + 1,
+            text: String(s.text),
+            answer: s.answer,
+            rule: String(s.why || ""),
+          })),
+        };
+      }
+
+      const questions = (Array.isArray(result.questions) ? result.questions : [])
+        .filter(q => q && q.q && Array.isArray(q.options) && q.options.length >= 2 && validPick(q, q.options.length));
+      if (typeof result.text !== "string" || result.text.length < 200 || questions.length < 4) return null;
+      return {
+        part: 2,
+        instructions: "Lesen Sie den Text und beantworten Sie die Fragen. Nur eine Antwort ist richtig.",
+        title: String(result.title || "Lesetext"),
+        text: result.text,
+        questions: questions.slice(0, 5).map((q, i) => ({
+          num: i + 1,
+          q: String(q.q),
+          options: q.options.slice(0, 3).map(String),
+          answer: q.answer,
+          rule: String(q.why || ""),
+        })),
+      };
+    };
+
+    const lvPrompts = {
+      1: `Write a telc Deutsch B2 "Leseverstehen Teil 1" task.\n` +
+         `Produce 5 short German texts (55-75 words each) on one broad theme (e.g. Arbeitswelt, Umwelt, Bildung, Gesundheit).\n` +
+         `Each text is a distinct angle on the theme so exactly one heading fits it.\n` +
+         `Produce 8 German headings: the 5 correct ones plus 3 plausible distractors that fit no text.\n` +
+         `Shuffle the headings so the correct ones are not in text order.\n\n` +
+         `Return ONLY this JSON:\n` +
+         `{"headings":["Überschrift a","..."],` +
+         `"texts":[{"text":"the German text","answer":0,"why":"one short English sentence: the phrase in the text that makes this heading fit"}]}\n` +
+         `"answer" is the 0-based index into "headings".`,
+      2: `Write a telc Deutsch B2 "Leseverstehen Teil 2" task.\n` +
+         `Produce ONE German text of 380-450 words: a journalistic article on a current topic (Arbeitswelt, Digitalisierung, Umwelt, Bildung, Gesundheit, Stadtleben...).\n` +
+         `B2 register: complex sentences, connectors, some idiomatic vocabulary. Separate paragraphs with a blank line.\n` +
+         `Then write 5 comprehension questions in German, each with 3 options and exactly ONE correct answer.\n` +
+         `Test comprehension and inference, not word-spotting: the correct option must paraphrase the text rather than repeat its wording.\n` +
+         `Ask the questions in the order the information appears in the text.\n\n` +
+         `Return ONLY this JSON:\n` +
+         `{"title":"German article title","text":"the full article",` +
+         `"questions":[{"q":"German question","options":["a","b","c"],"answer":0,"why":"one short English sentence naming the line of the text that proves it"}]}`,
+      3: `Write a telc Deutsch B2 "Leseverstehen Teil 3" task.\n` +
+         `Produce 12 short German small-ads (Anzeigen) of 20-35 words each, all from one domain (e.g. Kurse, Wohnungen, Dienstleistungen, Freizeit).\n` +
+         `Then produce 10 German situations of one sentence each, describing what a person needs.\n` +
+         `Exactly 8 situations match one ad each; 2 situations match NO ad - for those set "answer" to 12.\n` +
+         `Make the distractor ads close but wrong on one concrete detail (price, time, level, location).\n\n` +
+         `Return ONLY this JSON:\n` +
+         `{"ads":[{"title":"short ad title","text":"the ad body"}],` +
+         `"situations":[{"text":"the German situation","answer":0,"why":"one short English sentence naming the detail that decides it"}]}\n` +
+         `"answer" is the 0-based index into "ads", or 12 for "no matching ad".`,
+    };
+
+    try {
+      const raw = await callGroqMessages([
+        { role: "system", content: "You write telc Deutsch B2 Leseverstehen practice tasks. Always return ONLY valid JSON." },
+        { role: "user", content: lvPrompts[part] },
+      ], 2600);
+      const payload = buildLv(parseJSON(raw));
+      if (!payload) throw new Error("Leseverstehen generation returned invalid JSON");
+      return res.json(payload);
+    } catch (err) {
+      console.error("[api/chat exam-lv]", err.message);
+      return res.status(500).json({ error: "Could not generate a reading task right now." });
+    }
+  }
+
+  // exam-hoerverstehen - generates a telc B2 Hörverstehen task: a spoken German
+  // passage plus richtig/falsch statements. The script is synthesised with the same
+  // TTS the rest of the app uses, so the learner hears it instead of reading it.
+  if (mode === "exam-hoerverstehen") {
+    const part = [1, 2].includes(req.body?.part) ? req.body.part : 2;
+    const spec = part === 1
+      ? { words: "90-120", count: 5, kind: "five short public announcements or voicemail messages, each 2-3 sentences, separated by a blank line",
+          focus: "Globalverstehen: each statement is about the main point of one announcement" }
+      : { words: "170-220", count: 8, kind: "one radio interview between a Moderator and one expert guest, written as a flowing dialogue",
+          focus: "Detailverstehen: the statements test specific details, numbers, and opinions" };
+
+    try {
+      const raw = await callGroqMessages([
+        { role: "system", content: "You write telc Deutsch B2 Hörverstehen practice tasks. Always return ONLY valid JSON." },
+        { role: "user", content:
+          `Write a German listening script of ${spec.words} words: ${spec.kind}.\n` +
+          `Natural spoken B2 German on a realistic topic (Arbeit, Umwelt, Gesundheit, Bildung, Stadtleben, Technik).\n` +
+          `Write it to be READ ALOUD: no speaker labels like "Moderator:", no stage directions, no bullet points - only the words that are spoken.\n\n` +
+          `Then write exactly ${spec.count} German statements about the script (${spec.focus}).\n` +
+          `Each statement is RICHTIG or FALSCH. Make about half of them FALSCH.\n` +
+          `A FALSCH statement must contradict the script on a concrete point, not just be unmentioned.\n` +
+          `Put the statements in the order the information is heard.\n\n` +
+          `Return ONLY this JSON:\n` +
+          `{"title":"short German title","script":"the full spoken script",` +
+          `"items":[{"statement":"German statement","answer":true,"why":"one short English sentence quoting the part of the script that decides it"}]}`,
+        },
+      ], 2500);
+      const result = parseJSON(raw);
+      const items = (result && Array.isArray(result.items) ? result.items : [])
+        .filter(it => it && typeof it.statement === "string" && typeof it.answer === "boolean")
+        .slice(0, spec.count)
+        .map((it, i) => ({
+          num: i + 1,
+          statement: String(it.statement),
+          answer: it.answer,
+          rule: String(it.why || ""),
+        }));
+      if (!result || typeof result.script !== "string" || items.length < 4) {
+        throw new Error("Hörverstehen generation returned invalid JSON");
+      }
+
+      // Audio is the whole point of this task, but a TTS outage should not throw the
+      // task away - the client falls back to a "read the script" mode instead.
+      const audio_base64 = await callElevenLabs(result.script);
+      return res.json({
+        part,
+        title: String(result.title || "Hörverstehen"),
+        script: result.script,
+        items,
+        audio_base64,
+      });
+    } catch (err) {
+      console.error("[api/chat exam-hv]", err.message);
+      return res.status(500).json({ error: "Could not generate a listening task right now." });
     }
   }
 
@@ -606,7 +842,7 @@ module.exports = async function handler(req, res) {
           `  "sample": "A corrected, natural German version of what they said. Fix grammar, word order, and phrasing while keeping their ideas and voice. Write as a B1-B2 learner would naturally say it — 2-4 conversational sentences. If the transcript is empty or very short, write a short natural German response to the scenario anyway.",\n` +
           `  "feedback": "1-2 sentences in English: name one specific thing they did well (quote a word or phrase they used), then give one concrete improvement tip."\n` +
           `}`,
-          false, 400
+          1, 700
         );
         const result = JSON.parse(stripMarkdown(raw));
         return res.json({
@@ -718,7 +954,7 @@ module.exports = async function handler(req, res) {
         ...(history || []).slice(-20),
         { role: "user", content: text },
       ];
-      const raw = await callGroqMessages(messages, 350);
+      const raw = await callGroqMessages(messages, 800);
       const parsed = parseJSON(raw);
       const reply = parsed?.reply || raw;
       const correction = parsed?.correction || null;
@@ -783,7 +1019,7 @@ module.exports = async function handler(req, res) {
           `  "grammar_tip": "One very short grammar observation in English — max 10 words.",\n` +
           `  "vocab_note": "One vocabulary tip in English — a word they used well or a useful alternative — max 12 words."\n` +
           `}`,
-          false, 420
+          1, 700
         );
         const result = JSON.parse(stripMarkdown(raw));
         return res.json({
