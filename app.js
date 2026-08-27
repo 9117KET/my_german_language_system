@@ -5952,6 +5952,7 @@ const ERROR_LOG_MAX = 100;
 const ERROR_SOURCE_LABELS = {
   chat: "Chat", correct: "Correct", write: "Write",
   recall: "Recall", speak: "Speak", talkbox: "Talk Box",
+  satzbau: "Satzbau",
 };
 
 function getErrorLog() {
@@ -7326,6 +7327,7 @@ function showGamesLanding() {
   document.getElementById("sentencebuilder-view").style.display = "none";
   document.getElementById("listeningblitz-view").style.display = "none";
   document.getElementById("grammarsprint-view").style.display = "none";
+  document.getElementById("satzbau-view").style.display = "none";
 }
 
 function openWordSearch() {
@@ -8795,6 +8797,576 @@ function tbUpdateStreakBadge() {
   const streak = getTalkBoxStreak();
   const badge = document.getElementById("tb-streak-badge");
   if (!badge) return;
+  if (streak > 0) {
+    badge.textContent = "🔥 " + streak + " day streak";
+    badge.classList.add("visible");
+  } else {
+    badge.classList.remove("visible");
+  }
+}
+
+// ---- Satzbau Lab ----
+
+const SL_SECTIONS = ["sl-map-section", "sl-sprint-section", "sl-learn-section", "sl-play-section", "sl-done-section"];
+const SL_EFFECT_LABEL = { end: "Verb ans Ende", pos0: "Position 0", pos1: "Position 1" };
+
+let slLevelId = null;
+let slQueue = [];
+let slIdx = 0;
+let slCorrect = 0;
+let slChecked = false;
+let slBank = [];
+let slBuilt = [];
+let slDragFrom = null;
+let slSprint = false;
+let slSprintTimer = null;
+let slSprintLeft = 0;
+let slSprintDur = 90;
+let slSprintBand = "all";
+let slCombo = 0;
+
+function openSatzbauLab() {
+  showGamesLanding();
+  document.getElementById("games-landing").style.display = "none";
+  document.getElementById("satzbau-view").style.display = "flex";
+  slStopSprint();
+  slUpdateStreakBadge();
+  slShowMap();
+
+  document.getElementById("sl-learn-start-btn").onclick = () => slStartLevel(slLevelId);
+  document.querySelectorAll(".sl-band-btn").forEach(btn => {
+    btn.onclick = () => {
+      slSprintBand = btn.dataset.slband;
+      document.querySelectorAll(".sl-band-btn").forEach(b => b.classList.toggle("active", b === btn));
+    };
+  });
+  document.querySelectorAll(".sl-dur-btn").forEach(btn => {
+    btn.onclick = () => {
+      slSprintDur = parseInt(btn.dataset.sldur, 10);
+      document.querySelectorAll(".sl-dur-btn").forEach(b => b.classList.toggle("active", b === btn));
+    };
+  });
+}
+
+function slGetLevel(id) {
+  return SATZBAU_LEVELS.find(l => l.id === id) || null;
+}
+
+function slCurrent() {
+  return slQueue[slIdx] || null;
+}
+
+function slStripTags(s) {
+  return String(s || "").replace(/<[^>]+>/g, "");
+}
+
+// Notes often open with the same words as the effect badge ("Position 0 — nothing moves").
+// Drop that lead-in so the rendered line does not say it twice.
+function slTrimEffectLabel(note, effect) {
+  const label = SL_EFFECT_LABEL[effect];
+  if (!label) return note;
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const trimmed = String(note).replace(new RegExp("^" + escaped + "\\s*[—–-]\\s*", "i"), "");
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+// Pure helpers (unit-tested in tests/satzbau.test.js)
+function slShuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function slNormalize(str) {
+  return String(str).toLowerCase().replace(/[.,!?;:"“”„'()\-]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function slShowSection(id) {
+  SL_SECTIONS.forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.style.display = s === id ? "flex" : "none";
+  });
+}
+
+function slBack() {
+  const map = document.getElementById("sl-map-section");
+  if (map && map.style.display !== "none") { slStopSprint(); showGamesLanding(); return; }
+  slShowMap();
+}
+
+function slShowMap() {
+  slStopSprint();
+  slShowSection("sl-map-section");
+  slRenderMap();
+}
+
+function slRenderMap() {
+  const grid = document.getElementById("sl-level-grid");
+  if (!grid) return;
+  const prog = getSatzbauProgress();
+  grid.innerHTML = SATZBAU_LEVELS.map((lv, i) => {
+    const p = prog[lv.id];
+    const best = p ? p.best : 0;
+    const total = lv.items.length;
+    const pct = Math.round(100 * best / Math.max(1, total));
+    return `<div class="sl-level-card${best === total ? " sl-mastered" : ""}" style="--set-color:${lv.color}" onclick="slOpenLevel('${lv.id}')">
+      <div class="sl-level-top">
+        <span class="sl-level-num">${i + 1}</span>
+        <span class="sl-cefr-chip">${lv.cefr}</span>
+      </div>
+      <div class="sl-level-name">${escapeHtml(lv.label)}</div>
+      <div class="sl-level-rule">${escapeHtml(slStripTags(lv.rule.headline))}</div>
+      <div class="sl-level-bar"><div class="sl-level-fill" style="width:${pct}%"></div></div>
+      <div class="sl-level-foot"><span>${best} / ${total} richtig</span><span class="sl-level-cta">${p ? "Nochmal" : "Start"} &rarr;</span></div>
+    </div>`;
+  }).join("");
+}
+
+function slOpenLevel(id) {
+  const lv = slGetLevel(id);
+  if (!lv) return;
+  slStopSprint();
+  slLevelId = id;
+  slShowSection("sl-learn-section");
+  slRenderRuleCard(lv);
+}
+
+function slRenderRuleCard(lv) {
+  const section = document.getElementById("sl-learn-section");
+  section.style.setProperty("--set-color", lv.color);
+  document.getElementById("sl-learn-cefr").textContent = lv.cefr;
+  document.getElementById("sl-learn-title").textContent = lv.label;
+  document.getElementById("sl-rule-headline").innerHTML = lv.rule.headline;
+  document.getElementById("sl-rule-diagram").innerHTML = renderSatzbauBreakdown(lv.rule.diagram);
+  document.getElementById("sl-rule-points").innerHTML = lv.rule.points.map(p => `<li>${p}</li>`).join("");
+
+  const contrast = document.getElementById("sl-rule-contrast");
+  if (lv.rule.contrast) {
+    contrast.style.display = "";
+    contrast.innerHTML =
+      `<div class="sl-contrast-row"><span class="sl-contrast-tag">A</span><span>${escapeHtml(lv.rule.contrast.a)}</span></div>
+       <div class="sl-contrast-row"><span class="sl-contrast-tag">B</span><span>${escapeHtml(lv.rule.contrast.b)}</span></div>
+       <div class="sl-contrast-note">${escapeHtml(lv.rule.contrast.note)}</div>`;
+  } else {
+    contrast.style.display = "none";
+  }
+
+  document.getElementById("sl-rule-examples").innerHTML = lv.rule.examples.map(e =>
+    `<div class="sl-example"><div class="sl-example-de">${escapeHtml(e.de)}</div><div class="sl-example-en">${escapeHtml(e.en)}</div></div>`
+  ).join("");
+}
+
+function slStartLevel(id) {
+  const lv = slGetLevel(id);
+  if (!lv) return;
+  slStopSprint();
+  slLevelId = id;
+  slQueue = slShuffle(lv.items.slice());
+  slIdx = 0;
+  slCorrect = 0;
+  slCombo = 0;
+  document.getElementById("sl-timer").style.display = "none";
+  document.getElementById("sl-combo").style.display = "none";
+  document.getElementById("sl-play-section").style.setProperty("--set-color", lv.color);
+  slShowSection("sl-play-section");
+  slRenderItem();
+}
+
+function slRenderItem() {
+  const item = slCurrent();
+  if (!item) { slFinishLevel(); return; }
+
+  slChecked = false;
+  slBuilt = [];
+  slDragFrom = null;
+  document.getElementById("sl-feedback").style.display = "none";
+  document.getElementById("sl-actions").style.display = "flex";
+  slUpdateProgress();
+
+  const prompt = document.getElementById("sl-prompt");
+  const checkBtn = document.getElementById("sl-check-btn");
+  const clearBtn = document.getElementById("sl-clear-btn");
+
+  if (item.type === "order") {
+    prompt.innerHTML = `<span class="sl-prompt-tag">Bau den Satz</span><span class="sl-prompt-en">${escapeHtml(item.en)}</span>`;
+    slBank = slShuffle(item.parts.slice());
+    checkBtn.style.display = "";
+    clearBtn.style.display = "";
+    slRenderOrder();
+  } else if (item.type === "conj") {
+    prompt.innerHTML = `<span class="sl-prompt-tag">Welcher Konnektor?</span><span class="sl-prompt-en">Pick the connector that fits &mdash; then see what it does to the word order.</span>`;
+    checkBtn.style.display = "none";
+    clearBtn.style.display = "none";
+    slRenderConj();
+  } else {
+    prompt.innerHTML = `<span class="sl-prompt-tag">Finde den Fehler</span><span class="sl-prompt-en">Tap the word that stands in the wrong place.</span>`;
+    checkBtn.style.display = "none";
+    clearBtn.style.display = "none";
+    slRenderFix();
+  }
+}
+
+function slUpdateProgress() {
+  document.getElementById("sl-progress-label").textContent =
+    slSprint ? "Frage " + (slIdx + 1) : (slIdx + 1) + " / " + slQueue.length;
+  document.getElementById("sl-score-label").textContent = slCorrect + " richtig";
+  const fill = document.getElementById("sl-progress-fill");
+  if (fill && !slSprint) fill.style.width = Math.round(100 * slIdx / Math.max(1, slQueue.length)) + "%";
+}
+
+// ---- order items ----
+
+function slRenderOrder() {
+  const stage = document.getElementById("sl-stage");
+  const built = slBuilt.map((p, i) =>
+    `<button class="sl-tile sl-tile-built satz-part ${p.pos}" draggable="true"
+       ondragstart="slDragStart(${i},'built')" ondragover="event.preventDefault()" ondrop="slDrop(${i})"
+       onclick="slUnplace(${i})"><span class="satz-text">${escapeHtml(p.text)}</span></button>`
+  ).join("");
+  const bank = slBank.map((p, i) =>
+    `<button class="sl-tile sl-tile-bank" draggable="true"
+       ondragstart="slDragStart(${i},'bank')" onclick="slPlace(${i})">${escapeHtml(p.text)}</button>`
+  ).join("");
+
+  stage.innerHTML =
+    `<div id="sl-build-zone" ondragover="event.preventDefault()" ondrop="slDrop(-1)">
+       ${slBuilt.length
+         ? `<div class="sl-tiles">${built}</div>`
+         : `<div class="sl-placeholder">Tap or drag the blocks below into the right order</div>`}
+     </div>
+     <div class="sl-bank-label">Bausteine</div>
+     <div class="sl-tiles sl-bank">${bank}</div>`;
+
+  document.getElementById("sl-check-btn").disabled = slBuilt.length === 0 || slChecked;
+}
+
+function slDragStart(i, from) {
+  if (slChecked) return;
+  slDragFrom = { i, from };
+}
+
+function slDrop(target) {
+  if (!slDragFrom || slChecked) return;
+  let piece;
+  if (slDragFrom.from === "bank") {
+    piece = slBank.splice(slDragFrom.i, 1)[0];
+  } else {
+    piece = slBuilt.splice(slDragFrom.i, 1)[0];
+    if (target > slDragFrom.i) target--;
+  }
+  slDragFrom = null;
+  if (!piece) return;
+  if (target < 0 || target > slBuilt.length) slBuilt.push(piece);
+  else slBuilt.splice(target, 0, piece);
+  slRenderOrder();
+}
+
+function slPlace(i) {
+  if (slChecked) return;
+  const p = slBank.splice(i, 1)[0];
+  if (p) slBuilt.push(p);
+  slRenderOrder();
+}
+
+function slUnplace(i) {
+  if (slChecked) return;
+  const p = slBuilt.splice(i, 1)[0];
+  if (p) slBank.push(p);
+  slRenderOrder();
+}
+
+function slClear() {
+  if (slChecked) return;
+  slBank = slShuffle(slBank.concat(slBuilt));
+  slBuilt = [];
+  slRenderOrder();
+}
+
+function slCheck() {
+  const item = slCurrent();
+  if (!item || slChecked || item.type !== "order" || !slBuilt.length) return;
+  slChecked = true;
+
+  const attempt = slBuilt.map(p => p.text).join(" ");
+  const target = item.parts.map(p => p.text).join(" ");
+  const accepted = [target].concat(item.alts || []);
+  const ok = accepted.some(a => slNormalize(a) === slNormalize(attempt));
+
+  const zone = document.getElementById("sl-build-zone");
+  if (zone) zone.classList.add(ok ? "correct" : "wrong");
+  document.getElementById("sl-check-btn").disabled = true;
+
+  slGrade(ok, item, attempt, target);
+}
+
+// ---- conj items ----
+
+function slRenderConj() {
+  const item = slCurrent();
+  const stage = document.getElementById("sl-stage");
+  stage.innerHTML =
+    `<div class="sl-clause-pair">
+       <div class="sl-clause">${escapeHtml(item.clauseA)}</div>
+       <div class="sl-clause-join">+</div>
+       <div class="sl-clause">${escapeHtml(item.clauseB)}</div>
+     </div>
+     <div class="sl-conj-options">${slShuffle(item.options.slice()).map(o =>
+       `<button class="sl-conj-option" data-slword="${escapeHtml(o.word)}" onclick="slPickConj('${o.word.replace(/'/g, "\\'")}')">${escapeHtml(o.word)}</button>`
+     ).join("")}</div>
+     <div id="sl-conj-result" style="display:none"></div>`;
+}
+
+function slPickConj(word) {
+  const item = slCurrent();
+  if (!item || slChecked) return;
+  const opt = item.options.find(o => o.word === word);
+  if (!opt) return;
+  slChecked = true;
+  const ok = word === item.answer;
+
+  document.querySelectorAll(".sl-conj-option").forEach(b => {
+    const w = b.dataset.slword;
+    b.classList.toggle("correct", w === item.answer);
+    b.classList.toggle("wrong", w === word && !ok);
+    b.disabled = true;
+  });
+
+  const answerOpt = item.options.find(o => o.word === item.answer);
+  const res = document.getElementById("sl-conj-result");
+  res.style.display = "";
+  res.innerHTML =
+    `<div class="sl-result-line sl-effect-${opt.effect}">${escapeHtml(opt.result)}</div>
+     <div class="sl-result-note"><b>${SL_EFFECT_LABEL[opt.effect]}</b> &mdash; ${escapeHtml(slTrimEffectLabel(opt.note, opt.effect))}</div>` +
+    (ok ? "" : `<div class="sl-result-answer"><span class="sl-result-answer-tag">Richtig:</span> ${escapeHtml(answerOpt.result)}</div>`);
+
+  slGrade(ok, item, opt.result, answerOpt.result);
+}
+
+// ---- fix items ----
+
+function slRenderFix() {
+  const item = slCurrent();
+  const stage = document.getElementById("sl-stage");
+  stage.innerHTML = `<div class="sl-fix-sentence">${item.wrong.split(/\s+/).map((t, i) =>
+    `<button class="sl-fix-token" data-sli="${i}" onclick="slPickFix(${i})">${escapeHtml(t)}</button>`
+  ).join("")}</div>`;
+}
+
+function slPickFix(i) {
+  const item = slCurrent();
+  if (!item || slChecked) return;
+  slChecked = true;
+  const ok = i === item.badIndex;
+
+  document.querySelectorAll(".sl-fix-token").forEach(b => {
+    const idx = parseInt(b.dataset.sli, 10);
+    b.classList.toggle("correct", idx === item.badIndex);
+    b.classList.toggle("wrong", idx === i && !ok);
+    b.disabled = true;
+  });
+
+  slGrade(ok, item, item.wrong, item.correct);
+}
+
+// ---- grading, feedback, flow ----
+
+function slGrade(ok, item, original, corrected) {
+  document.getElementById("sl-actions").style.display = "none";
+
+  if (ok) {
+    slCorrect++;
+    slCombo++;
+    awardXP(slSprint ? Math.min(5, 2 + Math.floor(slCombo / 3)) : 3, "Satzbau Lab");
+    recordSatzbauDone();
+    slUpdateStreakBadge();
+  } else {
+    slCombo = 0;
+    awardXP(1, "Satzbau Lab");
+    if (item.type !== "conj") logError("satzbau", original, corrected, slStripTags(item.why));
+  }
+
+  slUpdateCombo();
+  slUpdateProgress();
+  slRenderFeedback(ok, item, corrected);
+
+  if (slSprint) setTimeout(() => { if (slSprint && slChecked) slNext(); }, 1500);
+}
+
+function slRenderFeedback(ok, item, corrected) {
+  const fb = document.getElementById("sl-feedback");
+  fb.style.display = "flex";
+  fb.classList.toggle("ok", ok);
+  fb.classList.toggle("no", !ok);
+  document.getElementById("sl-feedback-icon").textContent = ok ? "✓" : "✗";
+  document.getElementById("sl-feedback-text").textContent = ok ? "Richtig!" : "Nicht ganz.";
+  document.getElementById("sl-feedback-why").innerHTML = item.why || "";
+
+  const corr = document.getElementById("sl-feedback-correct");
+  if (item.type === "order") corr.innerHTML = renderSatzbauBreakdown(item.parts);
+  else if (item.type === "fix") corr.innerHTML = `<div class="sl-correct-line">${escapeHtml(item.correct)}</div>`;
+  else corr.innerHTML = "";
+
+  if (!slSprint && item.type !== "conj" && corrected) speakGerman(corrected);
+}
+
+function slNext() {
+  slIdx++;
+  if (slIdx >= slQueue.length) {
+    if (slSprint) { slQueue = slShuffle(slQueue); slIdx = 0; }
+    else { slFinishLevel(); return; }
+  }
+  slRenderItem();
+}
+
+function slSkip() {
+  if (slChecked) return;
+  slCombo = 0;
+  slUpdateCombo();
+  slNext();
+}
+
+function slFinishLevel() {
+  const lv = slGetLevel(slLevelId);
+  const total = slQueue.length;
+  const bonus = total && slCorrect === total ? 15 : 10;
+  awardXP(bonus, "Satzbau Lab");
+
+  if (lv) {
+    const prog = getSatzbauProgress();
+    const prev = prog[lv.id] || {};
+    prog[lv.id] = {
+      best: Math.max(prev.best || 0, slCorrect),
+      total,
+      done: (prev.done || 0) + 1,
+      ts: Date.now(),
+    };
+    saveSatzbauProgress(prog);
+  }
+
+  slShowSection("sl-done-section");
+  document.getElementById("sl-done-title").textContent = lv ? lv.label : "Fertig!";
+  document.getElementById("sl-done-score").textContent = slCorrect + " / " + total + " richtig";
+  document.getElementById("sl-done-xp").textContent = "+" + bonus + " XP Bonus";
+  document.getElementById("sl-done-next-btn").style.display = slNextLevelId() ? "" : "none";
+}
+
+function slNextLevelId() {
+  const i = SATZBAU_LEVELS.findIndex(l => l.id === slLevelId);
+  return i >= 0 && i + 1 < SATZBAU_LEVELS.length ? SATZBAU_LEVELS[i + 1].id : null;
+}
+
+function slNextLevel() {
+  const id = slNextLevelId();
+  if (id) slOpenLevel(id);
+  else slShowMap();
+}
+
+// ---- sprint ----
+
+function slOpenSprintSetup() {
+  slStopSprint();
+  slShowSection("sl-sprint-section");
+}
+
+function slSprintPool(band) {
+  const levels = band === "all" ? SATZBAU_LEVELS : SATZBAU_LEVELS.filter(l => l.cefr === band);
+  return levels.reduce((acc, l) => acc.concat(l.items), []);
+}
+
+function slStartSprint() {
+  const pool = slSprintPool(slSprintBand);
+  if (!pool.length) return;
+  slStopSprintTimer();
+  slSprint = true;
+  slLevelId = null;
+  slQueue = slShuffle(pool.slice());
+  slIdx = 0;
+  slCorrect = 0;
+  slCombo = 0;
+  slSprintLeft = slSprintDur;
+  document.getElementById("sl-timer").style.display = "";
+  document.getElementById("sl-combo").style.display = "";
+  document.getElementById("sl-play-section").style.setProperty("--set-color", "#fb7185");
+  slShowSection("sl-play-section");
+  slRenderItem();
+  slUpdateTimer();
+  slSprintTimer = setInterval(slTick, 1000);
+}
+
+function slTick() {
+  slSprintLeft--;
+  slUpdateTimer();
+  if (slSprintLeft <= 0) slEndSprint();
+}
+
+function slUpdateTimer() {
+  const t = document.getElementById("sl-timer");
+  if (t) t.textContent = "⏱ " + Math.max(0, slSprintLeft) + "s";
+  const fill = document.getElementById("sl-progress-fill");
+  if (fill && slSprint) fill.style.width = Math.round(100 * Math.max(0, slSprintLeft) / Math.max(1, slSprintDur)) + "%";
+}
+
+function slUpdateCombo() {
+  const c = document.getElementById("sl-combo");
+  if (c) c.textContent = slCombo >= 2 ? "🔥 x" + slCombo : "";
+}
+
+function slStopSprintTimer() {
+  if (slSprintTimer) { clearInterval(slSprintTimer); slSprintTimer = null; }
+}
+
+function slStopSprint() {
+  slStopSprintTimer();
+  slSprint = false;
+}
+
+function slEndSprint() {
+  slStopSprintTimer();
+  slSprint = false;
+  const bonus = Math.min(20, 5 + slCorrect);
+  awardXP(bonus, "Satzbau Lab");
+  slShowSection("sl-done-section");
+  document.getElementById("sl-done-title").textContent = "Sprint beendet";
+  document.getElementById("sl-done-score").textContent = slCorrect + " richtig in " + slSprintDur + "s";
+  document.getElementById("sl-done-xp").textContent = "+" + bonus + " XP Bonus";
+  document.getElementById("sl-done-next-btn").style.display = "none";
+}
+
+// ---- progress + streak ----
+
+function getSatzbauProgress() {
+  try { return JSON.parse(localStorage.getItem("satzbau_progress") || "{}"); } catch { return {}; }
+}
+
+function saveSatzbauProgress(p) {
+  try { localStorage.setItem("satzbau_progress", JSON.stringify(p)); } catch {}
+}
+
+function recordSatzbauDone() {
+  try {
+    const today = todayStr();
+    const yesterday = daysAgoStr(1);
+    const data = JSON.parse(localStorage.getItem("satzbau_streak") || "{}");
+    if (data.last === today) return;
+    const newCount = data.last === yesterday ? (data.count || 0) + 1 : 1;
+    localStorage.setItem("satzbau_streak", JSON.stringify({ last: today, count: newCount }));
+  } catch {}
+}
+
+function getSatzbauStreak() {
+  try {
+    const data = JSON.parse(localStorage.getItem("satzbau_streak") || "{}");
+    if (data.last === todayStr() || data.last === daysAgoStr(1)) return data.count || 0;
+  } catch {}
+  return 0;
+}
+
+function slUpdateStreakBadge() {
+  const badge = document.getElementById("sl-streak-badge");
+  if (!badge) return;
+  const streak = getSatzbauStreak();
   if (streak > 0) {
     badge.textContent = "🔥 " + streak + " day streak";
     badge.classList.add("visible");

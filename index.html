@@ -1112,6 +1112,14 @@
               <div class="game-card-desc">Draw a card and speak in German for 45 seconds.</div>
               <div class="game-card-cta">Play &rarr;</div>
             </div>
+            <div class="game-card" id="game-card-satzbaulab" onclick="openSatzbauLab()">
+              <div class="game-card-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="6" height="10" rx="1.5"/><rect x="9.5" y="7" width="5" height="10" rx="1.5"/><rect x="16" y="7" width="6" height="10" rx="1.5"/><path d="M11 3v2M13 3v2"/></svg>
+              </div>
+              <div class="game-card-name">Satzbau Lab</div>
+              <div class="game-card-desc">14 levels of German word order, A1 to B2. Rules, then practice.</div>
+              <div class="game-card-cta">Play &rarr;</div>
+            </div>
           </div>
         </div>
 
@@ -1349,6 +1357,98 @@
           </div>
         </div>
 
+        <!-- Satzbau Lab -->
+        <div id="satzbau-view" style="display:none">
+          <div id="sl-topbar">
+            <button id="sl-back-btn" onclick="slBack()">&#8592; Games</button>
+            <div id="sl-streak-badge"></div>
+            <button id="sl-sprint-btn" onclick="slOpenSprintSetup()">&#9201; Sprint</button>
+          </div>
+
+          <!-- Level map -->
+          <div id="sl-map-section">
+            <div id="sl-map-header">
+              <h2 id="sl-map-title">Satzbau Lab</h2>
+              <p id="sl-map-sub">German word order, one rule at a time. Read the rule, then build the sentence.</p>
+            </div>
+            <div id="sl-level-grid"></div>
+          </div>
+
+          <!-- Sprint setup -->
+          <div id="sl-sprint-section" style="display:none">
+            <div id="sl-sprint-title">Satzbau Sprint</div>
+            <div id="sl-sprint-sub">Mixed word-order questions against the clock. Build a combo for bonus XP.</div>
+            <div class="sl-opt-label">Level band</div>
+            <div id="sl-band-row">
+              <button class="sl-band-btn active" data-slband="all">All</button>
+              <button class="sl-band-btn" data-slband="A1">A1</button>
+              <button class="sl-band-btn" data-slband="A2">A2</button>
+              <button class="sl-band-btn" data-slband="B1">B1</button>
+              <button class="sl-band-btn" data-slband="B2">B2</button>
+            </div>
+            <div class="sl-opt-label">Duration</div>
+            <div id="sl-dur-row">
+              <button class="sl-dur-btn" data-sldur="60">60s</button>
+              <button class="sl-dur-btn active" data-sldur="90">90s</button>
+              <button class="sl-dur-btn" data-sldur="120">120s</button>
+            </div>
+            <button id="sl-sprint-start-btn" onclick="slStartSprint()">Start Sprint</button>
+          </div>
+
+          <!-- Learn card -->
+          <div id="sl-learn-section" style="display:none">
+            <div id="sl-learn-head">
+              <span id="sl-learn-cefr" class="sl-cefr-chip"></span>
+              <h3 id="sl-learn-title"></h3>
+            </div>
+            <div id="sl-rule-headline"></div>
+            <div id="sl-rule-diagram"></div>
+            <ul id="sl-rule-points"></ul>
+            <div id="sl-rule-contrast" style="display:none"></div>
+            <div id="sl-rule-examples"></div>
+            <button id="sl-learn-start-btn">&Uuml;ben &rarr;</button>
+          </div>
+
+          <!-- Play -->
+          <div id="sl-play-section" style="display:none">
+            <div id="sl-progress-row">
+              <div id="sl-progress-label"></div>
+              <div id="sl-timer" style="display:none"></div>
+              <div id="sl-combo" style="display:none"></div>
+              <div id="sl-score-label"></div>
+            </div>
+            <div id="sl-progress-track"><div id="sl-progress-fill"></div></div>
+            <div id="sl-prompt"></div>
+            <div id="sl-stage"></div>
+            <div id="sl-actions">
+              <button id="sl-check-btn" onclick="slCheck()">Check</button>
+              <button id="sl-clear-btn" onclick="slClear()">Clear</button>
+              <button id="sl-skip-btn" onclick="slSkip()">Skip</button>
+            </div>
+            <div id="sl-feedback" style="display:none">
+              <div id="sl-feedback-head">
+                <span id="sl-feedback-icon"></span>
+                <span id="sl-feedback-text"></span>
+              </div>
+              <div id="sl-feedback-why"></div>
+              <div id="sl-feedback-correct"></div>
+              <button id="sl-next-btn" onclick="slNext()">Next &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Done -->
+          <div id="sl-done-section" style="display:none">
+            <div id="sl-done-icon">&#127881;</div>
+            <div id="sl-done-title"></div>
+            <div id="sl-done-score"></div>
+            <div id="sl-done-xp"></div>
+            <div id="sl-done-actions">
+              <button id="sl-done-next-btn" onclick="slNextLevel()">Next level &rarr;</button>
+              <button id="sl-done-map-btn" onclick="slShowMap()">Back to map</button>
+            </div>
+          </div>
+        </div>
+
       </div><!-- end #games-panel -->
 
     </div><!-- end #card-area -->
@@ -1453,6 +1553,8 @@ if (typeof PHRASES === 'undefined') { window.PHRASES = []; }
 <script src="drills_data.js" onerror="window.DRILL_SETS={}"></script>
 <script>if (typeof GAME_ISLAND_SETS === 'undefined') { window.GAME_ISLAND_SETS = {}; }</script>
 <script src="games_data.js" onerror="window.GAME_ISLAND_SETS={}"></script>
+<script>if (typeof SATZBAU_LEVELS === 'undefined') { window.SATZBAU_LEVELS = []; }</script>
+<script src="satzbau_data.js" onerror="window.SATZBAU_LEVELS=[]"></script>
 <script>if (typeof TALKBOX_CARDS === 'undefined') { window.TALKBOX_CARDS = {}; }</script>
 <script src="talkbox_data.js" onerror="window.TALKBOX_CARDS={}"></script>
 <script>if (typeof EXAM_WRITE_TASKS === 'undefined') { window.EXAM_WRITE_TASKS = []; window.EXAM_SPEAK_TOPICS = []; window.EXAM_SPEAK_STRUCTURE = []; window.EXAM_SB_FALLBACK = null; window.EXAM_LV_FALLBACK = {}; window.EXAM_HV_FALLBACK = {}; }</script>
