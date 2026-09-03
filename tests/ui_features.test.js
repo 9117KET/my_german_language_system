@@ -1403,9 +1403,9 @@ describe("mobile more-nav — app.js", () => {
     assert.ok(appJs.slice(start, end).includes("setupMobileMoreNav()"), "setupMobileMoreNav not called in init");
   });
 
-  test("primary mobile modes are today/recall/speak/ai", () => {
+  test("primary mobile modes are today/recall/words", () => {
     assert.ok(
-      /MOBILE_PRIMARY_MODES\s*=\s*\["today",\s*"recall",\s*"speak",\s*"ai"\]/.test(appJs),
+      /MOBILE_PRIMARY_MODES\s*=\s*\["today",\s*"recall",\s*"words"\]/.test(appJs),
       "MOBILE_PRIMARY_MODES mismatch"
     );
   });
@@ -1414,7 +1414,7 @@ describe("mobile more-nav — app.js", () => {
     const start = appJs.indexOf("const MORE_SHEET_GROUPS");
     const end = appJs.indexOf("];", start);
     const block = appJs.slice(start, end);
-    for (const m of ["listen", "shadow", "stories", "starters", "monologue", "words", "vocab", "grammar", "drills", "games", "progress"]) {
+    for (const m of ["listen", "shadow", "stories", "speak", "ai", "starters", "monologue", "vocab", "grammar", "drills", "exam", "games", "progress"]) {
       assert.ok(block.includes(`"${m}"`), `Mode missing from MORE_SHEET_GROUPS: ${m}`);
     }
   });
@@ -1452,7 +1452,7 @@ describe("mobile more-nav — style.css", () => {
     const mq = css.indexOf("MOBILE LAYOUT");
     const block = css.slice(mq, mq + 4000);
     assert.ok(block.includes("#mode-tabs .tab { display: none; }"), "non-primary tabs must be hidden on mobile");
-    for (const m of ["today", "recall", "speak", "ai"]) {
+    for (const m of ["today", "recall", "words"]) {
       assert.ok(block.includes(`.tab[data-mode="${m}"]`), `primary tab ${m} not shown on mobile`);
     }
     assert.ok(block.includes("#mode-tabs #more-tab"), "More tab not shown on mobile");
@@ -2044,7 +2044,7 @@ describe("today session — style.css", () => {
   const css = readFile("style.css");
 
   test("today panel and session bar styles exist", () => {
-    for (const sel of ["#today-panel {", "#today-session-bar {", ".today-stat {",
+    for (const sel of ["#today-panel {", "#today-session-bar {", "#today-hero {", ".today-row {",
       ".today-plan-row {", "#today-start-btn {", ".tsb-dot {", ".tab-badge {"]) {
       assert.ok(css.includes(sel), `Missing CSS: ${sel}`);
     }
@@ -2052,6 +2052,86 @@ describe("today session — style.css", () => {
 
   test("badge hidden until marked visible", () => {
     assert.ok(css.includes(".tab-badge.visible"), ".tab-badge.visible rule missing");
+  });
+});
+
+describe("mobile-first layer (Daumenzone)", () => {
+  const css = readFile("style.css");
+  const html = readFile("index.html");
+  const appJs = readFile("app.js");
+
+  test("mobile tokens are declared on :root", () => {
+    const root = css.slice(0, css.indexOf("/* ---- Reset & Base ---- */"));
+    for (const t of ["--tap:", "--type-target:", "--type-body:", "--type-meta:",
+      "--gutter:", "--safe-b:", "--bar-h:"]) {
+      assert.ok(root.includes(t), `Missing token ${t}`);
+    }
+  });
+
+  test("touch floor is applied on mobile, not hard-coded", () => {
+    const mq = css.indexOf("MOBILE LAYOUT");
+    const block = css.slice(mq, mq + 9000);
+    assert.ok(block.includes("min-height: var(--tap)"), "tap floor missing on mobile");
+    assert.ok(block.includes("font-size: var(--type-target)"), "target type scale missing");
+    assert.ok(block.includes("padding-bottom: calc(var(--bar-h)"), "card area must clear the bottom bar");
+  });
+
+  test("session runner hides the bottom nav and drops the bar into the thumb zone", () => {
+    const mq = css.indexOf("MOBILE LAYOUT");
+    const block = css.slice(mq, mq + 9000);
+    assert.ok(block.includes("body.session-active .app-sidebar"), "nav must step aside during a session");
+    assert.ok(block.includes("body.session-active #today-session-bar"), "session bar must move on mobile");
+    assert.ok(appJs.includes("function setSessionChrome"), "setSessionChrome missing");
+    for (const fn of ["completeTodaySession", "endTodaySession"]) {
+      const i = appJs.indexOf(`function ${fn}`);
+      assert.ok(appJs.slice(i, i + 400).includes("setSessionChrome(false)"), `${fn} must clear session chrome`);
+    }
+  });
+
+  test("today panel leads with a resume hero and tappable attention rows", () => {
+    for (const id of ["today-hero", "today-hero-kicker", "today-hero-title", "today-hero-meta",
+      "today-phrases-sub", "today-words-sub", "today-streak-sub"]) {
+      assert.ok(html.includes(`id="${id}"`), `Missing #${id}`);
+    }
+    for (const go of ["recall", "words", "progress"]) {
+      assert.ok(html.includes(`data-go="${go}"`), `Missing attention row for ${go}`);
+    }
+    assert.ok(appJs.includes("function renderTodayHero"), "renderTodayHero missing");
+  });
+
+  test("word grading shows the interval each rating schedules", () => {
+    assert.ok(appJs.includes("function previewWordInterval"), "previewWordInterval missing");
+    assert.ok(appJs.includes("function renderWordSRSIntervals"), "renderWordSRSIntervals missing");
+    for (const r of ["miss", "hard", "good", "easy"]) {
+      assert.ok(html.includes(`data-rating="${r}"`), `word SRS button missing data-rating=${r}`);
+    }
+  });
+
+  test("word card swipe reuses the button grading path", () => {
+    const i = appJs.indexOf("function setupWordSwipe");
+    assert.ok(i > -1, "setupWordSwipe missing");
+    const block = appJs.slice(i, i + 2600);
+    assert.ok(block.includes("handleWordSRS(rating)"), "swipe must call handleWordSRS");
+    assert.ok(appJs.includes("setupWordSwipe();"), "setupWordSwipe never called");
+  });
+
+  test("app is installable to the home screen", () => {
+    const manifest = JSON.parse(readFile("manifest.json"));
+    assert.equal(manifest.display, "standalone");
+    assert.equal(manifest.background_color, "#0a0a0f");
+    assert.ok(manifest.icons.some(i => i.purpose === "maskable"), "a maskable icon is required");
+    assert.ok(manifest.icons.some(i => i.sizes === "512x512"), "512px icon is required");
+    assert.ok(html.includes('rel="manifest"'), "manifest not linked");
+    assert.ok(html.includes('rel="apple-touch-icon"'), "apple-touch-icon not linked");
+    assert.ok(appJs.includes("registerServiceWorker();"), "service worker never registered");
+    assert.ok(appJs.includes("function setupInstallPrompt"), "install prompt missing");
+  });
+
+  test("service worker never caches the API", () => {
+    const sw = readFile("sw.js");
+    assert.ok(sw.includes('url.pathname.startsWith("/api/")'), "API must bypass the cache");
+    assert.ok(sw.includes('req.mode === "navigate"'), "navigations need a network-first path");
+    assert.ok(sw.includes("caches.delete"), "old caches must be cleaned up on activate");
   });
 });
 

@@ -44,13 +44,13 @@ with sync_playwright() as p:
     today_shown = page.evaluate("getComputedStyle(document.getElementById('today-panel')).display !== 'none'")
     check("lands on Today panel", today_shown)
 
-    # 2. Bottom bar has today/recall/speak/ai/more, no overflow
+    # 2. Bottom bar has today/recall/words/more, no overflow
     visible = page.evaluate("""
       [...document.querySelectorAll('#mode-tabs .tab')]
         .filter(t => getComputedStyle(t).display !== 'none')
         .map(t => t.dataset.mode || t.id)
     """)
-    check("bar = today/recall/speak/ai/more", visible == ["today", "recall", "speak", "ai", "more-tab"], str(visible))
+    check("bar = today/recall/words/more", visible == ["today", "recall", "words", "more-tab"], str(visible))
     sw = page.evaluate("document.documentElement.scrollWidth")
     check("no horizontal overflow", sw <= 390, f"scrollWidth={sw}")
 
@@ -112,9 +112,13 @@ with sync_playwright() as p:
     cont2 = page.evaluate("document.getElementById('tsb-next-btn').style.display !== 'none'")
     check(f"word step completes after {wtarget} grades", cont2)
 
-    # 8. Continue -> speak; skip -> think; simulate think done -> finish
+    # 8. Continue -> story; skip -> speak; skip -> think; think done -> finish
     page.click("#tsb-next-btn")
-    page.wait_for_timeout(300)
+    page.wait_for_timeout(400)
+    in_story = page.evaluate("getComputedStyle(document.getElementById('stories-panel')).display !== 'none'")
+    check("continues to Story step", in_story)
+    page.click("#tsb-skip-btn")  # skip the episode
+    page.wait_for_timeout(400)
     in_speak = page.evaluate("getComputedStyle(document.getElementById('speak-panel')).display !== 'none'")
     check("continues to Speak step", in_speak)
     page.click("#tsb-skip-btn")  # skip speak (mic not available headless)

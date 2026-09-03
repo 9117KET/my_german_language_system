@@ -15,6 +15,19 @@
   --yellow: #fbbf24;
   --radius: 16px;
   --radius-sm: 10px;
+
+  /* ---- Mobile-first tokens ("Daumenzone") ----
+     Everything you tap lives in the bottom third of the screen; everything
+     you read lives above it. These drive the touch floor, the type scale for
+     long B2 sentences, and the space reserved for the fixed bottom bar. */
+  --tap: 52px;                              /* floor for any interactive element */
+  --type-target: 1.55rem;                   /* the German being learned */
+  --type-target-lh: 1.32;
+  --type-body: 0.95rem;                     /* translations, explanations */
+  --type-meta: 0.72rem;                     /* intervals, counts, dates */
+  --gutter: 16px;                           /* single horizontal gutter */
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --bar-h: calc(62px + var(--safe-b));      /* bottom nav / session bar */
 }
 
 /* ---- Reset & Base ---- */
@@ -327,43 +340,149 @@ body {
   font-size: 0.85rem;
   margin-top: 4px;
 }
-#today-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-.today-stat {
-  background: var(--surface);
-  border: 1px solid var(--border);
+/* ---- Add to home screen ---- */
+#install-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(74,158,255,0.08);
+  border: 1px solid var(--accent-glow);
   border-radius: var(--radius-sm);
-  padding: 14px 8px;
-  text-align: center;
+  padding: 12px 14px;
 }
-.today-stat-val {
-  font-size: 1.4rem;
-  font-weight: 800;
+#install-btn {
+  flex-shrink: 0;
+  background: var(--accent);
+  color: #04121f;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#install-btn:active { opacity: 0.85; }
+#install-dismiss {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 8px;
+  line-height: 1;
+}
+
+/* ---- The resume card ----
+   A number you cannot tap is noise. The hero carries the one decision
+   (step, content, minutes left) and the button that acts on it. */
+#today-hero {
+  background: linear-gradient(158deg, rgba(74,158,255,0.18), rgba(74,158,255,0.04));
+  border: 1px solid var(--accent-glow);
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+#today-hero-kicker {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--accent);
 }
-.today-stat-lbl {
-  font-size: 0.68rem;
+#today-hero-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 6px;
+}
+#today-hero-meta {
   color: var(--text-dim);
+  font-size: 0.82rem;
   margin-top: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 #today-start-btn {
   background: var(--accent);
-  color: #fff;
+  color: #04121f;
   border: none;
-  border-radius: 12px;
-  padding: 15px 18px;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-top: 16px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.1s;
 }
-#today-start-btn:active { opacity: 0.8; }
+#today-start-btn:active { opacity: 0.85; transform: scale(0.985); }
+
+/* ---- Attention rows ----
+   The old 2x2 stat grid, turned into targets that open the thing that fixes them. */
+.today-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-dim);
+  margin-bottom: -8px;
+}
+#today-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.today-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  min-height: var(--tap);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color 0.15s, background 0.15s;
+}
+.today-row:active { background: var(--surface2); }
+.today-row.has-due { border-color: var(--accent-glow); }
+.today-row-ic {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+.today-row-tx {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.today-row-t1 { font-size: 0.9rem; font-weight: 600; }
+.today-row-t2 { font-size: var(--type-meta); color: var(--text-dim); }
+.today-row-pill {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+.today-row-pill.red { color: var(--red); background: rgba(248,113,113,0.14); }
 #today-plan {
   display: flex;
   flex-direction: column;
@@ -2512,8 +2631,22 @@ select option {
   flex: 1; border: none; border-radius: var(--radius-sm);
   padding: 13px 6px; font-size: 0.85rem; font-weight: 700;
   cursor: pointer; touch-action: manipulation;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   transition: opacity 0.15s, transform 0.1s;
 }
+/* Grade on evidence, not on feel: each button says what it schedules. */
+.word-srs-when {
+  font-size: 0.62rem; font-weight: 500; opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+#word-swipe-hint {
+  display: none;
+  text-align: center;
+  font-size: var(--type-meta);
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+#word-card { touch-action: pan-y; }
 .word-srs-btn:active { opacity: 0.8; transform: scale(0.97); }
 .word-miss { background: rgba(248,113,113,0.15); color: var(--red); }
 .word-hard { background: rgba(251,191,36,0.15); color: var(--yellow); }
@@ -2679,12 +2812,12 @@ select option {
   /* Group headers live in the More sheet on mobile */
   .nav-group-label { display: none; }
 
-  /* Only primary tabs + More are visible in the bar */
+  /* Only primary tabs + More are visible in the bar.
+     Heute · Üben · Wörter · Mehr — everything else lives in the More sheet. */
   #mode-tabs .tab { display: none; }
   #mode-tabs .tab[data-mode="today"],
   #mode-tabs .tab[data-mode="recall"],
-  #mode-tabs .tab[data-mode="speak"],
-  #mode-tabs .tab[data-mode="ai"],
+  #mode-tabs .tab[data-mode="words"],
   #mode-tabs #more-tab {
     display: flex;
   }
@@ -2700,6 +2833,7 @@ select option {
   .tab {
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 3px;
     padding: 8px 4px;
     margin: 0;
@@ -2708,6 +2842,7 @@ select option {
     border-bottom: none;
     border-top: 2px solid transparent;
     min-width: 0;
+    min-height: var(--tap);
     flex: 1;
   }
   .tab.active {
@@ -2735,35 +2870,120 @@ select option {
     padding: 10px 14px 8px;
   }
 
-  /* Card area on mobile - bottom padding clears the fixed nav bar */
+  /* Card area on mobile - one gutter, bottom padding clears the fixed bar */
   #card-area {
-    padding: 14px 14px;
+    padding: 14px var(--gutter);
     gap: 10px;
     overflow-y: visible;
-    padding-bottom: max(90px, calc(70px + env(safe-area-inset-bottom, 0px)));
+    padding-bottom: calc(var(--bar-h) + 28px);
   }
 
-  /* Smaller German text on mobile */
+  /* The German being learned gets the target type scale - B2 sentences are
+     long, and at body size they read as a wall. */
   .card .german {
-    font-size: 1.4rem;
+    font-size: var(--type-target);
+    line-height: var(--type-target-lh);
   }
   .card {
     padding: 24px 20px;
   }
+  #word-german-el {
+    font-size: var(--type-target);
+    line-height: var(--type-target-lh);
+  }
+  #word-sentence-de {
+    font-size: var(--type-body);
+  }
+
+  /* ---- Touch floor: nothing interactive below --tap ---- */
+  .recall-btn,
+  .word-srs-btn,
+  .word-mc-btn,
+  .phrase-mc-btn,
+  #today-start-btn,
+  #word-reveal-btn,
+  .recall-check-btn,
+  .recall-action-btn,
+  .nav-btn,
+  #word-prev-btn,
+  #word-next-btn {
+    min-height: var(--tap);
+  }
+  /* Grading is the most repeated gesture in the app - give it the most room */
+  .recall-btn { min-height: 60px; }
+  .word-srs-btn { min-height: 60px; padding: 8px 4px; }
+  .more-item { min-height: 70px; }
 
   /* Progress summary grid on mobile */
   #progress-summary {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* Today panel on mobile */
-  #today-summary {
-    grid-template-columns: repeat(2, 1fr);
+  /* ---- Today panel on mobile ---- */
+  /* The five session steps become a horizontal rail so the whole plan stays
+     visible above the fold on a 667px screen. */
+  #today-plan {
+    flex-direction: row;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    margin: 0 calc(var(--gutter) * -1);
+    padding-left: var(--gutter);
+    padding-right: var(--gutter);
+  }
+  #today-plan::-webkit-scrollbar { display: none; }
+  .today-plan-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    flex: 0 0 auto;
+    min-width: 104px;
+    padding: 10px 12px;
   }
   .today-plan-detail {
-    font-size: 0.72rem;
-    max-width: 40%;
+    margin-left: 0;
+    text-align: left;
+    font-size: var(--type-meta);
+    max-width: none;
   }
+
+  /* ---- Session runner owns the screen ----
+     While a guided session is running the bottom nav steps aside and the
+     session bar moves into the thumb zone, so Continue is where your thumb
+     already is and there is nothing to mis-tap mid-review. */
+  body.session-active .app-sidebar {
+    display: none;
+  }
+  /* Filters and playback controls are not session decisions - the step is.
+     (!important because these are toggled via inline style elsewhere.) */
+  body.session-active #mobile-level-bar,
+  body.session-active #controls-bar {
+    display: none !important;
+  }
+  body.session-active #today-session-bar {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    border-top: 1px solid var(--accent-glow);
+    border-bottom: none;
+    background: #0e0e18;
+    padding: 10px var(--gutter) calc(10px + var(--safe-b));
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
+  }
+  body.session-active #tsb-next-btn,
+  body.session-active #tsb-skip-btn,
+  body.session-active #tsb-end-btn {
+    min-height: 44px;
+    padding: 8px 16px;
+  }
+
+  /* Swipe is a phone gesture - only advertise it on a phone */
+  #word-swipe-hint { display: block; }
 }
 
 /* ====================================================
