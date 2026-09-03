@@ -1462,12 +1462,15 @@ function init() {
   initAI();
   setupRecallSpeech();
   initWordsPanel();
+  setupWordSwipe();
   setupStarterPracticeModal();
   setupSpeakPanel();
   setupMonologuePanel();
   setupDrillsPanel();
   initGamesPanel();
   setupTodayPanel();
+  setupInstallPrompt();
+  registerServiceWorker();
   setupStoriesPanel();
   setupErrorProfileSection();
   setupExamPanel();
@@ -1478,6 +1481,7 @@ function init() {
   if (getSyncId()) syncPull();
   // Land on the Today dashboard (mode defaults to "today")
   showTodayPanel();
+  openModeFromHash();
   updateTabBadges();
 }
 
@@ -1704,14 +1708,15 @@ function showAIPanel() {
 }
 
 // ---- Mobile bottom nav: 4 primary tabs + "More" sheet ----
-const MOBILE_PRIMARY_MODES = ["today", "recall", "speak", "ai"];
+const MOBILE_PRIMARY_MODES = ["today", "recall", "words"];
+/* The More sheet IS the mobile site map: the bottom bar shows Today, Recall,
+   Words and More, so any mode missing from this array does not exist on a
+   phone. Four groups of three scan faster than six of two. */
 const MORE_SHEET_GROUPS = [
   { label: "Practice", modes: ["listen", "shadow", "stories"] },
-  { label: "Conversation", modes: ["starters", "monologue"] },
-  { label: "Vocabulary", modes: ["words", "vocab"] },
-  { label: "Grammar", modes: ["grammar", "drills"] },
-  { label: "Exam", modes: ["exam"] },
-  { label: "Explore", modes: ["games", "progress"] },
+  { label: "Speaking", modes: ["speak", "ai", "monologue", "starters"] },
+  { label: "Grammar", modes: ["grammar", "drills", "vocab"] },
+  { label: "Exam & explore", modes: ["exam", "games", "progress"] },
 ];
 
 function setupMobileMoreNav() {
@@ -4185,6 +4190,15 @@ function renderTodayPanel() {
   document.getElementById("today-mistakes-count").textContent = mistakes;
   document.getElementById("today-streak-num").textContent = streak;
 
+  document.getElementById("today-phrases-sub").textContent =
+    phrases.due > 0 ? `${phrases.due} due · ${phrases.fresh} new` : `Nothing due · ${phrases.fresh} new`;
+  document.getElementById("today-words-sub").textContent =
+    words.due > 0 ? `${words.due} due · ${words.fresh} new` : `Nothing due · ${words.fresh} new`;
+  document.getElementById("today-streak-sub").textContent =
+    streak > 0 ? "Keep it alive — see your progress" : "Finish a session to start one";
+  document.querySelector('.today-row[data-go="recall"]').classList.toggle("has-due", phrases.due > 0);
+  document.querySelector('.today-row[data-go="words"]').classList.toggle("has-due", words.due > 0);
+
   const badge = document.getElementById("today-streak-badge");
   if (streak > 0) {
     badge.textContent = "🔥 " + streak + " day streak";
@@ -4193,13 +4207,9 @@ function renderTodayPanel() {
     badge.classList.remove("visible");
   }
 
-  const btn = document.getElementById("today-start-btn");
-  if (todaySession) btn.textContent = "▶ Resume session";
-  else if (doneToday) btn.textContent = "✓ Done today — go again";
-  else btn.textContent = "▶ Start today's session (~20 min)";
-
   const phraseTotal = Math.min(TODAY_PHRASE_TARGET, phrases.due + phrases.fresh);
   const wordTotal = Math.min(TODAY_WORD_TARGET, words.due + words.fresh);
+  renderTodayHero({ phraseTotal, wordTotal, doneToday });
   const details = {
     phrases: phraseTotal > 0 ? `${phraseTotal} cards · ${phrases.due} due` : "nothing due",
     words: wordTotal > 0 ? `${wordTotal} words · ${words.due} due` : "nothing due",
@@ -4220,10 +4230,48 @@ function renderTodayPanel() {
   const hint = document.getElementById("today-mistakes-hint");
   if (mistakes > 0) {
     document.getElementById("today-mistakes-hint-text").textContent =
-      `${mistakes} drill mistake${mistakes !== 1 ? "s" : ""} waiting for review.`;
+      `Drill mistake${mistakes !== 1 ? "s" : ""} waiting for review`;
     hint.style.display = "flex";
   } else {
     hint.style.display = "none";
+  }
+}
+
+// Rough minutes-per-step, used only to tell you what you are committing to.
+const TODAY_STEP_MINUTES = { phrases: 5, words: 5, story: 6, speak: 2, think: 3 };
+
+function renderTodayHero({ phraseTotal, wordTotal, doneToday }) {
+  const kicker = document.getElementById("today-hero-kicker");
+  const title = document.getElementById("today-hero-title");
+  const meta = document.getElementById("today-hero-meta");
+  const btn = document.getElementById("today-start-btn");
+
+  const stepTitles = {
+    phrases: `Review ${phraseTotal} phrase${phraseTotal !== 1 ? "s" : ""}`,
+    words: `Learn ${wordTotal} word${wordTotal !== 1 ? "s" : ""}`,
+    story: "Read today's episode",
+    speak: "Speak for 60 seconds",
+    think: "Write one free answer",
+  };
+
+  if (todaySession) {
+    const i = Math.min(todaySession.step, TODAY_STEPS.length - 1);
+    const s = TODAY_STEPS[i];
+    const left = TODAY_STEPS.slice(i).reduce((n, x) => n + (TODAY_STEP_MINUTES[x.id] || 4), 0);
+    kicker.textContent = `Step ${i + 1} of ${TODAY_STEPS.length} · ${s.label}`;
+    title.textContent = stepTitles[s.id] || s.label;
+    meta.textContent = `About ${left} min left`;
+    btn.textContent = "▶ Resume session";
+  } else {
+    const total = TODAY_STEPS.reduce((n, x) => n + (TODAY_STEP_MINUTES[x.id] || 4), 0);
+    kicker.textContent = doneToday ? "Done for today" : "Today's session";
+    title.textContent = doneToday
+      ? "You've finished today's session"
+      : `${TODAY_STEPS.length} steps, one after the other`;
+    meta.textContent = doneToday
+      ? "Go again for extra reps — it all still counts."
+      : `About ${total} min · phrases, words, story, speaking, writing`;
+    btn.textContent = doneToday ? "✓ Done today — go again" : "▶ Start today's session";
   }
 }
 
@@ -4277,8 +4325,16 @@ function enterTodayStep() {
   renderTodaySessionBar();
 }
 
+/* While a guided session runs, the bottom nav steps aside and the session bar
+   takes the thumb zone (see body.session-active in style.css). Nothing to
+   mis-tap mid-review, and Continue is where your thumb already is. */
+function setSessionChrome(active) {
+  document.body.classList.toggle("session-active", !!active);
+}
+
 function renderTodaySessionBar() {
   if (!todaySession) return;
+  setSessionChrome(true);
   document.getElementById("today-session-bar").style.display = "flex";
   document.getElementById("tsb-steps").innerHTML = TODAY_STEPS.map((s, i) => {
     const cls = i < todaySession.step ? "tsb-dot done"
@@ -4310,6 +4366,7 @@ function advanceTodayStep() {
 function completeTodaySession() {
   recordTodaySessionDone();
   todaySession = null;
+  setSessionChrome(false);
   document.getElementById("today-session-bar").style.display = "none";
   const todayTab = document.querySelector('.tab[data-mode="today"]');
   if (todayTab) todayTab.click();
@@ -4317,6 +4374,7 @@ function completeTodaySession() {
 
 function endTodaySession() {
   todaySession = null;
+  setSessionChrome(false);
   document.getElementById("today-session-bar").style.display = "none";
   if (mode === "today") renderTodayPanel();
 }
@@ -4354,6 +4412,78 @@ function todayOnThinkDone() {
   renderTodaySessionBar();
 }
 
+/* Home-screen shortcuts (manifest.json) deep-link as /#recall, /#words, ... */
+function openModeFromHash() {
+  const target = (location.hash || "").replace("#", "");
+  if (!target) return;
+  const tab = document.querySelector(`.tab[data-mode="${target}"]`);
+  if (tab) tab.click();
+}
+
+/* ---- Add to home screen ----
+   Chrome and Edge hand us a deferred prompt we can fire from our own button.
+   iOS Safari has no such API, so there we show the two-step Share > Add to
+   Home Screen instruction instead of a button that cannot work. */
+let deferredInstallPrompt = null;
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+}
+
+function setupInstallPrompt() {
+  const card = document.getElementById("install-card");
+  const btn = document.getElementById("install-btn");
+  const hint = document.getElementById("install-card-hint");
+  if (!card) return;
+
+  const dismissed = localStorage.getItem("install_prompt_dismissed") === "1";
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  const show = () => {
+    if (dismissed || isStandalone()) return;
+    card.style.display = "flex";
+  };
+
+  window.addEventListener("beforeinstallprompt", e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    show();
+  });
+
+  if (isIOS && !isStandalone() && !dismissed) {
+    hint.textContent = "Tap Share, then “Add to Home Screen”.";
+    btn.style.display = "none";
+    show();
+  }
+
+  btn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (outcome === "accepted") card.style.display = "none";
+  });
+
+  document.getElementById("install-dismiss").addEventListener("click", () => {
+    localStorage.setItem("install_prompt_dismissed", "1");
+    card.style.display = "none";
+  });
+
+  window.addEventListener("appinstalled", () => { card.style.display = "none"; });
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  if (location.protocol !== "https:" && location.hostname !== "localhost" &&
+      location.hostname !== "127.0.0.1") return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(err => {
+      console.warn("Service worker registration failed:", err);
+    });
+  });
+}
+
 function setupTodayPanel() {
   document.getElementById("today-start-btn").addEventListener("click", () => {
     if (todaySession) enterTodayStep();
@@ -4365,6 +4495,13 @@ function setupTodayPanel() {
   document.getElementById("today-fix-mistakes-btn").addEventListener("click", () => {
     const tab = document.querySelector('.tab[data-mode="drills"]');
     if (tab) tab.click();
+  });
+  // Attention rows open the thing that clears them.
+  document.querySelectorAll("#today-summary .today-row").forEach(row => {
+    row.addEventListener("click", () => {
+      const tab = document.querySelector(`.tab[data-mode="${row.dataset.go}"]`);
+      if (tab) tab.click();
+    });
   });
 }
 
@@ -7115,6 +7252,90 @@ function revealWordTranslation() {
 
   document.getElementById("word-translation-area").style.display = "flex";
   document.getElementById("word-reveal-btn").style.display = "none";
+  renderWordSRSIntervals(w.id);
+}
+
+/* What each rating actually schedules. The scheduler already computes this -
+   it was just never shown, so you graded on feel instead of on evidence.
+   Mirrors updateWordSRS(); keep the two in step. */
+function previewWordInterval(id, rating) {
+  const r = getWordRecord(id);
+  const iv = r.interval, ef = r.easeFactor;
+  if (rating === "miss") return 1;
+  if (rating === "hard") return Math.max(1, iv === 0 ? 1 : Math.round(iv * 1.2));
+  if (rating === "good") return iv === 0 ? 1 : iv === 1 ? 3 : Math.round(iv * ef);
+  return iv === 0 ? 3 : iv === 1 ? 4 : Math.round(iv * ef * 1.3);
+}
+
+function formatInterval(days) {
+  if (days < 1) return "today";
+  if (days === 1) return "1 day";
+  if (days < 30) return `${days} days`;
+  const months = Math.round(days / 30);
+  return months === 1 ? "1 mo" : `${months} mo`;
+}
+
+function renderWordSRSIntervals(id) {
+  document.querySelectorAll("#word-srs-buttons .word-srs-btn").forEach(btn => {
+    const rating = btn.dataset.rating;
+    if (!rating) return;
+    let sub = btn.querySelector(".word-srs-when");
+    if (!sub) {
+      sub = document.createElement("span");
+      sub.className = "word-srs-when";
+      btn.appendChild(sub);
+    }
+    sub.textContent = formatInterval(previewWordInterval(id, rating));
+  });
+}
+
+/* Swipe the card left to miss it, right to keep it. Both directions call the
+   same handler the buttons call, so XP and SRS stay on one path - the gesture
+   is a shortcut for regulars, never the only way through. */
+function setupWordSwipe() {
+  const card = document.getElementById("word-card");
+  if (!card) return;
+  const THRESHOLD = 80;
+  let startX = 0, startY = 0, dx = 0, dragging = false;
+
+  const reset = () => {
+    card.style.transition = "transform 0.2s ease, opacity 0.2s ease";
+    card.style.transform = "";
+    card.style.opacity = "";
+    setTimeout(() => { card.style.transition = ""; }, 220);
+  };
+
+  card.addEventListener("pointerdown", e => {
+    if (!wordRevealed || e.pointerType === "mouse") return;
+    if (e.target.closest("button, select, textarea, input, a")) return;
+    dragging = true; startX = e.clientX; startY = e.clientY; dx = 0;
+    card.style.transition = "";
+  });
+
+  card.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    dx = e.clientX - startX;
+    if (Math.abs(e.clientY - startY) > Math.abs(dx)) return; // vertical scroll wins
+    card.style.transform = `translateX(${dx}px) rotate(${dx / 40}deg)`;
+    card.style.opacity = String(Math.max(0.5, 1 - Math.abs(dx) / 400));
+  });
+
+  const finish = () => {
+    if (!dragging) return;
+    dragging = false;
+    if (Math.abs(dx) >= THRESHOLD) {
+      const rating = dx < 0 ? "miss" : "good";
+      card.style.transition = "transform 0.18s ease, opacity 0.18s ease";
+      card.style.transform = `translateX(${dx < 0 ? -420 : 420}px)`;
+      card.style.opacity = "0";
+      setTimeout(() => { handleWordSRS(rating); reset(); }, 170);
+    } else {
+      reset();
+    }
+  };
+  card.addEventListener("pointerup", finish);
+  card.addEventListener("pointercancel", finish);
+  card.addEventListener("pointerleave", finish);
 }
 
 function generateMCChoices(correctWord) {

@@ -145,3 +145,31 @@ Before watching any German YouTube video or podcast:
 - Week 3: Patterns clicking, sentences coming faster.
 - Week 4: Basic conversations possible on your practiced topics.
 - Week 6: Genuinely conversational. Still making mistakes, but communicating.
+
+---
+
+## On your phone
+
+The app is mobile-first and installs to your home screen.
+
+**Install:** open the site in Chrome/Edge and tap **Install** on the card at the
+top of Today, or on iPhone tap **Share -> Add to Home Screen**. It then opens
+full screen with no browser chrome, and works offline — the shell, the phrase
+and word banks and the story data are cached by `sw.js`. Only `/api/*` (AI
+feedback, sync, TTS) needs a connection.
+
+**Layout rules** (tokens live in `:root` in `style.css`):
+
+- Everything you tap sits in the bottom third; everything you read above it.
+- `--tap` (52px) is the floor for any interactive element; grading buttons get 60px.
+- The bottom bar shows **Today · Recall · Words · More**. Every other mode lives
+  in the More sheet — a mode missing from `MORE_SHEET_GROUPS` in `app.js` does
+  not exist on a phone.
+- During a guided session the bottom nav steps aside and the session bar moves
+  into the thumb zone (`body.session-active`).
+- Word cards can be swiped: left to miss, right to keep. Both call the same
+  handler as the buttons, so XP and SRS stay on one path.
+
+Re-generate the home-screen icons with `python scripts/generate_icons.py`.
+Check the mobile layer in a real browser with `python .claude/mobile_check.py`
+(needs `npm run serve` in another terminal).

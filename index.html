@@ -6,6 +6,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0a0a0f">
   <title>Deutsch Lernen</title>
+  <!-- Installable to the home screen: standalone window, no browser chrome -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Deutsch">
+  <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -576,11 +583,12 @@
             <div id="word-english-el"></div>
             <div id="word-sentence-en-el"></div>
             <div id="word-srs-buttons">
-              <button class="word-srs-btn word-miss" onclick="handleWordSRS('miss')">Miss</button>
-              <button class="word-srs-btn word-hard" onclick="handleWordSRS('hard')">Hard</button>
-              <button class="word-srs-btn word-good" onclick="handleWordSRS('good')">Good</button>
-              <button class="word-srs-btn word-easy" onclick="handleWordSRS('easy')">Easy</button>
+              <button class="word-srs-btn word-miss" data-rating="miss" onclick="handleWordSRS('miss')">Miss</button>
+              <button class="word-srs-btn word-hard" data-rating="hard" onclick="handleWordSRS('hard')">Hard</button>
+              <button class="word-srs-btn word-good" data-rating="good" onclick="handleWordSRS('good')">Good</button>
+              <button class="word-srs-btn word-easy" data-rating="easy" onclick="handleWordSRS('easy')">Easy</button>
             </div>
+            <div id="word-swipe-hint">&#8592; swipe to miss &nbsp;·&nbsp; swipe to keep &#8594;</div>
           </div>
         </div>
         <div id="word-nav-row">
@@ -1046,16 +1054,55 @@
           </div>
           <p class="today-subtitle" id="today-date-line"></p>
         </div>
-        <div id="today-summary">
-          <div class="today-stat"><div class="today-stat-val" id="today-phrases-due">0</div><div class="today-stat-lbl">Phrase reviews</div></div>
-          <div class="today-stat"><div class="today-stat-val" id="today-words-due">0</div><div class="today-stat-lbl">Words due</div></div>
-          <div class="today-stat"><div class="today-stat-val" id="today-mistakes-count">0</div><div class="today-stat-lbl">Drill mistakes</div></div>
-          <div class="today-stat"><div class="today-stat-val" id="today-streak-num">0</div><div class="today-stat-lbl">Day streak</div></div>
+        <div id="install-card" style="display:none">
+          <span class="today-row-ic">&#128241;</span>
+          <span class="today-row-tx">
+            <span class="today-row-t1">Add to your home screen</span>
+            <span class="today-row-t2" id="install-card-hint">Opens full screen, works offline.</span>
+          </span>
+          <button id="install-btn">Install</button>
+          <button id="install-dismiss" aria-label="Dismiss">&#10005;</button>
         </div>
-        <button id="today-start-btn">&#9654; Start today's session</button>
+
+        <!-- The resume card: answers the only question you have on a train -->
+        <div id="today-hero">
+          <div id="today-hero-kicker"></div>
+          <div id="today-hero-title"></div>
+          <div id="today-hero-meta"></div>
+          <button id="today-start-btn">&#9654; Start today's session</button>
+        </div>
         <div id="today-plan"></div>
+        <div class="today-section-label">Needs attention</div>
+        <div id="today-summary">
+          <button class="today-row" type="button" data-go="recall">
+            <span class="today-row-ic">&#9201;</span>
+            <span class="today-row-tx">
+              <span class="today-row-t1">Phrase reviews</span>
+              <span class="today-row-t2" id="today-phrases-sub">Nothing due</span>
+            </span>
+            <span class="today-row-pill" id="today-phrases-due">0</span>
+          </button>
+          <button class="today-row" type="button" data-go="words">
+            <span class="today-row-ic">&#128218;</span>
+            <span class="today-row-tx">
+              <span class="today-row-t1">Words due</span>
+              <span class="today-row-t2" id="today-words-sub">Nothing due</span>
+            </span>
+            <span class="today-row-pill" id="today-words-due">0</span>
+          </button>
+          <button class="today-row" type="button" data-go="progress">
+            <span class="today-row-ic">&#128293;</span>
+            <span class="today-row-tx">
+              <span class="today-row-t1">Day streak</span>
+              <span class="today-row-t2" id="today-streak-sub">See your progress</span>
+            </span>
+            <span class="today-row-pill" id="today-streak-num">0</span>
+          </button>
+        </div>
         <div id="today-mistakes-hint" style="display:none">
+          <span class="today-row-ic">&#9888;&#65039;</span>
           <span id="today-mistakes-hint-text"></span>
+          <span class="today-row-pill red" id="today-mistakes-count">0</span>
           <button id="today-fix-mistakes-btn">Fix them &#8594;</button>
         </div>
       </div>
