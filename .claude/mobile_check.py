@@ -45,7 +45,7 @@ with sync_playwright() as p:
     sheet_visible = page.evaluate("document.getElementById('more-sheet').style.display !== 'none'")
     check("More sheet opens", sheet_visible)
     item_count = page.evaluate("document.querySelectorAll('.more-item').length")
-    check("sheet has the overflow tabs", item_count == 13, f"count={item_count}")
+    check("sheet has the overflow tabs", item_count == 14, f"count={item_count}")
     page.screenshot(path=OUT + r"\shot_2_sheet.png")
 
     # 5. Tap Vocab in sheet -> panel shows, sheet closes, More marked active
