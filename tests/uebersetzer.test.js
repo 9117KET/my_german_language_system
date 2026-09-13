@@ -10,8 +10,11 @@ const vm = require("node:vm");
 
 const ROOT = path.join(__dirname, "..");
 
+// core.autocrlf rewrites the working copy to CRLF on Windows checkouts, which
+// silently breaks any pattern anchored on a bare newline. Normalise once, here,
+// so the extractors and the wiring assertions read the same text either way.
 function readFile(name) {
-  return fs.readFileSync(path.join(ROOT, name), "utf8");
+  return fs.readFileSync(path.join(ROOT, name), "utf8").replace(/\r\n/g, "\n");
 }
 
 // ---------------------------------------------------------------------------
