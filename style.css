@@ -6782,3 +6782,577 @@ select option {
   #sl-actions button, #sl-next-btn { flex: 1 1 auto; padding: 10px 14px; }
   #sl-sprint-btn { padding: 7px 10px; }
 }
+
+/* ---- Übersetzer (level-aware translator) ---- */
+#ueb-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px var(--gutter) calc(32px + var(--bar-h));
+  overflow-y: auto;
+  height: 100%;
+}
+
+#ueb-header {
+  flex-shrink: 0;
+}
+
+#ueb-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.ueb-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+#ueb-level-badge {
+  font-size: var(--type-meta);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-glow);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.ueb-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ---- controls ---- */
+#ueb-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+#ueb-dir-btn {
+  min-height: var(--tap);
+  padding: 0 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#ueb-dir-btn:hover {
+  background: var(--surface3);
+}
+
+#ueb-level-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ueb-level-label {
+  font-size: var(--type-meta);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+#ueb-level-chips {
+  display: flex;
+  gap: 4px;
+}
+
+.ueb-level-chip {
+  min-width: 42px;
+  min-height: 38px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.ueb-level-chip:hover {
+  color: var(--text);
+  background: var(--surface2);
+}
+
+.ueb-level-chip.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-color: var(--accent-glow);
+}
+
+/* ---- input ---- */
+#ueb-input,
+#ueb-attempt-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+#ueb-input:focus,
+#ueb-attempt-input:focus {
+  outline: none;
+  border-color: var(--accent-glow);
+  background: var(--surface2);
+}
+
+#ueb-input-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--type-meta);
+  color: var(--text-dim);
+  margin-top: -6px;
+}
+
+#ueb-char-count {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+#ueb-char-count.over {
+  color: var(--red);
+  font-weight: 700;
+}
+
+#ueb-actions {
+  display: flex;
+  gap: 10px;
+}
+
+#ueb-translate-btn,
+#ueb-attempt-check-btn {
+  flex: 1;
+  min-height: var(--tap);
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+#ueb-try-btn,
+#ueb-attempt-cancel-btn {
+  flex: 1;
+  min-height: var(--tap);
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+#ueb-translate-btn:disabled,
+#ueb-try-btn:disabled,
+#ueb-attempt-check-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---- self-attempt ---- */
+#ueb-attempt-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: rgba(251,191,36,0.06);
+  border: 1px solid rgba(251,191,36,0.25);
+  border-radius: var(--radius);
+}
+
+#ueb-attempt-actions {
+  display: flex;
+  gap: 10px;
+}
+
+#ueb-attempt-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ueb-verdict {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.ueb-verdict.ok { color: var(--green); }
+.ueb-verdict.off { color: var(--yellow); }
+
+#ueb-attempt-corrected-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#ueb-attempt-corrected {
+  font-size: 1.1rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+#ueb-attempt-feedback,
+#ueb-attempt-rule {
+  font-size: var(--type-body);
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ---- spinner + error ---- */
+#ueb-spinner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--type-body);
+  color: var(--text-dim);
+  padding: 8px 0;
+}
+
+.ueb-spin {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-bright);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ueb-spin 0.7s linear infinite;
+}
+
+@keyframes ueb-spin {
+  to { transform: rotate(360deg); }
+}
+
+#ueb-error {
+  font-size: var(--type-body);
+  line-height: 1.5;
+  color: var(--red);
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.25);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+/* ---- result cards ---- */
+#ueb-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ueb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* The level version is the one the learner is meant to reproduce, so it gets
+   the accent edge and the native version reads as the reference beside it. */
+#ueb-primary-card {
+  border-color: var(--accent-glow);
+  background: var(--accent-dim);
+}
+
+.ueb-card-flat {
+  gap: 5px;
+  padding: 12px 14px;
+}
+
+.ueb-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ueb-card-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ueb-card-label {
+  font-size: var(--type-meta);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  font-weight: 700;
+}
+
+.ueb-german {
+  font-size: var(--type-target);
+  line-height: var(--type-target-lh);
+  color: var(--text);
+}
+
+.ueb-audio-btn {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border-bright);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.ueb-audio-btn:hover {
+  background: var(--surface3);
+}
+
+#ueb-diff-text,
+#ueb-rule-text,
+#ueb-english-text {
+  font-size: var(--type-body);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+/* ---- the level check ---- */
+.ueb-check-badge {
+  font-size: var(--type-meta);
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.ueb-check-badge.ok {
+  color: var(--green);
+  background: rgba(74,222,128,0.12);
+  border: 1px solid rgba(74,222,128,0.3);
+}
+
+.ueb-check-badge.over {
+  color: var(--yellow);
+  background: rgba(251,191,36,0.12);
+  border: 1px solid rgba(251,191,36,0.3);
+}
+
+#ueb-level-check-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.ueb-over-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ueb-over-word {
+  font-size: 0.8rem;
+  color: var(--text);
+  background: rgba(251,191,36,0.1);
+  border: 1px solid rgba(251,191,36,0.28);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+}
+
+.ueb-over-word em {
+  font-style: normal;
+  font-weight: 700;
+  font-size: var(--type-meta);
+  color: var(--yellow);
+  margin-left: 4px;
+}
+
+.ueb-stricter-btn {
+  align-self: flex-start;
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--yellow);
+  background: rgba(251,191,36,0.1);
+  border: 1px solid rgba(251,191,36,0.3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* ---- words to take away ---- */
+#ueb-words-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ueb-word-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+
+/* A word the model pulled out of the learner's own due queue - the SRS loop
+   visibly closing, so it is worth marking. */
+.ueb-word-row.ueb-word-due {
+  border-color: var(--accent-glow);
+  background: var(--accent-dim);
+}
+
+.ueb-word-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ueb-word-de {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ueb-word-en {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.ueb-word-add {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: var(--type-meta);
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-glow);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.ueb-word-add:disabled {
+  color: var(--text-dim);
+  background: var(--surface);
+  border-color: var(--border);
+  cursor: default;
+}
+
+/* ---- vocabulary profile ---- */
+#ueb-profile-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 2px;
+}
+
+.ueb-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ueb-profile-label {
+  width: 48px;
+  flex-shrink: 0;
+  font-size: var(--type-meta);
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.ueb-profile-bar {
+  flex: 1;
+  min-width: 0;
+  height: 6px;
+  background: var(--surface3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ueb-profile-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.ueb-profile-n {
+  width: 24px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: var(--type-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+#ueb-profile-note {
+  font-size: var(--type-meta);
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+@media (max-width: 560px) {
+  #ueb-controls {
+    gap: 8px;
+  }
+  #ueb-dir-btn {
+    width: 100%;
+  }
+  #ueb-level-row {
+    width: 100%;
+    justify-content: space-between;
+  }
+  #ueb-level-chips {
+    flex: 1;
+    justify-content: space-between;
+  }
+  .ueb-level-chip {
+    flex: 1;
+  }
+  #ueb-actions,
+  #ueb-attempt-actions {
+    flex-direction: column;
+  }
+}

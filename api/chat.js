@@ -773,6 +773,115 @@ module.exports = async function handler(req, res) {
       return res.json({ german, english: text, category, audio_base64 });
     }
 
+    // ---- Übersetzer: level-aware translation ----
+    // A general translator answers one question: what does this mean? A learner
+    // needs two - what a native actually says, and what they themselves could
+    // have produced at their current level. The gap between those two IS the
+    // lesson, so both come back in one response and the panel shows them together.
+    //
+    // Direction changes what each field means, but the shape stays the same so
+    // the panel renders both without branching:
+    //   en_de: primary = German at the target level, native = natural German,
+    //          english = the source echoed back.
+    //   de_en: primary = the same German simplified to the target level,
+    //          native = the original German, english = the real translation.
+    if (mode === "translate-level") {
+      const level = LEVEL_DESCRIPTIONS[req.body?.level] ? req.body.level : "b1";
+      const direction = req.body?.direction === "de_en" ? "de_en" : "en_de";
+
+      // Weaving the learner's own due vocabulary into the output is the part a
+      // general translator structurally cannot do. Capped at 40 words because the
+      // Groq free tier allows 8000 tokens/minute and max_tokens counts toward it.
+      const dueWords = Array.isArray(req.body?.dueWords)
+        ? req.body.dueWords.filter(w => typeof w === "string" && w.trim()).slice(0, 40)
+        : [];
+      const dueCtx = dueWords.length
+        ? `\nWords this learner has due for review: ${dueWords.join(", ")}\n` +
+          `Use the ones that fit naturally in "primary". Never force one in or bend the meaning to fit it. ` +
+          `Report the ones you actually used in "used_due_words".\n`
+        : "";
+
+      const taskCtx = direction === "de_en"
+        ? `The learner is READING this German and wants to understand it:\n"${text}"\n\n` +
+          `- "primary": the same meaning rewritten in German at ${level.toUpperCase()}, so they can read it unaided.\n` +
+          `- "native": the original German, unchanged.\n` +
+          `- "english": a faithful English translation of the original.\n`
+        : `The learner wants to SAY this in German:\n"${text}"\n\n` +
+          `- "primary": the German a ${level.toUpperCase()} learner could realistically produce themselves.\n` +
+          `- "native": the German a native speaker would actually use here, with no simplification.\n` +
+          `- "english": the learner's original English, unchanged.\n`;
+
+      const raw = await callGroq(
+        `You are a German tutor writing for one learner at level ${level.toUpperCase()}.\n` +
+        `Target level: ${LEVEL_DESCRIPTIONS[level]}\n\n` +
+        taskCtx + dueCtx +
+        `\nAlso return:\n` +
+        `- "difference": one sentence in English naming what the native version does that the ${level.toUpperCase()} version avoids (a tense, a case, a connector, an idiom). If they are identical, say "Same - your level already covers this."\n` +
+        `- "grammar_note": one sentence in English naming the single most useful rule at work, e.g. "weil sends the verb to the end" or "mit takes Dativ".\n` +
+        `- "words": up to 5 words from the native version worth learning, as {"de":"...","en":"..."}. Give German nouns their article.\n\n` +
+        `Return ONLY this JSON, no markdown:\n` +
+        `{"primary":"...","native":"...","english":"...","difference":"...","grammar_note":"...","used_due_words":[],"words":[{"de":"...","en":"..."}]}`,
+        1, 900
+      );
+      const parsed = parseJSON(raw);
+      if (!parsed || !parsed.primary) {
+        return res.status(502).json({ error: "The translator could not produce a level-checked answer. Try shorter text." });
+      }
+      const primary = String(parsed.primary).trim();
+      // Speak the level version - that is the one the learner is meant to reproduce.
+      const audio_base64 = await callElevenLabs(primary);
+      return res.json({
+        primary,
+        native: String(parsed.native || primary).trim(),
+        english: String(parsed.english || (direction === "en_de" ? text : "")).trim(),
+        difference: String(parsed.difference || "").trim(),
+        grammar_note: String(parsed.grammar_note || "").trim(),
+        used_due_words: Array.isArray(parsed.used_due_words) ? parsed.used_due_words.slice(0, 10) : [],
+        words: Array.isArray(parsed.words) ? parsed.words.filter(w => w && w.de).slice(0, 5) : [],
+        level,
+        direction,
+        audio_base64,
+      });
+    }
+
+    // ---- Übersetzer: grade the learner's own attempt ----
+    // The one thing no translator can offer, because it requires withholding the
+    // answer first: the learner translates, then gets marked against their level.
+    if (mode === "translate-grade") {
+      const level = LEVEL_DESCRIPTIONS[req.body?.level] ? req.body.level : "b1";
+      const source = String(req.body?.source || "").trim();
+      if (!source) return res.status(400).json({ error: "No source text to grade against" });
+      const raw = await callGroq(
+        `A German learner at level ${level.toUpperCase()} was asked to translate this:\n"${source}"\n\n` +
+        `Their attempt:\n"${text}"\n\n` +
+        `Target level: ${LEVEL_DESCRIPTIONS[level]}\n` +
+        `Judge the attempt against ${level.toUpperCase()}, not against a native speaker. Never mark a correct ${level.toUpperCase()} sentence wrong for being simple.\n` +
+        `GERMAN CASE RULES (name the specific one you apply):\n` +
+        `- Akkusativ (wen?/was?): masc. der->den, ein->einen. After durch, für, gegen, ohne, um.\n` +
+        `- Dativ (wem?): dem/der/dem/den. After mit, aus, bei, nach, seit, von, zu, außer, gegenüber.\n` +
+        `- Wechselpräpositionen (an/auf/in/über/unter/vor/neben/hinter/zwischen): Wo?=Dativ, Wohin?=Akkusativ.\n` +
+        `- Dative-only verbs: helfen, danken, gefallen, gehören, passen, schmecken, antworten, folgen.\n` +
+        `- Verb-second in main clauses; verb-final after weil/dass/wenn/obwohl.\n\n` +
+        `Return ONLY this JSON, no markdown:\n` +
+        `{"is_correct":true/false,"corrected":"the corrected German, or their sentence unchanged if it was already right","feedback":"one encouraging sentence in English","grammar_note":"one sentence naming the rule they broke, or 'Nothing to fix.'","score":0-100}`,
+        1, 700
+      );
+      const parsed = parseJSON(raw);
+      if (!parsed) return res.status(502).json({ error: "Could not grade that attempt. Try again." });
+      const corrected = String(parsed.corrected || text).trim();
+      const audio_base64 = await callElevenLabs(corrected);
+      return res.json({
+        is_correct: !!parsed.is_correct,
+        corrected,
+        original: text,
+        feedback: String(parsed.feedback || "").trim(),
+        grammar_note: String(parsed.grammar_note || "").trim(),
+        score: Math.max(0, Math.min(100, Number(parsed.score) || 0)),
+        level,
+        audio_base64,
+      });
+    }
+
     if (mode === "correct") {
       const raw = await callGroq(
         `Correct this German sentence from a learner: "${text}"\n` +

@@ -1468,6 +1468,7 @@ function init() {
   setupMonologuePanel();
   setupDrillsPanel();
   initGamesPanel();
+  setupUebPanel();
   setupTodayPanel();
   setupInstallPrompt();
   registerServiceWorker();
@@ -1684,6 +1685,7 @@ function showPlayerPanel() {
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "none";
   playerEls.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
@@ -1703,6 +1705,7 @@ function showAIPanel() {
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "none";
   aiPanel.style.display = "flex";
   renderAISavedList();
 }
@@ -1713,7 +1716,7 @@ const MOBILE_PRIMARY_MODES = ["today", "recall", "words"];
    Words and More, so any mode missing from this array does not exist on a
    phone. Four groups of three scan faster than six of two. */
 const MORE_SHEET_GROUPS = [
-  { label: "Practice", modes: ["listen", "shadow", "stories"] },
+  { label: "Practice", modes: ["listen", "shadow", "stories", "uebersetzer"] },
   { label: "Speaking", modes: ["speak", "ai", "monologue", "starters"] },
   { label: "Grammar", modes: ["grammar", "drills", "vocab"] },
   { label: "Exam & explore", modes: ["exam", "games", "progress"] },
@@ -1846,6 +1849,9 @@ function setupEvents() {
       } else if (newMode === "games") {
         mode = "games";
         showGamesPanel();
+      } else if (newMode === "uebersetzer") {
+        mode = "uebersetzer";
+        showUebPanel();
       } else {
         mode = newMode;
         showPlayerPanel();
@@ -2734,6 +2740,7 @@ function showProgressPanel() {
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "none";
   document.getElementById("progress-panel").style.display = "flex";
   renderProgressTab();
   renderErrorProfileSection();
@@ -3011,6 +3018,7 @@ function showDrillsPanel() {
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "none";
   document.getElementById("drills-panel").style.display = "flex";
   renderDrillSetsPanel();
 }
@@ -3310,6 +3318,7 @@ function showVocabPanel() {
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "none";
   document.getElementById("vocab-panel").style.display = "flex";
   document.getElementById("vocab-panel-search").value = "";
   vocabPage = 0;
@@ -3331,6 +3340,7 @@ function showStartersPanel() {
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "none";
   document.getElementById("starters-panel").style.display = "flex";
   renderStartersPanel("all");
 }
@@ -3590,6 +3600,7 @@ function showSpeakPanel() {
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "none";
   document.getElementById("speak-panel").style.display = "flex";
   initSpeakPanel();
 }
@@ -3963,6 +3974,7 @@ function showMonologuePanel() {
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "flex";
   initMonologuePanel();
 }
@@ -6270,6 +6282,7 @@ function showGrammarPanel(filterTag = null) {
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "none";
   document.getElementById("grammar-panel").style.display = "flex";
   renderGrammarTab(filterTag);
 }
@@ -7422,6 +7435,7 @@ function showWordsPanel() {
   document.getElementById("speak-panel").style.display = "none";
   document.getElementById("monologue-panel").style.display = "none";
   document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "none";
   document.getElementById("words-panel").style.display = "flex";
   wordsSessionCorrect = 0;
   wordsSessionTotal = 0;
@@ -9594,6 +9608,565 @@ function slUpdateStreakBadge() {
   } else {
     badge.classList.remove("visible");
   }
+}
+
+// ---- Übersetzer (level-aware translator) ----
+/* Why this tab exists: a general translator answers "what does this mean?",
+   which is the wrong question for a learner. Here you pick a CEFR level and get
+   two renderings of the same thought - one you could have produced yourself at
+   that level, one a native would actually use - plus a deterministic check that
+   the level version really is at that level.
+
+   That last part is the piece a chatbot prompt cannot do. "Write at B1" is an
+   approximation an LLM drifts away from; WORDS carries a frequency tier per
+   word, so after the model answers we can measure the drift and re-ask. */
+
+let uebLevel = ["a1", "a2", "b1", "b2", "c1"].includes(localStorage.getItem("uebLevel"))
+  ? localStorage.getItem("uebLevel") : languageLevel;
+let uebDirection = localStorage.getItem("uebDirection") === "de_en" ? "de_en" : "en_de";
+let uebLastResult = null;
+// The text the learner is attempting, held so the grader can mark against it
+// even after they edit the input box.
+let uebAttemptSource = "";
+let uebBusy = false;
+
+/* WORDS tiers are the 100/200/300/400 most frequent words, which TIER_TO_CEFR
+   already maps onto a1..b2 elsewhere in the app. c1 shares b2's band because
+   tier 4 is the top of the data - above B2 the check goes quiet rather than
+   inventing a band it has no evidence for. */
+const UEB_LEVEL_TO_TIER = { a1: 1, a2: 2, b1: 3, b2: 4, c1: 4 };
+
+/* One request has to fit the Groq free tier's 8000 tokens/minute, and a single
+   level verdict over several paragraphs would be meaningless anyway. */
+const UEB_MAX_CHARS = 600;
+
+/* German inflects, so matching raw tokens against WORDS would miss "gehen" in
+   "ich gehe". Strip the common inflectional endings, longest first, and never
+   below 3 characters so short words ("ist", "bin") survive intact. This is a
+   heuristic, not a morphological analyser - which is exactly why an unmatched
+   token is reported as "outside your core list" and never as a level breach. */
+const UEB_SUFFIXES = ["ungen", "enen", "enem", "ener", "ende", "eten", "est", "ern",
+                      "en", "em", "er", "es", "et", "st", "e", "n", "s", "t"];
+
+function uebStem(word) {
+  const w = String(word || "").toLowerCase().replace(/[^a-zäöüß]/g, "");
+  for (const suf of UEB_SUFFIXES) {
+    if (w.endsWith(suf) && w.length - suf.length >= 3) return w.slice(0, -suf.length);
+  }
+  return w;
+}
+
+function uebBuildLexicon(words) {
+  const lex = new Map();
+  for (const w of words || []) {
+    if (!w || !w.german || !w.tier) continue;
+    // Multi-word entries ("es gibt") get each part indexed; there is no single
+    // stem for the phrase and the parts are what shows up in a sentence.
+    for (const part of String(w.german).toLowerCase().split(/\s+/)) {
+      const stem = uebStem(part);
+      if (stem.length < 3) continue;
+      const prev = lex.get(stem);
+      if (prev === undefined || w.tier < prev) lex.set(stem, w.tier);
+    }
+  }
+  return lex;
+}
+
+let _uebLexicon = null;
+function uebLexicon() {
+  if (!_uebLexicon) _uebLexicon = uebBuildLexicon(typeof WORDS !== "undefined" ? WORDS : []);
+  return _uebLexicon;
+}
+
+function uebTokenize(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-zäöüß\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+/* The level check, for one German string against one CEFR level:
+     aboveBand - words that ARE in the frequency list but at a harder tier than
+                 the target. True positives, and the only thing that triggers
+                 the stricter re-ask.
+     offList   - words the 1000-word list does not cover at all. Weak signal
+                 (irregular form, proper noun, or genuinely rare word), so it is
+                 reported as a count and never used to fail a translation.
+     profile   - the tier histogram, which stays informative at B2 and C1 where
+                 by definition nothing can land above the band. */
+function checkLevelCompliance(germanText, targetLevel, lexicon, stopWords) {
+  const lex = lexicon || uebLexicon();
+  const stop = stopWords || (typeof STOP_WORDS !== "undefined" ? STOP_WORDS : new Set());
+  const maxTier = UEB_LEVEL_TO_TIER[targetLevel] || 4;
+  const profile = { 1: 0, 2: 0, 3: 0, 4: 0, off: 0 };
+  const aboveBand = [];
+  const offList = [];
+  const seen = new Set();
+  let content = 0;
+
+  for (const tok of uebTokenize(germanText)) {
+    if (tok.length < 3 || stop.has(tok)) continue;
+    content++;
+    const tier = lex.get(uebStem(tok));
+    if (tier === undefined) {
+      profile.off++;
+      if (!seen.has(tok)) { seen.add(tok); offList.push(tok); }
+      continue;
+    }
+    profile[tier]++;
+    if (tier > maxTier && !seen.has(tok)) {
+      seen.add(tok);
+      aboveBand.push({ word: tok, tier, cefr: String(TIER_TO_CEFR[tier] || "b2").toUpperCase() });
+    }
+  }
+  return { content, aboveBand, offList, profile, maxTier };
+}
+
+/* The personalisation payload, and the reason this beats a one-off prompt: only
+   words the learner has actually started and that are due today. A due word
+   woven into a sentence they wanted to say is worth more than the same word on
+   a flashcard. Capped so the request stays inside Groq's 8000 tokens/minute. */
+function uebDueWordSample(limit = 40) {
+  loadWordsSRS();
+  const byId = new Map((typeof WORDS !== "undefined" ? WORDS : []).map(w => [String(w.id), w]));
+  const out = [];
+  for (const id of Object.keys(wordsSRS)) {
+    if (out.length >= limit) break;
+    if (wordsSRS[id] && wordsSRS[id].archived) continue;
+    if (!isWordDue(id)) continue;
+    const w = byId.get(String(id));
+    if (w) out.push(w.german);
+  }
+  return out;
+}
+
+function uebMasteredCount() {
+  loadWordsSRS();
+  return Object.keys(wordsSRS).filter(id => getWordStatus(id) === "mastered").length;
+}
+
+function showUebPanel() {
+  document.getElementById("controls-bar").style.display = "none";
+  playerEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+  hideRecallSpecificEls();
+  aiPanel.style.display = "none";
+  document.getElementById("progress-panel").style.display = "none";
+  document.getElementById("vocab-panel").style.display = "none";
+  document.getElementById("grammar-panel").style.display = "none";
+  document.getElementById("words-panel").style.display = "none";
+  document.getElementById("drills-panel").style.display = "none";
+  document.getElementById("starters-panel").style.display = "none";
+  document.getElementById("speak-panel").style.display = "none";
+  document.getElementById("monologue-panel").style.display = "none";
+  document.getElementById("games-panel").style.display = "none";
+  document.getElementById("ueb-panel").style.display = "flex";
+  renderUebControls();
+}
+
+function renderUebControls() {
+  document.querySelectorAll(".ueb-level-chip").forEach(c => {
+    c.classList.toggle("active", c.dataset.level === uebLevel);
+  });
+  const dirBtn = document.getElementById("ueb-dir-btn");
+  if (dirBtn) dirBtn.textContent = uebDirection === "en_de" ? "EN → DE" : "DE → EN";
+
+  const badge = document.getElementById("ueb-level-badge");
+  if (badge) badge.textContent = uebLevel.toUpperCase();
+
+  const input = document.getElementById("ueb-input");
+  if (input) {
+    input.placeholder = uebDirection === "en_de"
+      ? "Type what you want to say…"
+      : "Paste the German you want to understand…";
+  }
+
+  // Say out loud what the personalisation is actually doing this run, so the
+  // difference from a generic translator is visible before you press the button.
+  const note = document.getElementById("ueb-personalise-note");
+  if (note) {
+    const due = uebDueWordSample().length;
+    const mastered = uebMasteredCount();
+    note.textContent = due
+      ? `Will try to work in ${due} of your due word${due === 1 ? "" : "s"} · ${mastered} mastered`
+      : `No words due · ${mastered} mastered`;
+  }
+}
+
+function uebSetBusy(busy, label) {
+  uebBusy = busy;
+  const spinner = document.getElementById("ueb-spinner");
+  if (spinner) {
+    spinner.style.display = busy ? "flex" : "none";
+    const span = spinner.querySelector("span");
+    if (span && label) span.textContent = label;
+  }
+  ["ueb-translate-btn", "ueb-try-btn", "ueb-attempt-check-btn"].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.disabled = busy;
+  });
+}
+
+function uebShowError(msg) {
+  const el = document.getElementById("ueb-error");
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? "block" : "none";
+}
+
+async function runUebTranslate(stricter) {
+  const text = document.getElementById("ueb-input").value.trim();
+  if (!text || uebBusy) return;
+
+  uebShowError("");
+  document.getElementById("ueb-result").style.display = "none";
+  document.getElementById("ueb-attempt-area").style.display = "none";
+  uebSetBusy(true, stricter ? "Nochmal, strenger…" : "Übersetze…");
+
+  // A stricter re-ask drops one level rather than repeating the same request:
+  // the model already showed it drifts upward, so aim lower and let the check
+  // confirm. This is the correction loop the level badge promises.
+  const order = ["a1", "a2", "b1", "b2", "c1"];
+  const askLevel = stricter
+    ? order[Math.max(0, order.indexOf(uebLevel) - 1)]
+    : uebLevel;
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "translate-level",
+        text,
+        level: askLevel,
+        direction: uebDirection,
+        dueWords: uebDueWordSample(),
+      }),
+    });
+    const data = await parseApiResponse(res);
+    if (data.error) throw new Error(data.error);
+    uebSetBusy(false);
+    uebLastResult = data;
+    renderUebResult(data);
+    // Reading a level-checked translation is study, not a graded answer, so the
+    // XP is small - the real credit is in the self-attempt path below.
+    awardXP(2, "Übersetzer");
+  } catch (err) {
+    uebSetBusy(false);
+    uebShowError(err.message || "Translation failed.");
+  }
+}
+
+function renderUebResult(data) {
+  document.getElementById("ueb-result").style.display = "flex";
+
+  const primaryLabel = document.getElementById("ueb-primary-label");
+  const nativeLabel = document.getElementById("ueb-native-label");
+  if (uebDirection === "en_de") {
+    primaryLabel.textContent = `Your level (${String(data.level || uebLevel).toUpperCase()})`;
+    nativeLabel.textContent = "Wie ein Muttersprachler";
+  } else {
+    primaryLabel.textContent = `Easier German (${String(data.level || uebLevel).toUpperCase()})`;
+    nativeLabel.textContent = "Das Original";
+  }
+
+  document.getElementById("ueb-primary-text").textContent = data.primary || "";
+  document.getElementById("ueb-native-text").textContent = data.native || "";
+
+  // Identical versions mean the learner's level already covers the sentence -
+  // showing the same string twice would just look like a bug.
+  const nativeCard = document.getElementById("ueb-native-card");
+  nativeCard.style.display =
+    (data.native || "").trim() && data.native.trim() !== (data.primary || "").trim() ? "flex" : "none";
+
+  uebFillCard("ueb-diff-card", "ueb-diff-text", data.difference);
+  uebFillCard("ueb-rule-card", "ueb-rule-text", data.grammar_note);
+  uebFillCard("ueb-english-card", "ueb-english-text", data.english);
+  document.getElementById("ueb-english-label").textContent =
+    uebDirection === "en_de" ? "Your English" : "English";
+
+  renderUebLevelCheck(data.primary || "", data.level || uebLevel);
+  renderUebWords(data);
+
+  document.getElementById("ueb-primary-audio").onclick = () =>
+    playBase64Audio(data.audio_base64, data.primary);
+  // Only the level version comes back with TTS audio; the native line falls
+  // through to browser speech synthesis.
+  document.getElementById("ueb-native-audio").onclick = () =>
+    playBase64Audio(null, data.native);
+}
+
+function uebFillCard(cardId, textId, value) {
+  const card = document.getElementById(cardId);
+  const text = document.getElementById(textId);
+  const v = String(value || "").trim();
+  text.textContent = v;
+  card.style.display = v ? "flex" : "none";
+}
+
+function renderUebLevelCheck(germanText, level) {
+  const check = checkLevelCompliance(germanText, level);
+  const badge = document.getElementById("ueb-level-check-badge");
+  const detail = document.getElementById("ueb-level-check-detail");
+  const over = check.aboveBand.length;
+
+  badge.className = over ? "ueb-check-badge over" : "ueb-check-badge ok";
+  badge.textContent = over
+    ? `${over} word${over === 1 ? "" : "s"} above ${String(level).toUpperCase()}`
+    : `✓ ${String(level).toUpperCase()} checked`;
+
+  if (over) {
+    const list = check.aboveBand
+      .map(w => `<span class="ueb-over-word">${escapeHtml(w.word)} <em>${w.cefr}</em></span>`)
+      .join("");
+    detail.innerHTML =
+      `<div class="ueb-over-words">${list}</div>` +
+      `<button id="ueb-stricter-btn" class="ueb-stricter-btn">Ask again, one level simpler</button>`;
+    detail.style.display = "block";
+    const btn = document.getElementById("ueb-stricter-btn");
+    if (btn) btn.onclick = () => runUebTranslate(true);
+  } else {
+    detail.style.display = "none";
+    detail.innerHTML = "";
+  }
+
+  renderUebProfile(check);
+}
+
+/* At B2 and C1 nothing can be above band, so the badge alone would say nothing.
+   The tier histogram still does: it shows how much of the sentence sits inside
+   the 1000-word core and how much is genuinely rarer vocabulary. */
+function renderUebProfile(check) {
+  const card = document.getElementById("ueb-profile-card");
+  const bars = document.getElementById("ueb-profile-bars");
+  const note = document.getElementById("ueb-profile-note");
+  if (!check.content) { card.style.display = "none"; return; }
+
+  const rows = [
+    { label: "A1", n: check.profile[1] },
+    { label: "A2", n: check.profile[2] },
+    { label: "B1", n: check.profile[3] },
+    { label: "B2", n: check.profile[4] },
+    { label: "off-list", n: check.profile.off },
+  ].filter(r => r.n > 0);
+
+  bars.innerHTML = rows.map(r => {
+    const pct = Math.round((r.n / check.content) * 100);
+    return `<div class="ueb-profile-row">` +
+      `<span class="ueb-profile-label">${r.label}</span>` +
+      `<span class="ueb-profile-bar"><i style="width:${pct}%"></i></span>` +
+      `<span class="ueb-profile-n">${r.n}</span></div>`;
+  }).join("");
+
+  const off = check.profile.off;
+  note.textContent = off
+    ? `${off} of ${check.content} content words sit outside the 1000-word core list – rare vocabulary, a name, or an irregular form the matcher missed.`
+    : `All ${check.content} content words are in the 1000-word core list.`;
+  card.style.display = "flex";
+}
+
+function renderUebWords(data) {
+  const card = document.getElementById("ueb-words-card");
+  const list = document.getElementById("ueb-words-list");
+  const words = (data.words || []).filter(w => w && w.de);
+  if (!words.length) { card.style.display = "none"; return; }
+
+  loadWordsSRS();
+  list.innerHTML = "";
+  words.forEach(w => {
+    const row = document.createElement("div");
+    row.className = "ueb-word-row";
+
+    const txt = document.createElement("div");
+    txt.className = "ueb-word-text";
+    txt.innerHTML = `<span class="ueb-word-de">${escapeHtml(w.de)}</span>` +
+      `<span class="ueb-word-en">${escapeHtml(w.en || "")}</span>`;
+    row.appendChild(txt);
+
+    // Only words that exist in WORDS can join the SRS - it schedules by word id,
+    // so an arbitrary string from the model has nothing to attach to.
+    const match = uebFindWord(w.de);
+    const btn = document.createElement("button");
+    btn.className = "ueb-word-add";
+    if (!match) {
+      btn.textContent = "not in list";
+      btn.disabled = true;
+    } else if (wordsSRS[String(match.id)]) {
+      btn.textContent = "✓ saved";
+      btn.disabled = true;
+    } else {
+      btn.textContent = "+ Words";
+      btn.onclick = () => {
+        // Due today, so it surfaces in the very next review session.
+        wordsSRS[String(match.id)] = {
+          interval: 0, easeFactor: 2.5, dueDate: todayStr(),
+          lastReviewed: null, totalReviews: 0, totalCorrect: 0, archived: false,
+        };
+        saveWordsSRS();
+        btn.textContent = "✓ due now";
+        btn.disabled = true;
+        renderUebControls();
+      };
+    }
+    row.appendChild(btn);
+
+    // Highlighting a due word the model actually used is the loop closing: it
+    // came from the SRS, into a sentence you wanted to say, and back.
+    if ((data.used_due_words || []).some(d => uebStem(d) === uebStem(w.de))) {
+      row.classList.add("ueb-word-due");
+    }
+    list.appendChild(row);
+  });
+  card.style.display = "flex";
+}
+
+/* Model output carries nouns with their article ("die Wohnung"), so match on the
+   last token as well as on the whole string. */
+function uebFindWord(de) {
+  const words = typeof WORDS !== "undefined" ? WORDS : [];
+  const raw = String(de || "").toLowerCase().trim();
+  const bare = raw.split(/\s+/).pop();
+  return words.find(w => w.german.toLowerCase() === raw) ||
+         words.find(w => w.german.toLowerCase() === bare) ||
+         null;
+}
+
+// ---- Self-attempt: the part a translator structurally cannot offer ----
+/* It requires withholding the answer first. The learner translates, gets marked
+   against their own level (not against a native), and the correction lands in
+   the error log like every other correction path in the app. */
+function startUebAttempt() {
+  const text = document.getElementById("ueb-input").value.trim();
+  if (!text) return;
+  uebAttemptSource = text;
+  uebShowError("");
+  document.getElementById("ueb-result").style.display = "none";
+  document.getElementById("ueb-attempt-result").style.display = "none";
+  document.getElementById("ueb-attempt-area").style.display = "flex";
+  const input = document.getElementById("ueb-attempt-input");
+  input.value = "";
+  input.focus();
+}
+
+function cancelUebAttempt() {
+  document.getElementById("ueb-attempt-area").style.display = "none";
+  runUebTranslate(false);
+}
+
+async function runUebGrade() {
+  const attempt = document.getElementById("ueb-attempt-input").value.trim();
+  if (!attempt || !uebAttemptSource || uebBusy) return;
+
+  uebShowError("");
+  uebSetBusy(true, "Korrigiere…");
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "translate-grade",
+        text: attempt,
+        source: uebAttemptSource,
+        level: uebLevel,
+        direction: uebDirection,
+      }),
+    });
+    const data = await parseApiResponse(res);
+    if (data.error) throw new Error(data.error);
+    uebSetBusy(false);
+    renderUebGrade(data);
+  } catch (err) {
+    uebSetBusy(false);
+    uebShowError(err.message || "Could not grade that attempt.");
+  }
+}
+
+function renderUebGrade(data) {
+  const area = document.getElementById("ueb-attempt-result");
+  area.style.display = "flex";
+
+  const verdict = document.getElementById("ueb-attempt-verdict");
+  verdict.className = data.is_correct ? "ueb-verdict ok" : "ueb-verdict off";
+  verdict.textContent = data.is_correct
+    ? `✓ Richtig für ${String(data.level || uebLevel).toUpperCase()}${data.score ? ` · ${data.score}/100` : ""}`
+    : `Fast – schau nochmal${data.score ? ` · ${data.score}/100` : ""}`;
+
+  const wrap = document.getElementById("ueb-attempt-corrected-wrap");
+  const corrected = String(data.corrected || "").trim();
+  const original = String(data.original || "").trim();
+  if (corrected && corrected !== original) {
+    document.getElementById("ueb-attempt-corrected").textContent = corrected;
+    wrap.style.display = "flex";
+  } else {
+    wrap.style.display = "none";
+  }
+
+  document.getElementById("ueb-attempt-feedback").textContent = data.feedback || "";
+  document.getElementById("ueb-attempt-rule").textContent = data.grammar_note || "";
+
+  // Every correction path in the app feeds the error log, which is what the
+  // telc prep and the drill mistake bank read from.
+  if (!data.is_correct) logError("uebersetzer", original, corrected, data.grammar_note);
+  awardXP(data.is_correct ? 8 : 3, "Übersetzer");
+  playBase64Audio(data.audio_base64, corrected);
+
+  // The answer is earned now, so show the full level/native comparison too.
+  document.getElementById("ueb-input").value = uebAttemptSource;
+  runUebTranslate(false);
+}
+
+function setupUebPanel() {
+  const dirBtn = document.getElementById("ueb-dir-btn");
+  if (!dirBtn) return;
+
+  dirBtn.addEventListener("click", () => {
+    uebDirection = uebDirection === "en_de" ? "de_en" : "en_de";
+    localStorage.setItem("uebDirection", uebDirection);
+    document.getElementById("ueb-result").style.display = "none";
+    document.getElementById("ueb-attempt-area").style.display = "none";
+    document.getElementById("ueb-attempt-result").style.display = "none";
+    renderUebControls();
+  });
+
+  document.querySelectorAll(".ueb-level-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      uebLevel = chip.dataset.level;
+      localStorage.setItem("uebLevel", uebLevel);
+      renderUebControls();
+      // Re-checking the text already on screen against the new level costs
+      // nothing - it is pure client-side data - so do it without another call.
+      if (uebLastResult) renderUebLevelCheck(uebLastResult.primary || "", uebLevel);
+    });
+  });
+
+  document.getElementById("ueb-translate-btn").addEventListener("click", () => runUebTranslate(false));
+  document.getElementById("ueb-try-btn").addEventListener("click", startUebAttempt);
+  document.getElementById("ueb-attempt-check-btn").addEventListener("click", runUebGrade);
+  document.getElementById("ueb-attempt-cancel-btn").addEventListener("click", cancelUebAttempt);
+
+  const input = document.getElementById("ueb-input");
+  const count = document.getElementById("ueb-char-count");
+  input.addEventListener("input", () => {
+    const n = input.value.length;
+    // Long text both blows the Groq per-minute budget and makes a single level
+    // verdict meaningless, so the limit is a real one, not decoration.
+    count.textContent = `${n}/${UEB_MAX_CHARS}`;
+    count.classList.toggle("over", n > UEB_MAX_CHARS);
+    const bad = n === 0 || n > UEB_MAX_CHARS;
+    document.getElementById("ueb-translate-btn").disabled = bad;
+    document.getElementById("ueb-try-btn").disabled = bad;
+  });
+  // Ctrl/Cmd+Enter translates, matching the other text areas in the app.
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runUebTranslate(false); }
+  });
+  document.getElementById("ueb-attempt-input").addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runUebGrade(); }
+  });
+
+  count.textContent = `0/${UEB_MAX_CHARS}`;
+  document.getElementById("ueb-translate-btn").disabled = true;
+  document.getElementById("ueb-try-btn").disabled = true;
 }
 
 // ---- Start ----
