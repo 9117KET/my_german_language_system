@@ -8,7 +8,7 @@
                        instantly and refresh quietly in the background
    Bump CACHE_VERSION whenever the shell changes shape. */
 
-const CACHE_VERSION = "dl-v1";
+const CACHE_VERSION = "dl-v2";
 const SHELL = [
   "/",
   "/index.html",

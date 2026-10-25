@@ -57,6 +57,11 @@ Open `index.html` in your browser (works on phone via OneDrive link).
 
 **Recall** - English shown only. Try to say the German aloud from memory, then tap the card to reveal + hear the audio. Tap "Got it" or "Missed". Phrases you miss appear more often automatically.
 
+**Review order and pace:** cards you already know and that are due come first, most
+overdue first, including long-interval ("mastered") ones. New cards follow. "Due today"
+counts those reviews plus a daily allowance of new cards (10 phrases, 20 words, set by
+`NEW_PHRASES_PER_DAY` / `NEW_WORDS_PER_DAY` in `app.js`). You can always keep going past it.
+
 ---
 
 ## Adding New Phrases
