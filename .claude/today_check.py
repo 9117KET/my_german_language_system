@@ -63,17 +63,22 @@ with sync_playwright() as p:
       (() => { const b = document.querySelector('#more-tab .tab-badge');
         return b && b.classList.contains('visible') ? b.textContent : null; })()
     """)
-    check("recall badge shows 1 due", recall_badge == "1", str(recall_badge))
-    check("More badge shows 1 due word", more_badge == "1", str(more_badge))
+    # Owed today = reviews due + the day's new-card allowance (10 phrases, 20 words)
+    check("recall badge shows 1 review + 10 new", recall_badge == "11", str(recall_badge))
+    check("More badge shows 1 review + 20 new words", more_badge == "21", str(more_badge))
 
     # 4. Today panel stats and mistakes hint
     stats = page.evaluate("""
       ({ phrases: document.getElementById('today-phrases-due').textContent,
          words: document.getElementById('today-words-due').textContent,
-         mistakes: document.getElementById('today-mistakes-count').textContent })
+         mistakes: document.getElementById('today-mistakes-count').textContent,
+         phrasesSub: document.getElementById('today-phrases-sub').textContent,
+         wordsSub: document.getElementById('today-words-sub').textContent })
     """)
-    check("Today stats: 1 phrase, 1 word, 1 mistake",
-          stats == {"phrases": "1", "words": "1", "mistakes": "1"}, str(stats))
+    check("Today stats: 11 phrases, 21 words, 1 mistake",
+          (stats["phrases"], stats["words"], stats["mistakes"]) == ("11", "21", "1"), str(stats))
+    check("Today subtitles split reviews from new",
+          stats["phrasesSub"] == "1 to review · 10 new" and stats["wordsSub"] == "1 to review · 20 new", str(stats))
     hint_shown = page.evaluate("document.getElementById('today-mistakes-hint').style.display !== 'none'")
     check("mistakes hint visible", hint_shown)
     page.screenshot(path=OUT + r"\t1_today.png")
