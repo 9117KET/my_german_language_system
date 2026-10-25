@@ -2906,8 +2906,32 @@ select option {
   .recall-action-btn,
   .nav-btn,
   #word-prev-btn,
-  #word-next-btn {
+  #word-next-btn,
+  #word-hint-btn,
+  #monologue-new-prompt-btn,
+  #sync-create-btn,
+  #sync-code-input,
+  #sync-link-btn,
+  .ws-drill-btn {
     min-height: var(--tap);
+  }
+  /* Chips and toolbar buttons sit in always-visible strips, where every pixel
+     comes out of the reading area, so they get the 44px WCAG minimum rather
+     than --tap. They measured 20-28px tall before. */
+  #mobile-level-bar .level-chips {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+  #mobile-level-bar .level-chip {
+    flex: 1 0 auto;
+    min-width: 44px;
+  }
+  #mobile-level-bar .level-chip,
+  .starter-cat-chip,
+  #mini-practice-btn,
+  #ai-export-btn,
+  #ai-clear-btn {
+    min-height: 44px;
   }
   /* Grading is the most repeated gesture in the app - give it the most room */
   .recall-btn { min-height: 60px; }

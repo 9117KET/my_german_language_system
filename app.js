@@ -1183,6 +1183,73 @@ function getNextInterval(interval, ef, correct) {
   return Math.round(interval * ef);
 }
 
+// ---- Review order & daily new allowance ----
+// Reviews come before new cards. A card you have already learned is the one
+// about to be forgotten; an unseen card loses nothing by waiting a day. When
+// new and due shared one group, a review of phrase #200 sat behind 199 unseen
+// phrases, and a card past 21 days ("mastered") sorted last even when due.
+//
+// New cards are introduced at a daily pace. The queue never hides them - you
+// can always keep going - but "due today" counts only today's allowance, so a
+// fresh start reads "10 new today" instead of "349 due".
+const NEW_PHRASES_PER_DAY = 10;
+const NEW_WORDS_PER_DAY = 20;
+
+// "review": seen and due. "new": never seen. "later": seen, not due yet.
+// The interval is deliberately ignored - a mastered card that has come due is
+// a review like any other.
+function srsBucket(record, today) {
+  if (!record.dueDate) return "new";
+  return record.dueDate <= today ? "review" : "later";
+}
+
+// Reviews first (most overdue first), then new cards in list order, then the
+// rest by due date. Shuffle mixes within each group, never across them.
+// recordOf takes an id, not an item: pass getSrsRecord / getWordRecord as-is.
+function orderForReview(items, recordOf, today, shuffle) {
+  const groups = { review: [], new: [], later: [] };
+  items.forEach(item => groups[srsBucket(recordOf(item.id), today)].push(item));
+  if (shuffle) {
+    const mix = arr => arr.sort(() => Math.random() - 0.5);
+    return [...mix(groups.review), ...mix(groups.new), ...mix(groups.later)];
+  }
+  const byDue = (a, b) => recordOf(a.id).dueDate.localeCompare(recordOf(b.id).dueDate);
+  return [...groups.review.sort(byDue), ...groups.new, ...groups.later.sort(byDue)];
+}
+
+function countForToday(items, recordOf, today, allowance) {
+  let due = 0, fresh = 0;
+  items.forEach(item => {
+    const r = recordOf(item.id);
+    if (r.archived) return;
+    const bucket = srsBucket(r, today);
+    if (bucket === "review") due++;
+    else if (bucket === "new") fresh++;
+  });
+  return { due, fresh, newToday: Math.min(fresh, allowance) };
+}
+
+function newAllowance(log, kind, limit, today) {
+  const introduced = log && log.date === today ? (log[kind] || []).length : 0;
+  return Math.max(0, limit - introduced);
+}
+// ---- end review order ----
+
+// Which cards were seen for the first time today, per device.
+function getNewIntroLog() {
+  try {
+    const log = JSON.parse(localStorage.getItem("new_intro_log") || "{}");
+    return log.date === todayStr() ? log : { date: todayStr(), phrases: [], words: [] };
+  } catch { return { date: todayStr(), phrases: [], words: [] }; }
+}
+
+function noteIntroduced(kind, id) {
+  const log = getNewIntroLog();
+  const ids = log[kind] || (log[kind] = []);
+  if (!ids.includes(id)) ids.push(id);
+  try { localStorage.setItem("new_intro_log", JSON.stringify(log)); } catch {}
+}
+
 function saveSrsData() {
   localStorage.setItem("srsData", JSON.stringify(srsData));
   updateTabBadges();
@@ -1190,6 +1257,7 @@ function saveSrsData() {
 
 function updateOnGotIt(id) {
   const r = getSrsRecord(id);
+  if (!r.dueDate) noteIntroduced("phrases", id);
   const newEF = Math.min(3.0, Math.max(1.3, r.easeFactor + 0.1));
   const newInterval = getNextInterval(r.interval, newEF, true);
   const due = new Date();
@@ -1208,6 +1276,7 @@ function updateOnGotIt(id) {
 
 function updateOnMissed(id) {
   const r = getSrsRecord(id);
+  if (!r.dueDate) noteIntroduced("phrases", id);
   const newEF = Math.max(1.3, r.easeFactor - 0.2);
   const due = new Date();
   due.setDate(due.getDate() + 1);
@@ -1407,26 +1476,7 @@ function buildQueue() {
   }
 
   if (mode === "recall") {
-    if (shuffle) {
-      // Shuffle within due/new group and upcoming group separately to keep SRS priority
-      const dueGroup = source.filter(p => isDue(p.id));
-      const upcomingGroup = source.filter(p => !isDue(p.id));
-      source = [
-        ...dueGroup.sort(() => Math.random() - 0.5),
-        ...upcomingGroup.sort(() => Math.random() - 0.5),
-      ];
-    } else {
-      const statusOrder = { new: 0, due: 0, upcoming: 1, mastered: 2 };
-      source = [...source].sort((a, b) => {
-        const sa = statusOrder[getStatus(a.id)] ?? 1;
-        const sb = statusOrder[getStatus(b.id)] ?? 1;
-        if (sa !== sb) return sa - sb;
-        const ra = getSrsRecord(a.id);
-        const rb = getSrsRecord(b.id);
-        if (ra.dueDate && rb.dueDate) return ra.dueDate.localeCompare(rb.dueDate);
-        return 0;
-      });
-    }
+    source = orderForReview(source, getSrsRecord, todayStr(), shuffle);
     if (practiceNowId !== null) {
       const idx = source.findIndex(p => p.id === practiceNowId);
       if (idx > 0) { const [item] = source.splice(idx, 1); source.unshift(item); }
@@ -2661,12 +2711,9 @@ function renderSessionStats() {
 }
 
 function renderRecallModeHeader() {
-  const dueCount = PHRASES.filter(p => {
-    const r = getSrsRecord(p.id);
-    return !r.archived && isDue(p.id);
-  }).length;
+  const { due, newToday } = countDuePhrases();
   document.getElementById("recall-due-count").textContent =
-    dueCount > 0 ? `${dueCount} due today` : "All caught up!";
+    due + newToday > 0 ? `${due} to review · ${newToday} new` : "All caught up!";
   const btn = document.getElementById("recall-autograde-toggle");
   btn.textContent = `Auto-grade: ${srsSettings.autoGrade ? "ON" : "OFF"}`;
   btn.classList.toggle("active", srsSettings.autoGrade);
@@ -2787,7 +2834,8 @@ function renderProgressTab() {
   renderWeakSpots();
   const counts = { new: 0, due: 0, upcoming: 0, mastered: 0, archived: 0 };
   for (const p of PHRASES) { const s = getStatus(p.id); if (counts[s] !== undefined) counts[s]++; }
-  document.getElementById("prog-due-val").textContent = counts.due + counts.new;
+  const today = countDuePhrases();
+  document.getElementById("prog-due-val").textContent = today.due + today.newToday;
   document.getElementById("prog-upcoming-val").textContent = counts.upcoming;
   document.getElementById("prog-mastered-val").textContent = counts.mastered;
   document.getElementById("prog-new-val").textContent = counts.new;
@@ -4126,24 +4174,17 @@ const TODAY_WORD_TARGET = 10;
 
 let todaySession = null;
 
+// { due: reviews owed, fresh: never seen, newToday: today's remaining allowance }
 function countDuePhrases() {
-  let due = 0, fresh = 0;
-  (typeof PHRASES !== "undefined" ? PHRASES : []).forEach(p => {
-    const st = getStatus(p.id);
-    if (st === "due") due++;
-    else if (st === "new") fresh++;
-  });
-  return { due, fresh };
+  const today = todayStr();
+  const allowance = newAllowance(getNewIntroLog(), "phrases", NEW_PHRASES_PER_DAY, today);
+  return countForToday(typeof PHRASES !== "undefined" ? PHRASES : [], getSrsRecord, today, allowance);
 }
 
 function countDueWords() {
-  let due = 0, fresh = 0;
-  (typeof WORDS !== "undefined" ? WORDS : []).forEach(w => {
-    const st = getWordStatus(w.id);
-    if (st === "due") due++;
-    else if (st === "new") fresh++;
-  });
-  return { due, fresh };
+  const today = todayStr();
+  const allowance = newAllowance(getNewIntroLog(), "words", NEW_WORDS_PER_DAY, today);
+  return countForToday(typeof WORDS !== "undefined" ? WORDS : [], getWordRecord, today, allowance);
 }
 
 function getTodayStreak() {
@@ -4197,19 +4238,21 @@ function renderTodayPanel() {
 
   document.getElementById("today-date-line").textContent =
     new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-  document.getElementById("today-phrases-due").textContent = phrases.due;
-  document.getElementById("today-words-due").textContent = words.due;
+  const owed = c => c.due + c.newToday;
+  const owedLine = c => owed(c) === 0
+    ? "All caught up for today"
+    : `${c.due > 0 ? `${c.due} to review` : "Nothing to review"} · ${c.newToday} new`;
+  document.getElementById("today-phrases-due").textContent = owed(phrases);
+  document.getElementById("today-words-due").textContent = owed(words);
   document.getElementById("today-mistakes-count").textContent = mistakes;
   document.getElementById("today-streak-num").textContent = streak;
 
-  document.getElementById("today-phrases-sub").textContent =
-    phrases.due > 0 ? `${phrases.due} due · ${phrases.fresh} new` : `Nothing due · ${phrases.fresh} new`;
-  document.getElementById("today-words-sub").textContent =
-    words.due > 0 ? `${words.due} due · ${words.fresh} new` : `Nothing due · ${words.fresh} new`;
+  document.getElementById("today-phrases-sub").textContent = owedLine(phrases);
+  document.getElementById("today-words-sub").textContent = owedLine(words);
   document.getElementById("today-streak-sub").textContent =
     streak > 0 ? "Keep it alive — see your progress" : "Finish a session to start one";
-  document.querySelector('.today-row[data-go="recall"]').classList.toggle("has-due", phrases.due > 0);
-  document.querySelector('.today-row[data-go="words"]').classList.toggle("has-due", words.due > 0);
+  document.querySelector('.today-row[data-go="recall"]').classList.toggle("has-due", owed(phrases) > 0);
+  document.querySelector('.today-row[data-go="words"]').classList.toggle("has-due", owed(words) > 0);
 
   const badge = document.getElementById("today-streak-badge");
   if (streak > 0) {
@@ -4219,8 +4262,8 @@ function renderTodayPanel() {
     badge.classList.remove("visible");
   }
 
-  const phraseTotal = Math.min(TODAY_PHRASE_TARGET, phrases.due + phrases.fresh);
-  const wordTotal = Math.min(TODAY_WORD_TARGET, words.due + words.fresh);
+  const phraseTotal = Math.min(TODAY_PHRASE_TARGET, phrases.due + phrases.newToday);
+  const wordTotal = Math.min(TODAY_WORD_TARGET, words.due + words.newToday);
   renderTodayHero({ phraseTotal, wordTotal, doneToday });
   const details = {
     phrases: phraseTotal > 0 ? `${phraseTotal} cards · ${phrases.due} due` : "nothing due",
@@ -4293,9 +4336,9 @@ function startTodaySession() {
   todaySession = {
     step: 0,
     phrasesDone: 0,
-    phrasesTarget: Math.min(TODAY_PHRASE_TARGET, phrases.due + phrases.fresh),
+    phrasesTarget: Math.min(TODAY_PHRASE_TARGET, phrases.due + phrases.newToday),
     wordsDone: 0,
-    wordsTarget: Math.min(TODAY_WORD_TARGET, words.due + words.fresh),
+    wordsTarget: Math.min(TODAY_WORD_TARGET, words.due + words.newToday),
     storyDone: false,
     speakDone: false,
     thinkDone: false,
@@ -4525,8 +4568,9 @@ function updateTabBadges() {
       el.classList.toggle("visible", count > 0);
     });
   };
-  const phraseDue = countDuePhrases().due;
-  const wordDue = countDueWords().due;
+  const owed = c => c.due + c.newToday;
+  const phraseDue = owed(countDuePhrases());
+  const wordDue = owed(countDueWords());
   setBadge("recall", phraseDue);
   setBadge("words", wordDue);
 
@@ -7081,6 +7125,7 @@ function getWordStatus(id) {
 
 function updateWordSRS(id, rating) {
   const r = getWordRecord(id);
+  if (!r.dueDate) noteIntroduced("words", id);
   let interval = r.interval;
   let ef = r.easeFactor;
 
@@ -7125,22 +7170,10 @@ function buildWordsQueue() {
   if (posVal !== "all") source = source.filter(w => w.pos === posVal);
   if (cefrFilter !== "all") source = source.filter(w => TIER_TO_CEFR[w.tier] === cefrFilter);
 
-  if (wordsShuffled) {
-    // Shuffle within due/new and upcoming groups separately to keep priority
-    const dueGroup = source.filter(w => isWordDue(w.id));
-    const upcomingGroup = source.filter(w => !isWordDue(w.id));
-    source = [
-      ...dueGroup.sort(() => Math.random() - 0.5),
-      ...upcomingGroup.sort(() => Math.random() - 0.5),
-    ];
-  } else {
-    source = [...source].sort((a, b) => {
-      const aDue = isWordDue(a.id) ? 0 : 1;
-      const bDue = isWordDue(b.id) ? 0 : 1;
-      if (aDue !== bDue) return aDue - bDue;
-      return a.tier - b.tier || a.id - b.id;
-    });
-  }
+  // Tier order first, so new words arrive easiest-first and same-day reviews
+  // tie-break the same way.
+  source = [...source].sort((a, b) => a.tier - b.tier || a.id - b.id);
+  source = orderForReview(source, getWordRecord, todayStr(), wordsShuffled);
 
   wordsQueue = source;
   wordsIndex = 0;
@@ -7148,14 +7181,11 @@ function buildWordsQueue() {
 
 function updateWordsStatsBar() {
   const source = typeof WORDS !== "undefined" ? WORDS : [];
-  let mastered = 0, due = 0;
-  for (const w of source) {
-    const st = getWordStatus(w.id);
-    if (st === "mastered") mastered++;
-    else if (st === "due" || st === "new") due++;
-  }
+  let mastered = 0;
+  for (const w of source) if (getWordStatus(w.id) === "mastered") mastered++;
+  const { due, newToday } = countDueWords();
   document.getElementById("words-mastered-count").textContent = `${mastered} mastered`;
-  document.getElementById("words-due-count").textContent = `${due} due`;
+  document.getElementById("words-due-count").textContent = `${due} to review · ${newToday} new`;
   document.getElementById("words-total-count").textContent = `/ ${source.length}`;
 
   const sessionEl = document.getElementById("words-session-stats");
