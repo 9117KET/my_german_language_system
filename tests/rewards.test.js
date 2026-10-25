@@ -272,7 +272,9 @@ describe("cross-device sync", () => {
       assert.ok(appJs.includes(`function ${fn}(`), `${fn} not defined`);
     }
     assert.ok(appJs.includes("setupSyncCard();"), "setupSyncCard not called in init");
-    assert.ok(appJs.includes("if (getSyncId()) syncPull();"), "init must pull when linked");
+    // init pushes when linked, and a push always pulls and merges first
+    assert.ok(appJs.includes("if (getSyncId()) syncPush();"), "init must sync when linked");
+    assert.ok(/async function syncPush\(\) \{[\s\S]*?await syncPull\(\)/.test(appJs), "syncPush must pull first");
   });
 
   test("changes schedule a debounced push (series, archive, read count)", () => {

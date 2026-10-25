@@ -60,7 +60,8 @@ Open `index.html` in your browser (works on phone via OneDrive link).
 **Review order and pace:** cards you already know and that are due come first, most
 overdue first, including long-interval ("mastered") ones. New cards follow. "Due today"
 counts those reviews plus a daily allowance of new cards (10 phrases, 20 words, set by
-`NEW_PHRASES_PER_DAY` / `NEW_WORDS_PER_DAY` in `app.js`). You can always keep going past it.
+`NEW_PHRASES_PER_DAY` / `NEW_WORDS_PER_DAY` in `app.js`). You can always keep going past it. Devices linked under Progress → Sync across devices share review
+progress and the allowance; per card, the most recent change wins.
 
 ---
 
