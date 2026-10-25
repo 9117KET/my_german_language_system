@@ -1235,7 +1235,53 @@ function newAllowance(log, kind, limit, today) {
 }
 // ---- end review order ----
 
-// Which cards were seen for the first time today, per device.
+// ---- SRS sync merge ----
+// Review progress syncs card by card: for each card the most recently changed
+// record wins, so grading phrases on the phone and words on the laptop keeps
+// both. A device never deletes a card it does not have; a reset is a fresh
+// record with a newer stamp, so it travels like any other change.
+
+// Stamp every record whose content differs from what was last saved.
+function stampChangedRecords(store, saved, now) {
+  const content = r => JSON.stringify({ ...r, changedAt: 0 });
+  for (const [id, rec] of Object.entries(store)) {
+    if (!saved[id] || content(saved[id]) !== content(rec)) rec.changedAt = now;
+  }
+  return store;
+}
+
+// Records from before stamping fall back to when they were last reviewed.
+function isNewerRecord(a, b) {
+  const ca = a.changedAt || 0, cb = b.changedAt || 0;
+  if (ca !== cb) return ca > cb;
+  const la = a.lastReviewed || "", lb = b.lastReviewed || "";
+  if (la !== lb) return la > lb;
+  return (a.totalReviews || 0) > (b.totalReviews || 0);
+}
+
+function mergeSrsStores(local, remote) {
+  const merged = { ...local };
+  for (const [id, rec] of Object.entries(remote || {})) {
+    if (!rec || typeof rec !== "object") continue;
+    if (!merged[id] || isNewerRecord(rec, merged[id])) merged[id] = rec;
+  }
+  return merged;
+}
+
+// Today's first sightings, from every device, count against one allowance.
+function mergeIntroLogs(local, remote, today) {
+  const fresh = log => (log && log.date === today ? log : { date: today, phrases: [], words: [] });
+  const a = fresh(local), b = fresh(remote);
+  const union = kind => [...new Set([...(a[kind] || []), ...(b[kind] || [])])];
+  return { date: today, phrases: union("phrases"), words: union("words") };
+}
+// ---- end SRS sync merge ----
+
+function readStore(key) {
+  try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch { return {}; }
+}
+
+// Which cards were seen for the first time today, on any synced device.
 function getNewIntroLog() {
   try {
     const log = JSON.parse(localStorage.getItem("new_intro_log") || "{}");
@@ -1251,8 +1297,10 @@ function noteIntroduced(kind, id) {
 }
 
 function saveSrsData() {
+  stampChangedRecords(srsData, readStore("srsData"), Date.now());
   localStorage.setItem("srsData", JSON.stringify(srsData));
   updateTabBadges();
+  scheduleSyncPush();
 }
 
 function updateOnGotIt(id) {
@@ -1412,8 +1460,8 @@ function renderXPBar() {
   const pct = Math.min(100, Math.round((today / XP_DAILY_GOAL) * 100));
   document.getElementById("xp-goal-fill").style.width = pct + "%";
   document.getElementById("xp-goal-fill").classList.toggle("goal-hit", today >= XP_DAILY_GOAL);
-  document.getElementById("xp-goal-label").textContent = `${today} / ${XP_DAILY_GOAL} XP`;
-  document.getElementById("xp-total").textContent = `${xpState.total} XP`;
+  document.getElementById("xp-goal-label").textContent = `${today} / ${XP_DAILY_GOAL} XP today`;
+  document.getElementById("xp-total").textContent = `${xpState.total} XP total`;
 }
 
 let xpToastTimer = null;
@@ -1528,12 +1576,20 @@ function init() {
   loadXPState();
   renderXPBar();
   setupSyncCard();
-  // Pull synced episodes in the background so another device's progress appears
-  if (getSyncId()) syncPull();
+  // Merge with the other devices in the background: pull their progress in,
+  // then send this device's back (syncPush pulls before it writes).
+  if (getSyncId()) syncPush();
   // Land on the Today dashboard (mode defaults to "today")
   showTodayPanel();
   openModeFromHash();
   updateTabBadges();
+  updateCounterVisibility();
+}
+
+// The "3 / 40" position only means something in the phrase player.
+const COUNTER_MODES = ["listen", "recall", "shadow"];
+function updateCounterVisibility() {
+  counterEl.hidden = !COUNTER_MODES.includes(mode);
 }
 
 // ---- Render (player) ----
@@ -1919,6 +1975,7 @@ function setupEvents() {
         renderCard();
       }
       updateMoreTabState();
+      updateCounterVisibility();
     });
   });
 
@@ -2896,7 +2953,11 @@ function practiceNow(phraseId) {
 
 function resetSrs(phraseId) {
   if (!confirm("Reset SRS data for this phrase?")) return;
-  delete srsData[String(phraseId)];
+  // A fresh record rather than a delete, so the reset reaches synced devices.
+  srsData[String(phraseId)] = {
+    interval: 0, easeFactor: 2.5, dueDate: null,
+    lastReviewed: null, totalReviews: 0, totalCorrect: 0, archived: false
+  };
   saveSrsData();
   renderProgressTab();
 }
@@ -4660,9 +4721,11 @@ function saveEpisodeToArchive(story) {
   scheduleSyncPush();
 }
 
-// ---- Cross-device sync (episodes, series, read count) via /api/sync ----
+// ---- Cross-device sync (review progress, episodes, series) via /api/sync ----
 // One shared JSON per sync code in a private Vercel Blob store. Create a code
 // on one device, enter it on another; pushes are debounced after any change.
+// A push always pulls and merges first: the blob is overwritten whole, so
+// writing without reading would erase what another device sent meanwhile.
 
 function getSyncId() {
   try { return localStorage.getItem("syncId") || ""; } catch { return ""; }
@@ -4680,6 +4743,9 @@ function buildSyncPayload() {
     series: getStorySeries(),
     archive: getEpisodeArchive(),
     storiesRead: getStoriesReadCount(),
+    srs: readStore("srsData"),
+    wordsSrs: readStore("wordsSRS"),
+    newIntro: getNewIntroLog(),
     savedAt: Date.now(),
   };
 }
@@ -4701,6 +4767,7 @@ function scheduleSyncPush() {
 async function syncPush() {
   const id = getSyncId();
   if (!id) return;
+  if (!(await syncPull())) return; // never overwrite what we could not read
   try {
     const res = await fetch("/api/sync", {
       method: "POST",
@@ -4737,8 +4804,27 @@ async function syncPull() {
   }
 }
 
+// Card by card, newest change wins (see mergeSrsStores). The in-memory stores
+// are replaced too: the next save writes them out whole, and a stale copy
+// would undo the merge on this device.
+function mergeSyncedReviews(remote) {
+  if (remote.srs && typeof remote.srs === "object") {
+    srsData = mergeSrsStores(readStore("srsData"), remote.srs);
+    try { localStorage.setItem("srsData", JSON.stringify(srsData)); } catch {}
+  }
+  if (remote.wordsSrs && typeof remote.wordsSrs === "object") {
+    wordsSRS = mergeSrsStores(readStore("wordsSRS"), remote.wordsSrs);
+    try { localStorage.setItem("wordsSRS", JSON.stringify(wordsSRS)); } catch {}
+  }
+  const intro = mergeIntroLogs(getNewIntroLog(), remote.newIntro, todayStr());
+  try { localStorage.setItem("new_intro_log", JSON.stringify(intro)); } catch {}
+  updateTabBadges();
+  if (mode === "today") renderTodayPanel();
+}
+
 // Merge is additive and progress-preferring, so neither device loses episodes.
 function mergeSyncData(remote) {
+  mergeSyncedReviews(remote);
   const keyOf = e => `${e.genre || "?"}-${e.episode}`;
   const progress = e => (e.quizDone ? 100 : 0) + Object.keys(e.ratedWords || {}).length;
   const byKey = {};
@@ -4779,7 +4865,7 @@ function renderSyncCard() {
     if (last) setSyncStatus(`Last synced ${new Date(last).toLocaleString()}`);
     else setSyncStatus("Linked — not synced yet");
   } else {
-    setSyncStatus("Not linked. Episodes stay on this device only.");
+    setSyncStatus("Not linked. Progress stays on this device only.");
   }
 }
 
@@ -4801,13 +4887,11 @@ function setupSyncCard() {
     try { localStorage.setItem("syncId", code); } catch {}
     renderSyncCard();
     setSyncStatus("Linking…");
-    const ok = await syncPull();
-    if (ok) await syncPush(); // upload the merged state back
+    await syncPush(); // pulls and merges first, then uploads the merged state
   });
   document.getElementById("sync-now-btn").addEventListener("click", async () => {
     setSyncStatus("Syncing…");
-    const ok = await syncPull();
-    if (ok) await syncPush();
+    await syncPush();
   });
   document.getElementById("sync-copy-btn").addEventListener("click", () => {
     const id = getSyncId();
@@ -7099,8 +7183,10 @@ function loadWordsSRS() {
 }
 
 function saveWordsSRS() {
+  stampChangedRecords(wordsSRS, readStore("wordsSRS"), Date.now());
   localStorage.setItem("wordsSRS", JSON.stringify(wordsSRS));
   updateTabBadges();
+  scheduleSyncPush();
 }
 
 function getWordRecord(id) {
