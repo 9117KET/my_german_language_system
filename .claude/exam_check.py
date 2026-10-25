@@ -80,8 +80,10 @@ with sync_playwright() as p:
     page.evaluate("document.querySelector('.more-item[data-mode=\\'exam\\']').click()")
     page.wait_for_timeout(300)
     landing = page.evaluate("getComputedStyle(document.getElementById('exam-landing')).display !== 'none'")
-    cards = page.evaluate("document.querySelectorAll('.exam-task-card').length")
-    check("exam landing shows 3 task cards", landing and cards == 3, f"cards={cards}")
+    # Sprachbausteine, Leseverstehen, Hörverstehen, Schriftlicher Ausdruck, Mündlicher Ausdruck
+    cards = page.evaluate("[...document.querySelectorAll('.exam-task-card')].map(c => c.id)")
+    check("exam landing shows all 5 task cards", landing and cards == [
+        "exam-card-sb", "exam-card-lv", "exam-card-hv", "exam-card-write", "exam-card-speak"], f"cards={cards}")
     page.screenshot(path=OUT + r"\x1_landing.png")
 
     # --- Sprachbausteine ---
