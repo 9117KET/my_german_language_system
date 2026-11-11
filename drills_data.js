@@ -130,6 +130,105 @@ const DRILL_SETS = {
     ]
   },
 
+  // ---- telc B1 sets built from Examberg results up to 11 Nov 2026 ----
+  // Modelltest 3 Lesen 6/20 (Teil 1 2/5, Teil 2 0/5, Teil 3 4/10), Hören Teil 2 2/10 and 4/10,
+  // Sprechen 34/75. All texts here are written for this app; none are copied from the tests.
+
+  b1_lesen_ueberschrift: {
+    label: "telc B1 · Lesen Teil 1: Überschrift finden",
+    subtitle: "What is the text ABOUT — a course, a book, a prize, a study? You got 2/5 in MT03",
+    color: "#0ea5e9",
+    items: [
+      { id: 1601, sentence: "Text: „Die Stadtbibliothek bleibt im August wegen Bauarbeiten zu. Bücher kann man in dieser Zeit am Rathaus zurückgeben.“ Überschrift: ___", answer: "Bibliothek einen Monat geschlossen", distractors: ["Neue Bücher in der Stadtbibliothek", "Rathaus wird renoviert", "Bibliothek sucht Mitarbeiter"], rule: "Ask: what is the main news? 'bleibt zu' = geschlossen. The Rathaus is only a detail — a headline built on a detail is the trap." },
+      { id: 1602, sentence: "Text: „Die Volkshochschule bietet ab März zum zweiten Mal einen Kurs an, in dem Senioren lernen, mit dem Smartphone umzugehen.“ Überschrift: ___", answer: "Handykurs für ältere Menschen", distractors: ["Neue Smartphones im Test", "Senioren unterrichten an der Volkshochschule", "Volkshochschule eröffnet im März"], rule: "'bietet einen Kurs an' → the text is about a COURSE. Senioren = ältere Menschen, Smartphone = Handy. In MT03 text 1 was a course too, and you chose a prize." },
+      { id: 1603, sentence: "Text: „Die Köchin Maria Huber hat zwanzig Jahre lang Suppenrezepte gesammelt. Jetzt sind sie in ihrem ersten Buch erschienen.“ Überschrift: ___", answer: "Neues Kochbuch mit Suppenrezepten", distractors: ["Kochkurs mit Maria Huber", "Restaurant feiert zwanzigsten Geburtstag", "Köchin gewinnt Preis"], rule: "'in ihrem Buch erschienen' → a BOOK, not a course. In MT03 text 3 was a recipe book and you chose a baking course." },
+      { id: 1604, sentence: "Text: „Auf der Buchmesse in Leipzig wird am Freitag das beste Kinderbuch des Jahres ausgezeichnet. Der Gewinner bekommt 5.000 Euro.“ Überschrift: ___", answer: "Preis für bestes Kinderbuch", distractors: ["Buchmesse in Leipzig eröffnet", "Kinderbücher werden teurer", "Kinder schreiben eigene Bücher"], rule: "auszeichnen / die Auszeichnung = einen Preis geben. Learn this word: it decided text 4 in MT03." },
+      { id: 1605, sentence: "Text: „Eine Umfrage unter 2.000 Berufstätigen zeigt: Wer mit dem Rad zur Arbeit fährt, ist seltener krank.“ Überschrift: ___", answer: "Studie: Radfahrer sind gesünder", distractors: ["Mehr Radwege für Berufstätige", "Immer mehr Menschen sind krank", "Umfrage: Fahrräder werden teurer"], rule: "Umfrage / Befragte / Prozent → a study. seltener krank = gesünder (the headline says it with other words)." },
+      { id: 1606, sentence: "Text: „Im Stadtpark eröffnet am Samstag ein Café, in dem sich Nachbarn treffen und miteinander reden können. Betrieben wird es vom Sportverein.“ Überschrift: ___", answer: "Sportverein eröffnet neuen Treffpunkt", distractors: ["Sportverein sucht neue Mitglieder", "Stadtpark wird am Samstag geschlossen", "Nachbarn streiten über Café"], rule: "ein Ort, wo man sich trifft = ein Treffpunkt. The headline rarely repeats the word 'Café'." },
+      { id: 1607, sentence: "Text: „Wegen des starken Schneefalls fahren heute in Hamburg keine Busse. Die U-Bahnen fahren normal.“ Überschrift: ___", answer: "Schnee stoppt Busverkehr", distractors: ["U-Bahn fällt wegen Schnee aus", "Hamburg bekommt neue Busse", "Busfahrer streiken in Hamburg"], rule: "Check WHO or WHAT is affected: Busse, not U-Bahnen. Two headlines often share a topic and differ in one detail." },
+      { id: 1608, sentence: "Text: „Das Museum für Technik sucht Jugendliche, die in den Ferien Kindergruppen durch die Ausstellung führen möchten.“ Überschrift: ___", answer: "Museum sucht junge Helfer", distractors: ["Neue Ausstellung für Kinder", "Museum in den Ferien geschlossen", "Jugendliche bauen eigene Technik"], rule: "Find the verb of the text: 'sucht'. The headline must carry the same action." },
+      { id: 1609, sentence: "In Lesen Teil 1 gibt es 5 Texte und 10 Überschriften. Jede Überschrift passt ___.", answer: "höchstens einmal", distractors: ["immer zweimal", "zu jedem Text", "so oft man will"], rule: "5 headlines stay unused. They come in look-alike pairs (two about cafés, two about computers) — read both of a pair before you decide." },
+    ]
+  },
+
+  b1_lesen_anzeigen: {
+    label: "telc B1 · Lesen Teil 3: Passt die Anzeige?",
+    subtitle: "Check day, time, and who is looking for whom — and use X. You got 4/10 in MT03",
+    color: "#14b8a6",
+    items: [
+      { id: 1701, sentence: "Sie möchten am Mittwochmittag essen gehen. Anzeige: „Restaurant Sol, geöffnet Di–So 18–24 Uhr.“ Passt das? ___", answer: "Nein – mittags ist geschlossen", distractors: ["Ja – passt genau", "Nein – mittwochs ist Ruhetag", "Nein – das ist kein Restaurant"], rule: "Check the day AND the time. Open from 18 Uhr = no lunch. In MT03 this situation had no fitting ad → X." },
+      { id: 1702, sentence: "Ein Koch sucht Arbeit, kann aber nur abends unter der Woche. Anzeige: „Bistro sucht Koch/Köchin für das Wochenende.“ Passt das? ___", answer: "Nein – die Arbeitszeit passt nicht", distractors: ["Ja – passt genau", "Nein – das Bistro sucht keinen Koch", "Nein – er hat keine Ausbildung"], rule: "The classic trap: the job fits, ONE condition does not. Read the situation to its last sentence. You took this trap in MT03 (17)." },
+      { id: 1703, sentence: "Sie möchten alte Kinderbücher verkaufen. Anzeige: „Antiquariat sucht Bücher aller Art, auch Kinderbücher. Wir machen Ihnen einen guten Preis.“ Passt das? ___", answer: "Ja – das Geschäft kauft Bücher", distractors: ["Nein – das Geschäft verkauft nur Bücher", "Nein – Kinderbücher nimmt es nicht", "Nein – das ist eine Stellenanzeige"], rule: "Who gives, who takes? You want to SELL, so the ad must want to BUY ('wir suchen', 'wir kaufen')." },
+      { id: 1704, sentence: "Sie suchen eine Büroarbeit, bei der Sie wenig telefonieren müssen. Anzeige: „Versicherung sucht Teilzeitkräfte für telefonische Kundenberatung.“ Passt das? ___", answer: "Nein – man muss viel telefonieren", distractors: ["Ja – passt genau", "Nein – das ist keine Büroarbeit", "Nein – die Firma sucht niemanden"], rule: "'aber kein…', 'nur…', 'nicht…' in the situation is the deciding condition. Underline it first." },
+      { id: 1705, sentence: "Sie suchen eine Büroarbeit. Sie können gut rechnen und am Computer arbeiten. Anzeige: „Import-Firma sucht Mitarbeiter. Arbeiten Sie gern mit Zahlen? Kenntnisse in Word und Excel von Vorteil.“ Passt das? ___", answer: "Ja – Zahlen und Computer passen", distractors: ["Nein – man braucht Erfahrung im Tourismus", "Nein – die Firma verkauft Computer", "Nein – man muss abends arbeiten"], rule: "gut rechnen = gern mit Zahlen arbeiten; Computer = Word und Excel. The ad says it with other words." },
+      { id: 1706, sentence: "Sie möchten am Wochenende mit Freunden draußen essen. Anzeige: „Restaurant mit Sommergarten, Mo–So 10–24 Uhr.“ Passt das? ___", answer: "Ja – im Sommergarten sitzt man draußen", distractors: ["Nein – am Wochenende ist geschlossen", "Nein – das Restaurant sucht Personal", "Nein – man kann nur drinnen sitzen"], rule: "draußen sitzen = Garten / Terrasse / Biergarten. Mo–So includes the weekend." },
+      { id: 1707, sentence: "Zwei Jugendliche möchten lernen, bessere Geschichten zu schreiben. Anzeige: „Kurse für Erwachsene, die Schwierigkeiten beim Lesen und Schreiben haben.“ Passt das? ___", answer: "Nein – der Kurs ist für eine andere Gruppe", distractors: ["Ja – es geht ums Schreiben", "Nein – der Kurs ist zu teuer", "Nein – der Kurs ist am Wochenende"], rule: "Same word ('Schreiben'), different purpose. A shared keyword is never enough — you chose this kind of ad in MT03 (20)." },
+      { id: 1708, sentence: "Zwei Jugendliche möchten lernen, bessere Geschichten zu schreiben. Anzeige: „Schreibwerkstatt für Jugendliche ab 14: Wir entwickeln eigene Figuren und Geschichten.“ Passt das? ___", answer: "Ja – ein Schreibkurs für Jugendliche", distractors: ["Nein – der Kurs ist nur für Erwachsene", "Nein – dort kann man nur Bücher kaufen", "Nein – das ist ein Filmabend"], rule: "Werkstatt / Workshop = a course. Group (Jugendliche) and purpose (Geschichten) both fit." },
+      { id: 1709, sentence: "In Lesen Teil 3 gibt es 10 Situationen und 12 Anzeigen. Jede Anzeige darf man ___ benutzen.", answer: "nur einmal", distractors: ["zweimal", "dreimal", "so oft man will"], rule: "In MT03 you used ad i three times and ad k twice — that alone cost at least three points. Cross out each ad once it is used." },
+      { id: 1710, sentence: "Wenn in Lesen Teil 3 keine Anzeige zu einer Situation passt, markiert man ___.", answer: "X", distractors: ["A", "nichts", "zwei Buchstaben"], rule: "There are usually one or two X answers. In MT03 two were X and you never marked it." },
+    ]
+  },
+
+  b1_hoeren_rf: {
+    label: "telc B1 · Hören Teil 2: richtig oder falsch?",
+    subtitle: "früher · eigentlich · kaum · nicht … sondern — the interview was 2/10 and 4/10",
+    color: "#f59e0b",
+    items: [
+      { id: 1801, sentence: "Du hörst: „Früher bin ich jeden Tag mit dem Auto gefahren, aber seit einem Jahr nehme ich nur noch das Rad.“ Aussage: „Die Frau fährt täglich Auto.“ Das ist ___.", answer: "falsch – das war früher", distractors: ["richtig", "falsch – sie hat kein Rad", "falsch – sie fährt Bus"], rule: "früher … aber jetzt/seit … → only the part after 'aber' is true today. Hearing the keyword 'Auto' does not make the statement right." },
+      { id: 1802, sentence: "Du hörst: „Eigentlich wollte ich Lehrer werden, aber dann habe ich doch Medizin studiert.“ Aussage: „Der Mann ist Lehrer geworden.“ Das ist ___.", answer: "falsch – das war nur sein Plan", distractors: ["richtig", "falsch – er hat nicht studiert", "falsch – er ist Koch geworden"], rule: "eigentlich + wollte = a plan that did NOT happen. Wait for 'aber … doch'." },
+      { id: 1803, sentence: "Du hörst: „Das Café öffnet um halb neun.“ Aussage: „Das Café öffnet um 8:30 Uhr.“ Das ist ___.", answer: "richtig – halb neun ist 8:30", distractors: ["falsch – es öffnet um 9:30", "falsch – es öffnet um 9:00", "falsch – es öffnet um 8:00"], rule: "halb neun = 8:30 (half an hour BEFORE nine). Viertel vor neun = 8:45, Viertel nach neun = 9:15." },
+      { id: 1804, sentence: "Du hörst: „Meine Kollegin findet Homeoffice toll, ich selbst arbeite lieber im Büro.“ Aussage: „Die Sprecherin arbeitet gern zu Hause.“ Das ist ___.", answer: "falsch – das sagt sie über die Kollegin", distractors: ["richtig", "falsch – sie hat kein Büro", "falsch – sie arbeitet nicht"], rule: "WHO has the opinion? Interviews mix 'ich', 'meine Kollegin', 'viele Leute'. The statement must match the right person." },
+      { id: 1805, sentence: "Du hörst: „Der Kurs ist nicht gerade billig, aber er lohnt sich.“ Aussage: „Der Kurs ist teuer.“ Das ist ___.", answer: "richtig – nicht billig heißt teuer", distractors: ["falsch – er ist billig", "falsch – er ist kostenlos", "falsch – er lohnt sich nicht"], rule: "A true statement often uses the OPPOSITE word with a negation: nicht billig = teuer, nicht selten = oft." },
+      { id: 1806, sentence: "Du hörst: „Ich habe kaum Freizeit.“ Aussage: „Die Frau hat viel Freizeit.“ Das ist ___.", answer: "falsch – kaum heißt fast keine", distractors: ["richtig", "falsch – sie hat gar keine Arbeit", "falsch – sie will keine Freizeit"], rule: "kaum = fast nicht / fast kein. Small words that flip the meaning: kaum, selten, nie, weder … noch." },
+      { id: 1807, sentence: "Du hörst: „Wir haben uns nicht im Kurs kennengelernt, sondern auf einer Party.“ Aussage: „Die beiden kennen sich aus dem Kurs.“ Das ist ___.", answer: "falsch – nach sondern kommt die Wahrheit", distractors: ["richtig", "falsch – sie kennen sich gar nicht", "falsch – sie kennen sich aus der Schule"], rule: "nicht A, sondern B → B is true. The statement repeats A to catch people who only listen for keywords." },
+      { id: 1808, sentence: "Du hörst: „Ich muss fast jedes Wochenende arbeiten.“ Aussage: „Der Mann arbeitet oft am Samstag oder Sonntag.“ Das ist ___.", answer: "richtig – fast jedes heißt oft", distractors: ["falsch – er arbeitet nie am Wochenende", "falsch – er arbeitet nur montags", "falsch – er hat keine Arbeit"], rule: "Right statements are paraphrases: Wochenende = Samstag oder Sonntag, fast jedes = oft." },
+      { id: 1809, sentence: "Du hörst: „Die Stelle habe ich nur bekommen, weil ich Spanisch kann.“ Aussage: „Seine Sprachkenntnisse haben ihm geholfen.“ Das ist ___.", answer: "richtig – Spanisch können sind Sprachkenntnisse", distractors: ["falsch – er spricht kein Spanisch", "falsch – er hat die Stelle nicht bekommen", "falsch – er lernt gerade Spanisch"], rule: "The statement uses a general word (Sprachkenntnisse) for a concrete one (Spanisch). Do not mark 'falsch' just because the exact word is missing." },
+      { id: 1810, sentence: "Du hörst: „Ich würde gern nach Kanada ziehen, wenn ich genug Geld hätte.“ Aussage: „Die Frau zieht nach Kanada.“ Das ist ___.", answer: "falsch – es ist nur ein Wunsch", distractors: ["richtig", "falsch – sie war schon in Kanada", "falsch – sie zieht nach Spanien"], rule: "würde / hätte / wäre = wish, not fact." },
+      { id: 1811, sentence: "Das Interview in Hören Teil 2 hörst du ___.", answer: "zweimal", distractors: ["einmal", "dreimal", "viermal"], rule: "First time: decide. Second time: check only the ones you were unsure about. The 10 statements follow the order of the interview — if you lose the thread, jump to the next statement." },
+      { id: 1812, sentence: "Die fünf kurzen Texte in Hören Teil 1 hörst du nur ___.", answer: "einmal", distractors: ["zweimal", "dreimal", "so oft du willst"], rule: "Read the statement BEFORE the audio starts and underline the key word. Teil 1 asks for the speaker's general opinion, not for details." },
+    ]
+  },
+
+  b1_sprechen_teil23: {
+    label: "telc B1 · Sprechen Teil 2 + 3: Redemittel",
+    subtitle: "Report, give your opinion, ask back, plan together — Teil 2 was 12/30, Teil 3 14/30",
+    color: "#ec4899",
+    items: [
+      { id: 1901, sentence: "In meinem Text ___ es um das Thema Fernsehen.", answer: "geht", distractors: ["ist", "handelt", "spricht"], rule: "Es geht um + Akkusativ. Your first sentence in Teil 2 — learn it by heart." },
+      { id: 1902, sentence: "Die Person in meinem Text ___, dass Kinder zu viel fernsehen.", answer: "meint", distractors: ["meinen", "gemeint", "Meinung"], rule: "Die Person meint / sagt / findet, dass … + verb at the end." },
+      { id: 1903, sentence: "Ich bin der ___, dass man weniger fernsehen sollte.", answer: "Meinung", distractors: ["Gedanke", "Idee", "Grund"], rule: "Ich bin der Meinung, dass … = Ich finde, dass …" },
+      { id: 1904, sentence: "In meinem Heimatland ist das ganz ___.", answer: "anders", distractors: ["andere", "anderes", "Unterschied"], rule: "Compare with your own country or experience — it gives you two easy extra sentences in Teil 2." },
+      { id: 1905, sentence: "Wie ist das bei ___? Siehst du oft fern?", answer: "dir", distractors: ["dich", "du", "dein"], rule: "bei + Dativ → bei dir. Asking your partner counts for Aufgabenbewältigung; your feedback said you rarely asked." },
+      { id: 1906, sentence: "Ich schlage ___, dass wir am Samstag feiern.", answer: "vor", distractors: ["an", "zu", "auf"], rule: "vorschlagen is separable: Ich schlage vor, dass … The core phrase of Teil 3." },
+      { id: 1907, sentence: "Wollen wir uns am Freitag treffen? – Ja, das ___ mir gut.", answer: "passt", distractors: ["passe", "gepasst", "passen"], rule: "Das passt mir (gut). / Das passt mir leider nicht." },
+      { id: 1908, sentence: "Am Samstag kann ich leider nicht. ___ wäre es mit Sonntag?", answer: "Wie", distractors: ["Was", "Wann", "Wo"], rule: "Wie wäre es mit + Dativ? Say no AND offer an alternative." },
+      { id: 1909, sentence: "Wer kümmert sich ___ die Getränke?", answer: "um", distractors: ["für", "über", "an"], rule: "sich kümmern um + Akkusativ. Use it to share out the tasks." },
+      { id: 1910, sentence: "Ich bin einverstanden. Dann ___ wir es so.", answer: "machen", distractors: ["macht", "mache", "gemacht"], rule: "Close each planning point out loud: Gut, dann machen wir es so." },
+      { id: 1911, sentence: "Kannst du das bitte ___? Ich habe es nicht verstanden.", answer: "wiederholen", distractors: ["wiederholst", "wiederholt", "wieder"], rule: "Modal verb + infinitive at the end. Asking to repeat costs no points — silence does." },
+      { id: 1912, sentence: "Ein Restaurant finde ich nicht so gut, ___ das für alle zu teuer wird.", answer: "weil", distractors: ["denn", "deshalb", "aber"], rule: "The verb stands at the end → weil. Always give a reason with your opinion." },
+      { id: 1913, sentence: "Also, fassen wir ___: Du kaufst das Geschenk und ich backe den Kuchen.", answer: "zusammen", distractors: ["mit", "auf", "an"], rule: "zusammenfassen is separable. End Teil 3 with a summary of who does what." },
+    ]
+  },
+
+  b1_brief_ohne_hilfe: {
+    label: "telc B1 · Brief: ohne Hilfe schreiben",
+    subtitle: "The mistakes that stayed in your 11 Nov letter — z/y, capitals, adjective endings",
+    color: "#84cc16",
+    items: [
+      { id: 2001, sentence: "Vielen Dank ___ deinen Brief.", answer: "für", distractors: [", für", "um", "über"], rule: "No comma inside 'Vielen Dank für deinen Brief'." },
+      { id: 2002, sentence: "Schade, dass es bei dir die ___ Zeit geregnet hat.", answer: "ganze", distractors: ["ganye", "ganz", "ganzen"], rule: "z, not y. On a German keyboard Z and Y are swapped — you typed 'ganye' and 'yum'. The real exam is on paper, so practise by hand." },
+      { id: 2003, sentence: "Ich möchte eine Städtereise machen, ___ Beispiel nach Wien.", answer: "zum", distractors: ["yum", "zu", "zur"], rule: "zum Beispiel (zu + dem)." },
+      { id: 2004, sentence: "Dort gibt es viele Museen und ___ Cafés.", answer: "schöne", distractors: ["schön", "schönen", "schönes"], rule: "Plural without article, Akkusativ → -e: schöne Cafés." },
+      { id: 2005, sentence: "Wir können mit dem ___ fahren.", answer: "Zug", distractors: ["zug", "Zuge", "Züge"], rule: "Every noun starts with a capital letter. Check each noun when you reread." },
+      { id: 2006, sentence: "Wir können ___ selbst kochen.", answer: "manchmal", distractors: ["machmal", "manchmahl", "manch mal"], rule: "manchmal — with n, one word." },
+      { id: 2007, sentence: "Schreib mir bitte bald, wann du ___ hast.", answer: "Zeit", distractors: ["zeit", "Zeiten", "Zeid"], rule: "die Zeit — noun, capital Z." },
+      { id: 2008, sentence: "Deine Idee, im Sommer ___ zu reisen, finde ich super.", answer: "zusammen", distractors: ["zusaammen", "zusamen", "zussamen"], rule: "zusammen — one a, double m." },
+      { id: 2009, sentence: "Am Sonntag habe ich mit Freunden ___.", answer: "gekocht", distractors: ["kochen", "gekochen", "kochte"], rule: "Perfekt: habe … ge-koch-t. Regular verbs end in -t." },
+      { id: 2010, sentence: "Eine Jugendherberge ist billig. ___ brauchen wir kein Hotel.", answer: "Deshalb", distractors: ["Weil", "Dass", "Obwohl"], rule: "Deshalb + verb in position 2 (brauchen wir). weil would send the verb to the end." },
+      { id: 2011, sentence: "Für den Brief hast du in der Prüfung ___ Minuten.", answer: "30", distractors: ["20", "45", "60"], rule: "Plan: 3 min notes on the four Leitpunkte, 22 min writing, 5 min checking capitals, verb position and endings." },
+    ]
+  },
+
   akkusativ: {
     label: "Akkusativ-Präpositionen",
     subtitle: "durch · für · gegen · ohne · um · bis",
