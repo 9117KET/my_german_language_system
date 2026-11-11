@@ -68,3 +68,19 @@ describe("telc B1 sets from Modelltest 1", () => {
     }
   });
 });
+
+describe("telc B1 sets from Modelltest 3 reading and Modelltest 1/2 listening (11 Nov 2026)", () => {
+  const keys = ["b1_lesen_ueberschrift", "b1_lesen_anzeigen", "b1_hoeren_rf", "b1_sprechen_teil23", "b1_brief_ohne_hilfe"];
+
+  test("all five sets are present with at least 8 items", () => {
+    for (const key of keys) {
+      assert.ok(DRILL_SETS[key], key);
+      assert.ok(DRILL_SETS[key].items.length >= 8, key);
+    }
+  });
+
+  test("they come before the general grammar sets", () => {
+    const order = Object.keys(DRILL_SETS);
+    for (const key of keys) assert.ok(order.indexOf(key) < order.indexOf("akkusativ"), key);
+  });
+});
